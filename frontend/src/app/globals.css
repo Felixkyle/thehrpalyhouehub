@@ -1,0 +1,12 @@
+/*
+ * Global styles are intentionally minimal.
+ *
+ * Each page in this app is a faithful port of a standalone HTML document
+ * from the original WordPress site. Every page ships its own complete
+ * stylesheet (colocated <route>.css) including its own CSS reset and
+ * body styles. Adding global rules here (e.g. Tailwind base) would
+ * override or conflict with those per-page styles, so we keep this empty.
+ *
+ * Tailwind is still installed and can be introduced later when/if pages
+ * are refactored into idiomatic React components. 
+ */

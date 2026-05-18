@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Dashboard — HR Playhouse Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cabinet+Grotesk:wght@400;500;700;800;900&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --canvas: #F8F9FC; --canvas-2: #F0F2F8; --mist: #E8ECF4;
+  --ink: #0A1628; --ink-2: #1E2D4A; --ink-3: #5A6880; --ink-4: #9BABC0;
+  --navy: #0D1F3C; --navy-2: #162847; --navy-3: #1E3560; --navy-deep: #070F1E;
+  --accent: #C9501E; --accent-2: #A8400F; --accent-pale: #FAF0EB;
+  --gold: #C4830A; --gold-pale: #FDF4DD;
+  --green: #1a7a4a; --green-pale: #e8f7ee;
+  --white: #FFFFFF; --border: rgba(10,22,40,.1); --border-light: rgba(10,22,40,.06);
+  --f-display: 'Cabinet Grotesk', system-ui, sans-serif;
+  --f-body: 'Plus Jakarta Sans', system-ui, sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 16px; -webkit-font-smoothing: antialiased; }
+body { font-family: var(--f-body); background: var(--canvas); color: var(--ink); min-height: 100vh; }
+
+/* TOP NAV */
+.topnav { height: 60px; background: var(--navy); display: flex; align-items: center; padding: 0 24px; gap: 20px; position: sticky; top: 0; z-index: 100; }
+.nav-logo { display: flex; align-items: center; gap: 8px; text-decoration: none; }
+.nav-logo-pill { height: 28px; padding: 0 11px; border-radius: 100px; background: var(--accent); font-family: var(--f-display); font-size: 11px; font-weight: 800; color: #fff; display: flex; align-items: center; }
+.nav-logo-text { font-family: var(--f-display); font-size: 14px; font-weight: 700; color: rgba(255,255,255,.75); }
+.topnav-links { display: flex; gap: 2px; flex: 1; overflow-x: auto; scrollbar-width: none; }
+.topnav-links::-webkit-scrollbar { display: none; }
+@media (max-width: 640px) {
+  .topnav-links { position: absolute; top: 56px; left: 0; right: 0; background: var(--navy-2, #162847); flex-direction: column; padding: 8px 12px 12px; gap: 2px; z-index: 99; border-bottom: 1px solid rgba(255,255,255,.08); }
+  .tnl { padding: 10px 12px; border-radius: 8px; }
+}
+.topnav-links::-webkit-scrollbar { display: none; }
+.tnl { padding: 5px 12px; border-radius: 7px; font-family: var(--f-body); font-size: 13px; font-weight: 500; color: rgba(255,255,255,.55); text-decoration: none; white-space: nowrap; transition: .15s; }
+.tnl:hover { color: #fff; background: rgba(255,255,255,.08); }
+.tnl.active { color: #fff; background: rgba(255,255,255,.1); }
+.topnav-right { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+.user-avatar { width: 34px; height: 34px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; font-family: var(--f-display); font-size: 13px; font-weight: 900; color: #fff; flex-shrink: 0; cursor: pointer; }
+
+/* LAYOUT */
+.dashboard { max-width: 1200px; margin: 0 auto; padding: 32px 24px 60px; display: grid; grid-template-columns: 280px 1fr; gap: 24px; align-items: start; }
+
+/* SIDEBAR */
+.sidebar { display: flex; flex-direction: column; gap: 16px; position: sticky; top: 76px; }
+.user-card { background: var(--navy); border-radius: 16px; padding: 24px; color: #fff; }
+.uc-avatar { width: 56px; height: 56px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; font-family: var(--f-display); font-size: 20px; font-weight: 900; color: #fff; margin-bottom: 14px; }
+.uc-name { font-family: var(--f-display); font-size: 18px; font-weight: 800; color: #fff; margin-bottom: 2px; }
+.uc-role { font-family: var(--f-body); font-size: 12.5px; color: rgba(255,255,255,.5); margin-bottom: 14px; }
+.uc-level-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.15); border-radius: 100px; padding: 4px 12px; font-family: var(--f-body); font-size: 11px; font-weight: 600; color: rgba(255,255,255,.75); }
+.uc-level-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+.uc-divider { height: 1px; background: rgba(255,255,255,.1); margin: 16px 0; }
+.uc-stat-row { display: flex; justify-content: space-between; }
+.uc-stat { text-align: center; }
+.uc-stat-n { font-family: var(--f-display); font-size: 22px; font-weight: 900; color: #fff; }
+.uc-stat-l { font-family: var(--f-body); font-size: 10px; color: rgba(255,255,255,.4); text-transform: uppercase; letter-spacing: .06em; margin-top: 2px; }
+
+.side-nav { background: var(--white); border-radius: 14px; border: 1px solid var(--border-light); overflow: hidden; }
+.sn-item { display: flex; align-items: center; gap: 11px; padding: 12px 16px; font-family: var(--f-body); font-size: 13.5px; font-weight: 500; color: var(--ink-2); text-decoration: none; border-bottom: 1px solid var(--border-light); transition: .12s; }
+.sn-item:last-child { border-bottom: none; }
+.sn-item:hover { background: var(--canvas); color: var(--navy); }
+.sn-item.active { background: var(--canvas-2); color: var(--navy); font-weight: 700; }
+.sn-icon { width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+.sn-badge { margin-left: auto; background: var(--accent); color: #fff; font-family: var(--f-body); font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 100px; }
+
+/* MAIN CONTENT */
+.main { display: flex; flex-direction: column; gap: 20px; }
+
+/* WELCOME HEADER */
+.welcome-header { background: linear-gradient(135deg, var(--navy) 0%, var(--navy-3) 100%); border-radius: 16px; padding: 28px 32px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+.wh-left { }
+.wh-greeting { font-family: var(--f-body); font-size: 12px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: rgba(255,255,255,.45); margin-bottom: 6px; }
+.wh-title { font-family: var(--f-display); font-size: 24px; font-weight: 900; color: #fff; letter-spacing: -.3px; margin-bottom: 6px; }
+.wh-sub { font-family: var(--f-body); font-size: 14px; color: rgba(255,255,255,.55); }
+.wh-next-btn { height: 40px; padding: 0 20px; border-radius: 100px; background: var(--accent); color: #fff; border: none; font-family: var(--f-body); font-size: 13px; font-weight: 700; cursor: pointer; text-decoration: none; display: flex; align-items: center; gap: 7px; white-space: nowrap; transition: .15s; flex-shrink: 0; }
+.wh-next-btn:hover { background: var(--accent-2); }
+
+/* PROGRESS SECTION */
+.section-title { font-family: var(--f-display); font-size: 17px; font-weight: 800; color: var(--ink); letter-spacing: -.2px; margin-bottom: 14px; }
+.levels-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+.level-card { background: var(--white); border-radius: 14px; border: 1px solid var(--border-light); padding: 20px; transition: .2s; }
+.level-card:hover { border-color: var(--navy); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(10,22,40,.08); }
+.level-card.current { border-color: var(--navy); box-shadow: 0 0 0 2px rgba(13,31,60,.08); }
+.lc-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.lc-badge { font-family: var(--f-body); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; padding: 3px 9px; border-radius: 100px; }
+.lc-status { font-family: var(--f-body); font-size: 11px; font-weight: 600; color: var(--ink-4); display: flex; align-items: center; gap: 5px; }
+.lc-title { font-family: var(--f-display); font-size: 16px; font-weight: 800; color: var(--ink); margin-bottom: 4px; letter-spacing: -.2px; }
+.lc-sub { font-family: var(--f-body); font-size: 12px; color: var(--ink-3); margin-bottom: 14px; }
+.lc-progress-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.lc-bar { flex: 1; height: 6px; background: var(--mist); border-radius: 3px; overflow: hidden; }
+.lc-fill { height: 6px; border-radius: 3px; transition: width .6s ease; }
+.lc-pct { font-family: var(--f-display); font-size: 13px; font-weight: 900; color: var(--ink-2); flex-shrink: 0; }
+.lc-topics { display: flex; gap: 5px; flex-wrap: wrap; }
+.lc-topic { font-family: var(--f-body); font-size: 10px; font-weight: 500; padding: 2px 7px; background: var(--canvas); border: 1px solid var(--border-light); border-radius: 4px; color: var(--ink-3); }
+.lc-action { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border-light); }
+.lc-btn { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 16px; border-radius: 100px; border: none; font-family: var(--f-body); font-size: 12px; font-weight: 700; cursor: pointer; text-decoration: none; transition: .15s; }
+.lc-btn.primary { background: var(--navy); color: #fff; }
+.lc-btn.primary:hover { background: var(--navy-2); }
+.lc-btn.outline { background: transparent; color: var(--navy); border: 1.5px solid var(--navy); }
+.lc-btn.outline:hover { background: var(--canvas-2); }
+.lc-btn.locked { background: var(--mist); color: var(--ink-4); cursor: not-allowed; }
+.lc-lock { font-size: 12px; }
+
+/* ACTIVITY + QUICK ACCESS GRID */
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+/* ACTIVITY FEED */
+.activity-feed { background: var(--white); border-radius: 14px; border: 1px solid var(--border-light); padding: 20px; }
+.activity-list { display: flex; flex-direction: column; gap: 0; }
+.activity-item { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border-light); }
+.activity-item:last-child { border-bottom: none; padding-bottom: 0; }
+.activity-icon { width: 34px; height: 34px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0; margin-top: 1px; }
+.activity-title { font-family: var(--f-body); font-size: 13px; font-weight: 600; color: var(--ink); margin-bottom: 2px; line-height: 1.3; }
+.activity-meta { font-family: var(--f-body); font-size: 12px; color: var(--ink-4); }
+
+/* QUICK ACCESS */
+.quick-access { background: var(--white); border-radius: 14px; border: 1px solid var(--border-light); padding: 20px; }
+.qa-grid { display: flex; flex-direction: column; gap: 8px; }
+.qa-item { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 10px; background: var(--canvas); border: 1px solid var(--border-light); text-decoration: none; transition: .15s; }
+.qa-item:hover { border-color: var(--navy); background: var(--canvas-2); }
+.qa-icon { width: 36px; height: 36px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+.qa-label { font-family: var(--f-body); font-size: 13px; font-weight: 600; color: var(--ink-2); flex: 1; }
+.qa-arrow { font-size: 13px; color: var(--ink-4); transition: .15s; }
+.qa-item:hover .qa-arrow { color: var(--navy); transform: translateX(2px); }
+
+/* BADGES */
+.badges-section { background: var(--white); border-radius: 14px; border: 1px solid var(--border-light); padding: 20px; }
+.badges-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 4px; }
+.badge-item { text-align: center; padding: 16px 8px; border-radius: 12px; border: 1px solid var(--border-light); transition: .15s; }
+.badge-item.earned { background: var(--canvas); border-color: var(--border); }
+.badge-item.locked { opacity: .4; filter: grayscale(1); }
+.badge-item:hover.earned { border-color: var(--navy); }
+.badge-emoji { font-size: 28px; display: block; margin-bottom: 8px; }
+.badge-name { font-family: var(--f-body); font-size: 11px; font-weight: 600; color: var(--ink-2); line-height: 1.3; }
+.badge-date { font-family: var(--f-body); font-size: 10px; color: var(--ink-4); margin-top: 3px; }
+
+/* NEXT STEP BANNER */
+.next-step-banner { background: var(--navy-deep); border-radius: 14px; padding: 20px 24px; display: flex; align-items: center; gap: 20px; }
+.nsb-icon { width: 48px; height: 48px; border-radius: 12px; background: rgba(201,80,30,.2); border: 1px solid rgba(201,80,30,.3); display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+.nsb-body { flex: 1; }
+.nsb-label { font-family: var(--f-body); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: rgba(255,255,255,.4); margin-bottom: 4px; }
+.nsb-title { font-family: var(--f-display); font-size: 17px; font-weight: 800; color: #fff; margin-bottom: 3px; letter-spacing: -.2px; }
+.nsb-sub { font-family: var(--f-body); font-size: 13px; color: rgba(255,255,255,.5); }
+.nsb-btn { height: 38px; padding: 0 20px; border-radius: 100px; background: var(--accent); color: #fff; border: none; font-family: var(--f-body); font-size: 13px; font-weight: 700; cursor: pointer; text-decoration: none; display: flex; align-items: center; gap: 7px; white-space: nowrap; transition: .15s; flex-shrink: 0; }
+.nsb-btn:hover { background: var(--accent-2); }
+
+/* DEVELOPER NOTE */
+.dev-note { background: var(--gold-pale); border: 1px solid rgba(196,131,10,.3); border-radius: 12px; padding: 14px 16px; }
+.dev-note-title { font-family: var(--f-display); font-size: 13px; font-weight: 800; color: var(--gold); margin-bottom: 6px; }
+.dev-note-body { font-family: var(--f-body); font-size: 12px; color: #4a3510; line-height: 1.6; }
+.dev-note-body code { background: rgba(196,131,10,.1); padding: 1px 5px; border-radius: 4px; font-family: monospace; font-size: 11px; }
+
+@media (max-width: 900px) {
+  .dashboard { grid-template-columns: 1fr; }
+  .sidebar { position: static; }
+  .levels-grid, .two-col { grid-template-columns: 1fr; }
+  .badges-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ── MOBILE FIXES ─────────────────────────────────────── */
+@media (max-width: 900px) {
+  .dashboard { grid-template-columns: 1fr; padding: 20px 16px 48px; gap: 16px; }
+  .sidebar { position: static; }
+  .quick-stats { grid-template-columns: repeat(2, 1fr); }
+  .topnav { padding: 0 16px; }
+  .topnav-links { gap: 1px; }
+}
+
+@media (max-width: 640px) {
+  .dashboard { padding: 14px 12px 40px; }
+  .topnav-links { display: none; }
+  .quick-stats { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .user-card { padding: 18px; }
+  .level-card { padding: 18px 16px; }
+  .lc-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .lc-progress-bar-wrap { width: 100%; }
+  .activity-item { padding: 12px 14px; }
+  .section-header { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .uc-stat-n { font-size: 20px; }
+  /* Hamburger visible on mobile */
+  .mobile-menu-btn { display: flex !important; }
+  /* Sidebar nav stacks before main on mobile */
+  .sidebar { order: -1; }
+}
+
+@media (max-width: 480px) {
+  .quick-stats { grid-template-columns: 1fr 1fr; }
+  .qs-card { padding: 14px 12px; }
+  .qs-num { font-size: 24px; }
+}
+
+</style>
+</head>
+<body>
+
+<nav class="topnav">
+  <a class="nav-logo" href="https://www.thehrplayhousehub.org/">
+    <div class="nav-logo-pill">HR Playhouse</div>
+    <div class="nav-logo-text">Hub</div>
+  </a>
+  <div class="topnav-links">
+    <a class="tnl active" href="/dashboard/">Dashboard</a>
+    <a class="tnl" href="https://learn.thehrplayhousehub.org/courses/">Courses</a>
+    <a class="tnl" href="https://learn.thehrplayhousehub.org/case-study-vault/">Case Studies</a>
+    <a class="tnl" href="https://learn.thehrplayhousehub.org/playbook/">Playbook</a>
+    <a class="tnl" href="https://learn.thehrplayhousehub.org/virtual-innovation-lab/">Innovation Lab</a>
+    <a class="tnl" href="https://learn.thehrplayhousehub.org/hr-support/">AI Support</a>
+  </div>
+  <button class="mobile-menu-btn" onclick="document.querySelector('.topnav-links').style.display = document.querySelector('.topnav-links').style.display==='none'?'flex':'none'" style="display:none;margin-left:auto;width:36px;height:36px;border-radius:8px;background:rgba(255,255,255,.1);border:none;cursor:pointer;flex-direction:column;align-items:center;justify-content:center;gap:5px;flex-shrink:0">
+    <div style="width:18px;height:2px;background:#fff;border-radius:1px"></div>
+    <div style="width:18px;height:2px;background:#fff;border-radius:1px"></div>
+    <div style="width:18px;height:2px;background:#fff;border-radius:1px"></div>
+  </button>
+  <div class="topnav-right">
+    <div class="user-avatar" title="Ada Okonkwo">AO</div>
+  </div>
+</nav>
+
+<div class="dashboard">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="user-card">
+      <div class="uc-avatar">AO</div>
+      <div class="uc-name">Ada Okonkwo</div>
+      <div class="uc-role">HR Business Partner · Lagos, Nigeria</div>
+      <div class="uc-level-badge"><div class="uc-level-dot"></div>Level 2 — Operational HR</div>
+      <div class="uc-divider"></div>
+      <div class="uc-stat-row">
+        <div class="uc-stat"><div class="uc-stat-n">3</div><div class="uc-stat-l">Courses</div></div>
+        <div class="uc-stat"><div class="uc-stat-n">12</div><div class="uc-stat-l">Cases Read</div></div>
+        <div class="uc-stat"><div class="uc-stat-n">4</div><div class="uc-stat-l">Badges</div></div>
+      </div>
+    </div>
+
+    <div class="side-nav">
+      <a class="sn-item active" href="/dashboard/">
+        <div class="sn-icon" style="background:#E8ECF4">📊</div> My Dashboard
+      </a>
+      <a class="sn-item" href="https://learn.thehrplayhousehub.org/courses/">
+        <div class="sn-icon" style="background:#E8ECF4">🎓</div> My Courses
+      </a>
+      <a class="sn-item" href="https://learn.thehrplayhousehub.org/case-study-vault/">
+        <div class="sn-icon" style="background:#FDF4DD">📚</div> Case Studies
+        <span class="sn-badge">32</span>
+      </a>
+      <a class="sn-item" href="https://learn.thehrplayhousehub.org/playbook/">
+        <div class="sn-icon" style="background:#E8ECF4">📖</div> HR Playbook
+      </a>
+      <a class="sn-item" href="https://learn.thehrplayhousehub.org/virtual-innovation-lab/">
+        <div class="sn-icon" style="background:#FAF0EB">🔬</div> Innovation Lab
+      </a>
+      <a class="sn-item" href="https://learn.thehrplayhousehub.org/hr-support/">
+        <div class="sn-icon" style="background:#e8f7ee">🤖</div> AI HR Support
+      </a>
+    </div>
+
+    <!-- DEVELOPER NOTE -->
+    <div class="dev-note">
+      <div class="dev-note-title">🔧 Developer Integration Note</div>
+      <div class="dev-note-body">
+        Connect this dashboard to TutorLMS via the REST API:<br><br>
+        • User data: <code>/wp-json/tutor/v1/students/{id}</code><br>
+        • Course progress: <code>/wp-json/tutor/v1/course-progress/{id}</code><br>
+        • Enrolled courses: <code>/wp-json/tutor/v1/enrolled-courses</code><br><br>
+        Replace static content above with <code>fetch()</code> calls on page load. Store JWT token in <code>localStorage</code>.
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- WELCOME -->
+    <div class="welcome-header">
+      <div class="wh-left">
+        <div class="wh-greeting">Good morning</div>
+        <div class="wh-title">Welcome back, Ada 👋</div>
+        <div class="wh-sub">You're 75% through Level 2 — Operational HR. Keep going.</div>
+      </div>
+      <a class="wh-next-btn" href="https://learn.thehrplayhousehub.org/courses/">
+        Continue learning →
+      </a>
+    </div>
+
+    <!-- COURSE PROGRESS -->
+    <div>
+      <div class="section-title">My Learning Progress</div>
+      <div class="levels-grid">
+
+        <!-- L1 Complete -->
+        <div class="level-card">
+          <div class="lc-header">
+            <span class="lc-badge" style="background:#e8f7ee;color:#1a7a4a">Level 1</span>
+            <span class="lc-status">✓ Complete</span>
+          </div>
+          <div class="lc-title">HR Foundations</div>
+          <div class="lc-sub">Mindset, HR toolkit, culture & engagement</div>
+          <div class="lc-progress-row">
+            <div class="lc-bar"><div class="lc-fill" style="width:100%;background:#1a7a4a"></div></div>
+            <div class="lc-pct" style="color:#1a7a4a">100%</div>
+          </div>
+          <div class="lc-topics"><span class="lc-topic">3 topics</span><span class="lc-topic">Case study</span><span class="lc-topic">3 games</span></div>
+          <div class="lc-action"><a class="lc-btn outline" href="https://learn.thehrplayhousehub.org/courses/">Review →</a></div>
+        </div>
+
+        <!-- L2 In Progress -->
+        <div class="level-card current">
+          <div class="lc-header">
+            <span class="lc-badge" style="background:#E8ECF4;color:#1E3560">Level 2 · Current</span>
+            <span class="lc-status" style="color:var(--accent)">In progress</span>
+          </div>
+          <div class="lc-title">Operational HR</div>
+          <div class="lc-sub">Hiring, performance, retention & wellbeing</div>
+          <div class="lc-progress-row">
+            <div class="lc-bar"><div class="lc-fill" style="width:75%;background:var(--navy)"></div></div>
+            <div class="lc-pct">75%</div>
+          </div>
+          <div class="lc-topics"><span class="lc-topic">2 / 3 topics</span><span class="lc-topic">Case study</span><span class="lc-topic">2 / 3 games</span></div>
+          <div class="lc-action"><a class="lc-btn primary" href="https://learn.thehrplayhousehub.org/courses/">Continue →</a></div>
+        </div>
+
+        <!-- L3 Locked -->
+        <div class="level-card">
+          <div class="lc-header">
+            <span class="lc-badge" style="background:#E8ECF4;color:#5A6880">Level 3</span>
+            <span class="lc-status"><span class="lc-lock">🔒</span> Locked</span>
+          </div>
+          <div class="lc-title">Strategic HR</div>
+          <div class="lc-sub">Analytics, talent management, HR strategy</div>
+          <div class="lc-progress-row">
+            <div class="lc-bar"><div class="lc-fill" style="width:0%;background:var(--navy)"></div></div>
+            <div class="lc-pct" style="color:var(--ink-4)">0%</div>
+          </div>
+          <div class="lc-topics"><span class="lc-topic">3 topics</span><span class="lc-topic">Case study</span><span class="lc-topic">3 games</span></div>
+          <div class="lc-action"><span class="lc-btn locked">Complete Level 2 first</span></div>
+        </div>
+
+        <!-- L4 Locked -->
+        <div class="level-card">
+          <div class="lc-header">
+            <span class="lc-badge" style="background:#E8ECF4;color:#5A6880">Level 4</span>
+            <span class="lc-status"><span class="lc-lock">🔒</span> Locked</span>
+          </div>
+          <div class="lc-title">Future-Forward HR</div>
+          <div class="lc-sub">AI, gamification, future of work + final project</div>
+          <div class="lc-progress-row">
+            <div class="lc-bar"><div class="lc-fill" style="width:0%;background:var(--navy)"></div></div>
+            <div class="lc-pct" style="color:var(--ink-4)">0%</div>
+          </div>
+          <div class="lc-topics"><span class="lc-topic">3 topics</span><span class="lc-topic">Case study</span><span class="lc-topic">Final project</span></div>
+          <div class="lc-action"><span class="lc-btn locked">Complete Level 3 first</span></div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- NEXT STEP BANNER -->
+    <div class="next-step-banner">
+      <div class="nsb-icon">📖</div>
+      <div class="nsb-body">
+        <div class="nsb-label">Your next step</div>
+        <div class="nsb-title">Topic 3: Retention & Employee Well-being</div>
+        <div class="nsb-sub">Level 2 · Operational HR — pick up where you left off</div>
+      </div>
+      <a class="nsb-btn" href="https://learn.thehrplayhousehub.org/courses/">
+        Continue →
+      </a>
+    </div>
+
+    <!-- ACTIVITY + QUICK ACCESS -->
+    <div class="two-col">
+
+      <!-- RECENT ACTIVITY -->
+      <div class="activity-feed">
+        <div class="section-title">Recent Activity</div>
+        <div class="activity-list">
+          <div class="activity-item">
+            <div class="activity-icon" style="background:#E8ECF4">🎮</div>
+            <div>
+              <div class="activity-title">Completed: Burnout Detective Game</div>
+              <div class="activity-meta">Level 2 · 2 hours ago</div>
+            </div>
+          </div>
+          <div class="activity-item">
+            <div class="activity-icon" style="background:#E8ECF4">📖</div>
+            <div>
+              <div class="activity-title">Read: Topic 2 — Performance Management</div>
+              <div class="activity-meta">Level 2 · Yesterday</div>
+            </div>
+          </div>
+          <div class="activity-item">
+            <div class="activity-icon" style="background:#FDF4DD">📚</div>
+            <div>
+              <div class="activity-title">Case Study: HealthCo Retention Crisis</div>
+              <div class="activity-meta">Case Study Vault · 2 days ago</div>
+            </div>
+          </div>
+          <div class="activity-item">
+            <div class="activity-icon" style="background:#e8f7ee">✓</div>
+            <div>
+              <div class="activity-title">Completed: HR Foundations (Level 1)</div>
+              <div class="activity-meta">3 days ago · Badge earned</div>
+            </div>
+          </div>
+          <div class="activity-item">
+            <div class="activity-icon" style="background:#FAF0EB">🤖</div>
+            <div>
+              <div class="activity-title">AI Support: Grievance procedure question</div>
+              <div class="activity-meta">AI HR Support · 4 days ago</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- QUICK ACCESS -->
+      <div class="quick-access">
+        <div class="section-title">Quick Access</div>
+        <div class="qa-grid">
+          <a class="qa-item" href="https://learn.thehrplayhousehub.org/case-study-vault/">
+            <div class="qa-icon" style="background:#FDF4DD">📚</div>
+            <div class="qa-label">Case Study Vault</div>
+            <div class="qa-arrow">→</div>
+          </a>
+          <a class="qa-item" href="https://learn.thehrplayhousehub.org/playbook/">
+            <div class="qa-icon" style="background:#E8ECF4">📖</div>
+            <div class="qa-label">Everyday HR Playbook</div>
+            <div class="qa-arrow">→</div>
+          </a>
+          <a class="qa-item" href="https://learn.thehrplayhousehub.org/hr-support/">
+            <div class="qa-icon" style="background:#e8f7ee">🤖</div>
+            <div class="qa-label">AI HR Support</div>
+            <div class="qa-arrow">→</div>
+          </a>
+          <a class="qa-item" href="https://learn.thehrplayhousehub.org/virtual-innovation-lab/">
+            <div class="qa-icon" style="background:#FAF0EB">🔬</div>
+            <div class="qa-label">Innovation Lab</div>
+            <div class="qa-arrow">→</div>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- BADGES -->
+    <div class="badges-section">
+      <div class="section-title">My Badges & Achievements</div>
+      <div class="badges-grid">
+        <div class="badge-item earned">
+          <span class="badge-emoji">🧱</span>
+          <div class="badge-name">Foundations<br>Complete</div>
+          <div class="badge-date">Earned Mar 2026</div>
+        </div>
+        <div class="badge-item earned">
+          <span class="badge-emoji">🎮</span>
+          <div class="badge-name">Game Player</div>
+          <div class="badge-date">Earned Mar 2026</div>
+        </div>
+        <div class="badge-item earned">
+          <span class="badge-emoji">📚</span>
+          <div class="badge-name">Case Student</div>
+          <div class="badge-date">Earned Mar 2026</div>
+        </div>
+        <div class="badge-item earned">
+          <span class="badge-emoji">⚙️</span>
+          <div class="badge-name">Operational<br>In Progress</div>
+          <div class="badge-date">In progress</div>
+        </div>
+        <div class="badge-item locked">
+          <span class="badge-emoji">📊</span>
+          <div class="badge-name">Strategist</div>
+          <div class="badge-date">Locked</div>
+        </div>
+        <div class="badge-item locked">
+          <span class="badge-emoji">🚀</span>
+          <div class="badge-name">Innovator</div>
+          <div class="badge-date">Locked</div>
+        </div>
+        <div class="badge-item locked">
+          <span class="badge-emoji">👑</span>
+          <div class="badge-name">HR Leader</div>
+          <div class="badge-date">Locked</div>
+        </div>
+        <div class="badge-item locked">
+          <span class="badge-emoji">🏆</span>
+          <div class="badge-name">All Levels<br>Complete</div>
+          <div class="badge-date">Locked</div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+</body>
+</html>
