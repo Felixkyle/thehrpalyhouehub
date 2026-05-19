@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import "./design-system.css";
 
 export const metadata: Metadata = {
   title: "The HR Playhouse Hub",
