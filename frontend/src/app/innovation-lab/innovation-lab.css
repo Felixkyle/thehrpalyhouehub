@@ -1,17 +1,8 @@
-
-:root {
-  --canvas: #F8F9FC; --canvas-2: #F0F2F8; --mist: #E8ECF4;
-  --ink: #0A1628; --ink-2: #1E2D4A; --ink-3: #5A6880; --ink-4: #9BABC0;
-  --navy: #0D1F3C; --navy-2: #162847; --navy-3: #1E3560; --navy-deep: #070F1E;
-  --accent: #C9501E; --accent-2: #A8400F; --accent-pale: #FAF0EB;
-  --gold: #C4830A; --gold-pale: #FDF4DD;
-  --white: #FFFFFF; --border: rgba(10,22,40,.1); --border-light: rgba(10,22,40,.06);
-  --f-display: 'Cabinet Grotesk', system-ui, sans-serif;
-  --f-body: 'Plus Jakarta Sans', system-ui, sans-serif;
-}
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { font-size: 16px; -webkit-font-smoothing: antialiased; }
-body { font-family: var(--f-body); background: var(--canvas); color: var(--ink); }
+/* Innovation Lab — page-specific styles.
+ * Faithful port of the original innovation-lab.html <style> block, minus the
+ * rules already provided globally by design-system.css (:root, * reset,
+ * html/body). This page uses an app-style topnav (not the shared marketing
+ * .nav), so its nav/CTA classes are page-unique and kept here. */
 
 /* NAV */
 .topnav { height: 60px; background: var(--navy); display: flex; align-items: center; padding: 0 32px; gap: 16px; position: sticky; top: 0; z-index: 100; }
@@ -198,6 +189,7 @@ body { font-family: var(--f-body); background: var(--canvas); color: var(--ink);
 
 /* Modals */
 .lab-modal-bg{display:none;position:fixed;inset:0;z-index:1000;background:rgba(10,22,40,.65);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:20px}
+.lab-modal-bg.open{display:flex}
 .lab-modal{background:#fff;border-radius:20px;width:100%;max-width:540px;overflow:hidden;box-shadow:0 24px 80px rgba(10,22,40,.25);animation:modalIn .22s ease}
 @keyframes modalIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
 .lab-modal-hdr{background:var(--navy);padding:20px 24px;display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
@@ -289,5 +281,4 @@ body { font-family: var(--f-body); background: var(--canvas); color: var(--ink);
   /* Progress ring on calc — make it smaller */
   #calc-body svg { width: 100px !important; height: 100px !important; }
 }
-
-
+</content>

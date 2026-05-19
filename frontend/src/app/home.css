@@ -1,8 +1,12 @@
 /* homepage — page-specific styles.
- * Shared tokens/reset are in app/design-system.css. The homepage uses a
- * distinct landing nav (.nav.top / .nav-inner / .nav-link) and a richer
- * footer (.footer-inner / .f-logo-svg / .f-socials) that differ from the
- * shared marketing components, so those rules stay here intact. */
+ * Shared tokens/reset (:root, * reset, html, body) live in app/design-system.css.
+ * The homepage uses a distinct landing nav (.nav.top / .nav-inner / .nav-link)
+ * and a richer footer (.footer-inner / .f-logo-svg / .f-socials) that differ
+ * entirely from the shared marketing components, so those rules — and every
+ * other page-unique rule from the original <style> — stay here verbatim. */
+
+/* Homepage-only token not present in the shared design system. */
+:root { --accent-mist: #FDF6F3; }
 
 /* ═══════════════════════════════════════════
    NAV

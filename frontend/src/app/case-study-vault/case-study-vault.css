@@ -1,8 +1,12 @@
-
-
-*{box-sizing:border-box;margin:0;padding:0}
-html{scroll-behavior:smooth}
-body{font-family:var(--f-body);font-size:15px;background:var(--canvas);color:#1c1c2e;line-height:1.7;min-height:100vh}
+/* case-study-vault — page-specific styles.
+ * Shared tokens/reset live in app/design-system.css (the original page's own
+ * :root block was byte-identical to design-system and is dropped, as were the
+ * shared `*` reset and `html{scroll-behavior}` which design-system already
+ * provides). The page's distinct body typography (15px / line-height 1.7 /
+ * #1c1c2e) and its app chrome (.brand-nav) are page-unique, so the body rule is
+ * scoped under a .csv-root wrapper instead of styling the global <body>. All
+ * other rules below are reproduced verbatim from the original <style>. */
+.csv-root{font-size:15px;color:#1c1c2e;line-height:1.7}
 
 /* TOPBAR */
 .topbar{position:sticky;top:0;z-index:500;background:var(--navy);border-bottom:2px solid var(--navy-3);box-shadow:0 2px 20px rgba(0,0,0,.35)}
@@ -117,17 +121,6 @@ body{font-family:var(--f-body);font-size:15px;background:var(--canvas);color:#1c
 @media(max-width:900px){.cases-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:560px){.cases-grid{grid-template-columns:1fr}.controls-inner{flex-direction:column}.vault-hero-title{font-size:24px}}
 
-:root {
-  --canvas: #F8F9FC; --canvas-2: #F0F2F8; --mist: #E8ECF4;
-  --ink: #0A1628; --ink-2: #1E2D4A; --ink-3: #5A6880; --ink-4: #9BABC0;
-  --navy: #0D1F3C; --navy-2: #162847; --navy-3: #1E3560; --navy-deep: #070F1E;
-  --accent: #C9501E; --accent-2: #A8400F; --accent-pale: #FAF0EB;
-  --gold: #C4830A; --gold-pale: #FDF4DD;
-  --white: #FFFFFF; --border: rgba(10,22,40,.1); --border-light: rgba(10,22,40,.06);
-  --f-display: 'Cabinet Grotesk', system-ui, sans-serif;
-  --f-body: 'Plus Jakarta Sans', system-ui, sans-serif;
-}
-
 /* ── BRAND NAV ───────────────────────────────── */
 .brand-nav{position:sticky;top:0;z-index:500;height:60px;background:var(--navy);
   display:flex;align-items:center;padding:0 28px;gap:14px;
@@ -150,5 +143,3 @@ body{font-family:var(--f-body);font-size:15px;background:var(--canvas);color:#1c
   font-weight:700;text-decoration:none;display:flex;align-items:center;gap:6px;
   transition:.15s;flex-shrink:0;}
 .bn-cta:hover{background:var(--accent-2);}
-
-

@@ -1,33 +1,37 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { PLAYBOOK_ENTRIES_HTML } from "./playbook-entries";
+import {
+  PLAYBOOK_ENTRIES,
+  type PlaybookEntry,
+  type PlaybookSection,
+  type LegalSection,
+  type ChecklistSection,
+} from "./playbook-data";
 import "./playbook.css";
 
 /**
  * Everyday HR Playbook.
  *
- * Faithful port of everyday_hr_playbook_v3.html. The 10 playbook entries are
- * very large, fully-static markup blocks; reproducing them as JSX by hand
- * would be ~2,000 lines of literal content with zero behavioural value, so the
- * original entry markup is preserved byte-for-byte in `playbook-entries.ts`
- * and rendered through `dangerouslySetInnerHTML` (exactly how the original
- * page already shipped it as static HTML).
+ * Real React implementation of everyday_hr_playbook_v3.html. The 10 entries
+ * are now structured data in `playbook-data.ts` and rendered by the <Entry>
+ * component below — there is no `dangerouslySetInnerHTML` anywhere. The
+ * accordion (toggleEntry), jurisdiction tabs (switchJur), checklist download
+ * (downloadChecklist), category filtering (filterEntries), search
+ * (searchEntries) and sidebar scroll (scrollToEntry) are all implemented in
+ * real React state — no class-list hacks, no event delegation, no
+ * `style.display` mutations from outside React.
  *
- * The interactive behaviour — `toggleEntry`, `filterEntries`, `searchEntries`,
- * `updateCount`, `scrollToEntry`, `downloadChecklist`, `switchJur` — is
- * re-implemented here verbatim. Because the entries are injected HTML, the
- * accordion / jurisdiction-tab / download handlers are re-bound via event
- * delegation on the entries container, which performs the identical class
- * toggles and `style.display` mutations the original functions did. The
- * search/category filtering still queries the same `.entry` nodes by their
- * `data-search` / `id` attributes and toggles `style.display`, matching the
- * original logic (including the exact `updateCount` "entry/entries" wording).
+ * The rendered DOM keeps the same element nesting and the same CSS class
+ * names that playbook.css already styles (notably the `.entry-header.open +
+ * .entry-body` selector that drives the accordion, the `.jur-panel.active`
+ * selector for jurisdiction tabs, and all `.es`, `.step*`, `.template-*`,
+ * `.dont-*`, `.legal-*`, `.mvhr-*`, `.esc*`, `.dl-btn` classes).
  *
  * This is an app page with its own `.brand-nav` + `.topbar` chrome (distinct
- * from the shared marketing nav), ported inline. Internal links use Next
- * `<Link>`; LMS links remain plain anchors per the link-rewrite rules.
+ * from the shared marketing nav). Internal links use Next `<Link>`; LMS
+ * links remain plain anchors per the link-rewrite rules.
  */
 
 const CAT_BUTTONS: Array<{ cat: string; label: string }> = [
@@ -57,131 +61,336 @@ const SIDEBAR_ITEMS: Array<{ id: string; icon: string; label: string }> = [
   { id: "of1", icon: "🚪", label: "Resignation & Offboarding" },
 ];
 
-export default function PlaybookContent() {
+function downloadChecklist(entry: PlaybookEntry, section: ChecklistSection) {
+  const lines = section.payload.split("|");
+  const content = lines.join("\n");
+  const blob = new Blob([content], { type: "text/plain" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download =
+    entry.title.replace(/[^a-zA-Z0-9]/g, "_") + "_Checklist.txt";
+  a.click();
+}
+
+// ── <Entry> component ──────────────────────────────────────────
+//
+// Renders a single playbook entry with the original DOM/class structure.
+// Open/closed state and the active jurisdiction tab live as React state.
+
+type EntryHandle = {
+  id: string;
+  open: () => void;
+  scrollIntoView: () => void;
+};
+
+function Entry(props: {
+  entry: PlaybookEntry;
+  visible: boolean;
+  registerHandle: (handle: EntryHandle) => void;
+}) {
+  const { entry, visible, registerHandle } = props;
+  const [open, setOpen] = useState(false);
+  // One active jurisdiction index per legal section in this entry. Keyed
+  // by the section's index within `entry.sections`.
+  const [activeJur, setActiveJur] = useState<Record<number, number>>({});
   const rootRef = useRef<HTMLDivElement>(null);
-  const searchRef = useRef<HTMLInputElement>(null);
-  const resultsRef = useRef<HTMLSpanElement>(null);
-  const catFilterRef = useRef<HTMLDivElement>(null);
-  const sidebarRef = useRef<HTMLElement>(null);
-  const entriesRef = useRef<HTMLDivElement>(null);
 
-  // ── updateCount (verbatim) ──────────────────────────────
-  function updateCount() {
-    const vis = rootRef.current
-      ? rootRef.current.querySelectorAll('.entry:not([style*="none"])').length
-      : 0;
-    if (resultsRef.current)
-      resultsRef.current.textContent =
-        vis + " entr" + (vis === 1 ? "y" : "ies");
-  }
-
-  // ── searchEntries / filterEntries shared core ───────────
-  function applyFilter(cat: string, q: string) {
-    const root = rootRef.current;
-    if (!root) return;
-    root.querySelectorAll<HTMLElement>(".entry").forEach(function (e) {
-      const matchCat = !cat || e.id.startsWith("entry-" + cat);
-      const matchQ = !q || (e.dataset.search || "").includes(q);
-      e.style.display = matchCat && matchQ ? "block" : "none";
+  // Expose imperative handles for the sidebar's scrollToEntry behaviour.
+  // Stable across renders for this entry id.
+  const handleRegistered = useRef(false);
+  if (!handleRegistered.current) {
+    handleRegistered.current = true;
+    registerHandle({
+      id: entry.id,
+      open: () => setOpen(true),
+      scrollIntoView: () => {
+        rootRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      },
     });
-    updateCount();
   }
-
-  function filterEntries(cat: string, target: HTMLElement) {
-    catFilterRef.current
-      ?.querySelectorAll(".cat-btn")
-      .forEach((b) => b.classList.remove("active"));
-    target.classList.add("active");
-    const q = (searchRef.current?.value || "").toLowerCase();
-    applyFilter(cat, q);
-  }
-
-  function searchEntries() {
-    const q = (searchRef.current?.value || "").toLowerCase();
-    const activeCat = catFilterRef.current?.querySelector<HTMLElement>(
-      ".cat-btn.active",
-    );
-    const cat =
-      activeCat && activeCat.dataset.cat ? activeCat.dataset.cat : "";
-    applyFilter(cat, q);
-  }
-
-  function scrollToEntry(id: string, target: HTMLElement) {
-    sidebarRef.current
-      ?.querySelectorAll(".sidebar-nav-item")
-      .forEach((i) => i.classList.remove("active"));
-    target.classList.add("active");
-    const el = rootRef.current?.querySelector<HTMLElement>("#entry-" + id);
-    if (!el) return;
-    el.scrollIntoView({ behavior: "smooth", block: "start" });
-    const h = el.querySelector(".entry-header");
-    if (h && !h.classList.contains("open")) h.classList.add("open");
-  }
-
-  // ── Behaviour for the injected entries (toggle / switchJur
-  //    / downloadChecklist), re-bound via event delegation. ──
-  useEffect(() => {
-    const container = entriesRef.current;
-    if (!container) return;
-
-    function onClick(ev: MouseEvent) {
-      const targetEl = ev.target as HTMLElement;
-
-      // downloadChecklist(eid, title)
-      const dl = targetEl.closest<HTMLElement>(".dl-btn");
-      if (dl) {
-        const entry = dl.closest<HTMLElement>(".entry");
-        const eid = entry ? entry.id.replace(/^entry-/, "") : "";
-        // The original passed a human title; the file name is derived from it.
-        // Recover it from the entry title to keep the same download filename.
-        const title =
-          entry?.querySelector(".entry-title")?.textContent?.trim() || eid;
-        const dataEl = container!.querySelector("#cl-" + eid);
-        if (!dataEl) return;
-        const lines = (dataEl.textContent || "").split("|");
-        const content = lines.join("\n");
-        const blob = new Blob([content], { type: "text/plain" });
-        const a = document.createElement("a");
-        a.href = URL.createObjectURL(blob);
-        a.download =
-          title.replace(/[^a-zA-Z0-9]/g, "_") + "_Checklist.txt";
-        a.click();
-        return;
-      }
-
-      // switchJur(btn, eid, jur)
-      const jurTab = targetEl.closest<HTMLElement>(".jur-tab");
-      if (jurTab) {
-        const section = jurTab.closest<HTMLElement>(".es");
-        if (!section) return;
-        section
-          .querySelectorAll(".jur-tab")
-          .forEach((t) => t.classList.remove("active"));
-        section
-          .querySelectorAll(".jur-panel")
-          .forEach((p) => p.classList.remove("active"));
-        jurTab.classList.add("active");
-        // Determine which panel: tabs are in document order matching panels.
-        const tabs = Array.from(section.querySelectorAll(".jur-tab"));
-        const panels = Array.from(section.querySelectorAll(".jur-panel"));
-        const idx = tabs.indexOf(jurTab);
-        if (panels[idx]) panels[idx].classList.add("active");
-        return;
-      }
-
-      // toggleEntry(h)
-      const header = targetEl.closest<HTMLElement>(".entry-header");
-      if (header) {
-        header.classList.toggle("open");
-      }
-    }
-
-    container.addEventListener("click", onClick);
-    return () => container.removeEventListener("click", onClick);
-  }, []);
 
   return (
-    <div className="playbook-root" ref={rootRef}>
+    <div
+      ref={rootRef}
+      className={`entry ${entry.catClass}`}
+      id={`entry-${entry.id}`}
+      data-title={entry.dataTitle}
+      data-cat={entry.dataCat}
+      data-search={entry.dataSearch}
+      style={{ display: visible ? "block" : "none" }}
+    >
+      <div
+        className={`entry-header${open ? " open" : ""}`}
+        onClick={() => setOpen((v) => !v)}
+      >
+        <div className="entry-top">
+          <div className="entry-icon">{entry.icon}</div>
+          <div className="entry-meta">
+            <div className="entry-cat-badge">{entry.catBadge}</div>
+            <div className="entry-title">{entry.title}</div>
+            <div className="entry-summary">{entry.summary}</div>
+            <div className="entry-pills">
+              {entry.pills.map((p) => (
+                <span key={p} className="entry-pill">
+                  {p}
+                </span>
+              ))}
+            </div>
+          </div>
+          <div className="entry-chev">▼</div>
+        </div>
+      </div>
+      <div className="entry-body">
+        {entry.sections.map((section, sIdx) => (
+          <Section
+            key={sIdx}
+            entry={entry}
+            section={section}
+            sectionIndex={sIdx}
+            activeJurIdx={activeJur[sIdx] ?? 0}
+            setActiveJurIdx={(idx) =>
+              setActiveJur((s) => ({ ...s, [sIdx]: idx }))
+            }
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Section(props: {
+  entry: PlaybookEntry;
+  section: PlaybookSection;
+  sectionIndex: number;
+  activeJurIdx: number;
+  setActiveJurIdx: (idx: number) => void;
+}) {
+  const { entry, section, activeJurIdx, setActiveJurIdx } = props;
+
+  switch (section.type) {
+    case "steps":
+      return (
+        <div className="es">
+          <EsLabel icon={section.label.icon} text={section.label.text} />
+          <div className="steps-list">
+            {section.steps.map((s) => (
+              <div key={s.n} className="step">
+                <div className="step-n">{s.n}</div>
+                <div className="step-body">
+                  <div className="step-title">{s.title}</div>
+                  <div className="step-desc">{s.desc}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+
+    case "templates":
+      return (
+        <div className="es">
+          <EsLabel icon={section.label.icon} text={section.label.text} />
+          {section.blocks.map((b, i) => (
+            <div key={i} className="template-block">
+              <div className="template-label">{b.label}</div>
+              <div className="template-text">{b.text}</div>
+              {b.note ? <div className="template-note">{b.note}</div> : null}
+            </div>
+          ))}
+        </div>
+      );
+
+    case "donts":
+      return (
+        <div className="es">
+          <EsLabel icon={section.label.icon} text={section.label.text} />
+          <div className="dont-grid">
+            <div className="dont-col do">
+              <div className="dont-col-title">{section.doTitle}</div>
+              {section.do.map((item, i) => (
+                <div key={i} className="dont-item">
+                  <span className="dont-item-dot">✓</span>
+                  {item}
+                </div>
+              ))}
+            </div>
+            <div className="dont-col dont">
+              <div className="dont-col-title">{section.dontTitle}</div>
+              {section.dont.map((item, i) => (
+                <div key={i} className="dont-item">
+                  <span className="dont-item-dot">✗</span>
+                  {item}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+
+    case "legal":
+      return (
+        <LegalSectionView
+          entry={entry}
+          section={section}
+          activeIdx={activeJurIdx}
+          onSelect={setActiveJurIdx}
+        />
+      );
+
+    case "mvhr":
+      return (
+        <div className="es">
+          <EsLabel icon={section.label.icon} text={section.label.text} />
+          <div className="mvhr-grid">
+            <div className="mvhr-col mgr">
+              <div className="mvhr-title">{section.manager.title}</div>
+              {section.manager.items.map((it, i) => (
+                <div key={i} className="mvhr-item">
+                  <div className="mvhr-dot" />
+                  {it}
+                </div>
+              ))}
+            </div>
+            <div className="mvhr-col hr">
+              <div className="mvhr-title">{section.hr.title}</div>
+              {section.hr.items.map((it, i) => (
+                <div key={i} className="mvhr-item">
+                  <div className="mvhr-dot" />
+                  {it}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+
+    case "escalation":
+      return (
+        <div className="es">
+          <EsLabel icon={section.label.icon} text={section.label.text} />
+          <div className="escalation-list">
+            {section.items.map((t, i) => (
+              <div key={i} className="esc-item">
+                <div className="esc-icon">🚨</div>
+                <div className="esc-text">{t}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+
+    case "checklist":
+      return (
+        <div className="es">
+          <button
+            type="button"
+            className="dl-btn"
+            onClick={() => downloadChecklist(entry, section)}
+          >
+            {section.buttonLabel}
+          </button>
+        </div>
+      );
+  }
+}
+
+function EsLabel(props: { icon: string; text: string }) {
+  return (
+    <div className="es-label">
+      <span className="es-icon">{props.icon}</span>
+      <span style={{ color: "inherit" }}>{props.text}</span>
+    </div>
+  );
+}
+
+function LegalSectionView(props: {
+  entry: PlaybookEntry;
+  section: LegalSection;
+  activeIdx: number;
+  onSelect: (idx: number) => void;
+}) {
+  const { section, activeIdx, onSelect } = props;
+  const activePanel = section.panels[activeIdx] ?? section.panels[0];
+  return (
+    <div className="es">
+      <EsLabel icon={section.label.icon} text={section.label.text} />
+      <div className="jur-tabs">
+        {section.tabs.map((t, i) => (
+          <button
+            key={t.code}
+            type="button"
+            className={`jur-tab${i === activeIdx ? " active" : ""}`}
+            onClick={() => onSelect(i)}
+          >
+            {t.flag} {t.name}
+          </button>
+        ))}
+      </div>
+      {activePanel ? (
+        <div className="jur-panel active">
+          <div className="legal-grid">
+            {activePanel.legalItems.map((item, i) => (
+              <div key={i} className="legal-item">
+                <div className="legal-icon">{item.icon}</div>
+                <div className="legal-text">
+                  <strong>{item.strongLabel}</strong> {item.text}
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="jur-note">{activePanel.note}</div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+export default function PlaybookContent() {
+  const [query, setQuery] = useState("");
+  const [activeCat, setActiveCat] = useState("");
+  const [activeSidebar, setActiveSidebar] = useState<string | null>(null);
+  // Imperative handles registered by each <Entry>, keyed by entry id, so
+  // sidebar scrollToEntry can both open and scroll the target without
+  // climbing back through the DOM.
+  const handlesRef = useRef<Map<string, EntryHandle>>(new Map());
+
+  function registerHandle(handle: EntryHandle) {
+    handlesRef.current.set(handle.id, handle);
+  }
+
+  // ── Filtering (filterEntries / searchEntries / updateCount) ────
+  //
+  // Preserves the exact original logic: matchCat = !cat || entry id starts
+  // with `${cat}` (the data-cat in source was always "{cat}1", and entry
+  // ids in source were `entry-{cat}1`; the original filter used
+  // `id.startsWith('entry-' + cat)`). We mirror that by checking the
+  // entry's `dataCat` field starts with the selected category prefix.
+  const filtered = useMemo(() => {
+    const q = query.toLowerCase();
+    return PLAYBOOK_ENTRIES.map((entry) => {
+      const matchCat = !activeCat || entry.dataCat.startsWith(activeCat);
+      const matchQ = !q || entry.dataSearch.includes(q);
+      return { entry, visible: matchCat && matchQ };
+    });
+  }, [query, activeCat]);
+
+  const visibleCount = filtered.filter((f) => f.visible).length;
+  const resultsLabel =
+    visibleCount + " entr" + (visibleCount === 1 ? "y" : "ies");
+
+  function scrollToEntry(id: string) {
+    setActiveSidebar(id);
+    const handle = handlesRef.current.get(id);
+    if (!handle) return;
+    handle.open();
+    handle.scrollIntoView();
+  }
+
+  return (
+    <div className="playbook-root">
       <nav className="brand-nav">
         <a className="bn-logo" href="https://www.thehrplayhousehub.org/">
           <div className="bn-pill">HR Playhouse</div>
@@ -272,44 +481,45 @@ export default function PlaybookContent() {
           <div className="search-wrap">
             <span className="search-icon">🔍</span>
             <input
-              ref={searchRef}
               className="search-input"
               type="text"
               placeholder="Search situations, topics, keywords..."
-              onInput={searchEntries}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
             />
           </div>
-          <div className="cat-filter" ref={catFilterRef}>
-            {CAT_BUTTONS.map((b, i) => (
+          <div className="cat-filter">
+            {CAT_BUTTONS.map((b) => (
               <button
                 key={b.cat || "all"}
-                className={`cat-btn${i === 0 ? " active" : ""}`}
+                type="button"
+                className={`cat-btn${b.cat === activeCat ? " active" : ""}`}
                 data-cat={b.cat}
-                onClick={(e) => filterEntries(b.cat, e.currentTarget)}
+                onClick={() => setActiveCat(b.cat)}
               >
                 {b.label}
               </button>
             ))}
           </div>
-          <span ref={resultsRef} className="results-info">
-            10 entries
-          </span>
+          <span className="results-info">{resultsLabel}</span>
         </div>
       </div>
 
       {/* MAIN BODY */}
       <div className="main-body">
         {/* SIDEBAR */}
-        <nav className="sidebar-nav" ref={sidebarRef}>
+        <nav className="sidebar-nav">
           <div className="sidebar-nav-title">📖 All Situations</div>
           {SIDEBAR_ITEMS.map((it) => (
             <a
               key={it.id}
-              className="sidebar-nav-item"
-              href="javascript:void(0)"
+              className={`sidebar-nav-item${
+                activeSidebar === it.id ? " active" : ""
+              }`}
+              href={`#entry-${it.id}`}
               onClick={(e) => {
                 e.preventDefault();
-                scrollToEntry(it.id, e.currentTarget);
+                scrollToEntry(it.id);
               }}
             >
               <span className="sidebar-nav-icon">{it.icon}</span>
@@ -318,12 +528,17 @@ export default function PlaybookContent() {
           ))}
         </nav>
 
-        {/* ENTRIES (verbatim original markup) */}
-        <div
-          className="entries-col"
-          ref={entriesRef}
-          dangerouslySetInnerHTML={{ __html: PLAYBOOK_ENTRIES_HTML }}
-        />
+        {/* ENTRIES */}
+        <div className="entries-col">
+          {filtered.map(({ entry, visible }) => (
+            <Entry
+              key={entry.id}
+              entry={entry}
+              visible={visible}
+              registerHandle={registerHandle}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );
