@@ -1,23 +1,13 @@
-
-:root{
-  --canvas:#F8F9FC;--canvas-2:#F0F2F8;--mist:#E8ECF4;
-  --ink:#0A1628;--ink-2:#1E2D4A;--ink-3:#5A6880;--ink-4:#9BABC0;
-  --navy:#0D1F3C;--navy-2:#162847;--navy-3:#1E3560;--navy-deep:#070F1E;
-  --accent:#C9501E;--accent-2:#A8400F;--accent-pale:#FAF0EB;
-  --gold:#C4830A;--gold-pale:#FDF4DD;
-  --green:#1a7a4a;--green-pale:#e8f7ee;
-  --white:#FFFFFF;--border:rgba(10,22,40,.1);--border-light:rgba(10,22,40,.06);
-  --f-display:'Cabinet Grotesk',system-ui,sans-serif;
-  --f-body:'Plus Jakarta Sans',system-ui,sans-serif;
-}
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html{font-size:16px;-webkit-font-smoothing:antialiased}
-body{font-family:var(--f-body);background:var(--canvas);color:var(--ink);min-height:100vh}
+/* my-courses — page-specific styles.
+ * Shared tokens/reset/html/body live in app/design-system.css (identical
+ * values), so they are intentionally omitted here. This page ships its own
+ * platform-style top nav (`.topnav`/`.tnl`) and a dashboard layout that is
+ * unique to it; only those page-unique rules are kept. */
 
 /* NAV */
 .topnav{height:60px;background:var(--navy);display:flex;align-items:center;padding:0 24px;gap:20px;position:sticky;top:0;z-index:100}
-.nav-logo{display:flex;align-items:center;gap:8px;text-decoration:none}
-.nav-logo-pill{height:28px;padding:0 11px;border-radius:100px;background:var(--accent);font-family:var(--f-display);font-size:11px;font-weight:800;color:#fff;display:flex;align-items:center}
+.topnav .nav-logo{display:flex;align-items:center;gap:8px;text-decoration:none}
+.topnav .nav-logo-pill{height:28px;padding:0 11px;border-radius:100px;background:var(--accent);font-family:var(--f-display);font-size:11px;font-weight:800;color:#fff;display:flex;align-items:center}
 .nav-logo-text{font-family:var(--f-display);font-size:14px;font-weight:700;color:rgba(255,255,255,.75)}
 .topnav-links{display:flex;gap:2px;flex:1;overflow-x:auto;scrollbar-width:none}
 .topnav-links::-webkit-scrollbar{display:none}
@@ -198,5 +188,3 @@ body{font-family:var(--f-body);background:var(--canvas);color:var(--ink);min-hei
   .filter-bar{gap:6px}
   .filter-tab{height:30px;padding:0 12px;font-size:12px}
 }
-
-

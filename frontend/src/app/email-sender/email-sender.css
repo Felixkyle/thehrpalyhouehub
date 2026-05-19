@@ -1,4 +1,8 @@
-
+/* email-sender — page-specific styles.
+ * Shared reset/body live in app/design-system.css. This page defines its own
+ * token set (--fb/--fd/--ink2/--navy2/--accent2/--borderl) with names that do
+ * NOT exist in design-system.css, so the :root block is page-scoped and kept.
+ * Only the generic `*` reset and html/body rules (already global) are dropped. */
 :root{
   --navy:#0D1F3C;--navy2:#162847;--navy3:#1E3560;
   --accent:#C9501E;--accent2:#A8400F;
@@ -8,9 +12,6 @@
   --border:rgba(10,22,40,.08);--borderl:rgba(10,22,40,.05);
   --fd:'Cabinet Grotesk',sans-serif;--fb:'Plus Jakarta Sans',sans-serif;
 }
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html{-webkit-font-smoothing:antialiased;font-size:16px}
-body{font-family:var(--fb);background:var(--canvas);color:var(--ink);min-height:100vh}
 
 /* ── APP SHELL ──────────────────────────────────────────── */
 .app-nav{height:56px;background:var(--navy);display:flex;align-items:center;padding:0 28px;gap:12px;position:sticky;top:0;z-index:100}
@@ -155,5 +156,3 @@ body{font-family:var(--fb);background:var(--canvas);color:var(--ink);min-height:
 .gate-btn:hover{background:#A8400F;transform:translateY(-1px)}
 .gate-error{font-family:var(--fb);font-size:13px;color:#C9501E;font-weight:600;height:18px;transition:.2s}
 .gate-footer{font-family:var(--fb);font-size:11px;color:#9BABC0;margin-top:24px}
-
-

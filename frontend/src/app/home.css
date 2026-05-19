@@ -1,37 +1,8 @@
-
-
-/* ═══════════════════════════════════════════
-   TOKENS — warm terracotta × cream × premium
-═══════════════════════════════════════════ */
-:root {
-  --canvas:       #F8F9FC;
-  --canvas-2:     #F0F2F8;
-  --mist:         #E8ECF4;
-  --ink:          #0A1628;
-  --ink-2:        #1E2D4A;
-  --ink-3:        #5A6880;
-  --ink-4:        #9BABC0;
-  --navy:         #0D1F3C;
-  --navy-2:       #162847;
-  --navy-3:       #1E3560;
-  --navy-deep:    #070F1E;
-  --accent:       #C9501E;
-  --accent-2:     #A8400F;
-  --accent-pale:  #FAF0EB;
-  --accent-mist:  #FDF6F3;
-  --gold:         #C4830A;
-  --gold-pale:    #FDF4DD;
-  --white:        #FFFFFF;
-  --border:       rgba(10,22,40,.1);
-  --border-light: rgba(10,22,40,.06);
-
-  --f-display: 'Cabinet Grotesk', system-ui, sans-serif;
-  --f-body:    'Plus Jakarta Sans', system-ui, sans-serif;
-}
-
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { scroll-behavior: smooth; font-size: 16px; -webkit-font-smoothing: antialiased; }
-body { font-family: var(--f-body); background: var(--canvas); color: var(--ink); line-height: 1.65; overflow-x: hidden; }
+/* homepage — page-specific styles.
+ * Shared tokens/reset are in app/design-system.css. The homepage uses a
+ * distinct landing nav (.nav.top / .nav-inner / .nav-link) and a richer
+ * footer (.footer-inner / .f-logo-svg / .f-socials) that differ from the
+ * shared marketing components, so those rules stay here intact. */
 
 /* ═══════════════════════════════════════════
    NAV
@@ -963,5 +934,3 @@ footer { background: var(--navy-deep); padding: 64px 40px 36px; }
   }
   .cta-actions { flex-direction: column !important; gap: 12px !important; }
 }
-
-

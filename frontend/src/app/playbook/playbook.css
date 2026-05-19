@@ -1,8 +1,10 @@
+/* playbook — page-specific styles.
+ * Shared tokens/reset live in app/design-system.css (the original page's own
+ * :root block was byte-identical to design-system and is dropped). The page's
+ * distinct body typography (15px / line-height 1.7 / #1c1c2e) and its app
+ * chrome (.brand-nav + .topbar) are page-unique and scoped under a wrapper. */
+.playbook-root{font-size:15px;color:#1c1c2e;line-height:1.7}
 
-
-*{box-sizing:border-box;margin:0;padding:0}
-html{scroll-behavior:smooth}
-body{font-family:var(--f-body);font-size:15px;background:var(--canvas);color:#1c1c2e;line-height:1.7;min-height:100vh}
 .topbar{position:sticky;top:0;z-index:500;background:var(--navy);border-bottom:2px solid var(--navy-3);box-shadow:0 2px 20px rgba(0,0,0,.35)}
 .topbar-inner{max-width:1100px;margin:0 auto;padding:0 20px;height:56px;display:flex;align-items:center;justify-content:space-between;gap:16px}
 .logo{display:flex;align-items:center;gap:10px}
@@ -144,7 +146,6 @@ body{font-family:var(--f-body);font-size:15px;background:var(--canvas);color:#1c
   .dont-grid,.mvhr-grid,.legal-grid{grid-template-columns:1fr}
 }
 
-
 /* JURISDICTION TABS */
 .jur-tabs{display:flex;gap:0;border-bottom:1px solid #e0e8e2;margin-bottom:14px;overflow-x:auto;scrollbar-width:none}
 .jur-tabs::-webkit-scrollbar{display:none}
@@ -153,16 +154,6 @@ body{font-family:var(--f-body);font-size:15px;background:var(--canvas);color:#1c
 .jur-tab.active{color:var(--navy-3);border-bottom-color:var(--navy-3)}
 .jur-panel{display:none}.jur-panel.active{display:block}
 .jur-note{font-size:11px;color:#9ca3af;margin-top:8px;padding-top:8px;border-top:1px solid #f0f4f1;font-style:italic}
-:root {
-  --canvas: #F8F9FC; --canvas-2: #F0F2F8; --mist: #E8ECF4;
-  --ink: #0A1628; --ink-2: #1E2D4A; --ink-3: #5A6880; --ink-4: #9BABC0;
-  --navy: #0D1F3C; --navy-2: #162847; --navy-3: #1E3560; --navy-deep: #070F1E;
-  --accent: #C9501E; --accent-2: #A8400F; --accent-pale: #FAF0EB;
-  --gold: #C4830A; --gold-pale: #FDF4DD;
-  --white: #FFFFFF; --border: rgba(10,22,40,.1); --border-light: rgba(10,22,40,.06);
-  --f-display: 'Cabinet Grotesk', system-ui, sans-serif;
-  --f-body: 'Plus Jakarta Sans', system-ui, sans-serif;
-}
 
 /* ── BRAND NAV ───────────────────────────────── */
 .brand-nav{position:sticky;top:0;z-index:500;height:60px;background:var(--navy);
@@ -186,5 +177,3 @@ body{font-family:var(--f-body);font-size:15px;background:var(--canvas);color:#1c
   font-weight:700;text-decoration:none;display:flex;align-items:center;gap:6px;
   transition:.15s;flex-shrink:0;}
 .bn-cta:hover{background:var(--accent-2);}
-
-

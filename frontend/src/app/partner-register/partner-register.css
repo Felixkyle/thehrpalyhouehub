@@ -1,3 +1,7 @@
+/* partner-register — page-specific styles.
+ * This page ships its own self-contained design system (its own --fd/--fb
+ * tokens, nav, footer and field styles) that is independent of the shared
+ * app/design-system.css, so the original <style> block is kept in full. */
 
 :root{
   --navy:#0D1F3C; --navy2:#162847; --navy3:#1E3560;
@@ -91,6 +95,7 @@ body{font-family:var(--fb);background:var(--canvas);color:var(--ink);line-height
 
 /* SUCCESS */
 .success-state{display:none;text-align:center;padding:40px 20px}
+.success-state.show{display:block}
 .success-icon{font-size:48px;margin-bottom:16px}
 .success-title{font-family:var(--fd);font-size:24px;font-weight:900;color:var(--ink);margin-bottom:8px}
 .success-sub{font-family:var(--fb);font-size:15px;color:var(--ink3);line-height:1.7}
@@ -112,4 +117,3 @@ footer{background:var(--navy);padding:32px 40px;text-align:center}
   .hero-tracks{flex-direction:column}
   .nav{padding:0 24px}
 }
-

@@ -1,3 +1,8 @@
+/* signup — page-specific styles.
+ * This page ships its own self-contained design system (its own :root tokens
+ * incl. --success/--error, its own nav, no shared footer) that is independent
+ * of the shared app/design-system.css, so the original <style> block is kept
+ * in full. */
 
 :root {
   --canvas: #F8F9FC; --canvas-2: #F0F2F8; --mist: #E8ECF4;
@@ -80,6 +85,7 @@ body { font-family: var(--f-body); background: var(--canvas); color: var(--ink);
 
 /* SUCCESS STATE */
 .success-state { display: none; text-align: center; padding: 40px 20px; }
+.success-state.show { display: block; }
 .success-icon { width: 72px; height: 72px; border-radius: 50%; background: #e8f7ee; border: 2px solid #a8d5bb; display: flex; align-items: center; justify-content: center; font-size: 28px; margin: 0 auto 20px; }
 .success-title { font-family: var(--f-display); font-size: 26px; font-weight: 900; color: var(--ink); margin-bottom: 10px; }
 .success-sub { font-family: var(--f-body); font-size: 15px; color: var(--ink-3); line-height: 1.7; margin-bottom: 28px; }
@@ -104,4 +110,3 @@ body { font-family: var(--f-body); background: var(--canvas); color: var(--ink);
   .form-divider { grid-column: 1; }
   .consent-row, .submit-btn, .error-banner { grid-column: 1; }
 }
-
