@@ -173,7 +173,7 @@ export default function SignupContent() {
         </a>
         <a
           className="nav-back"
-          href="https://learn.thehrplayhousehub.org/courses/"
+          href="/courses/"
         >
           ← Already have an account? Sign in
         </a>
@@ -261,7 +261,7 @@ export default function SignupContent() {
                 <div className="form-title">Create your account</div>
                 <div className="form-sub">
                   Already registered?{" "}
-                  <a href="https://learn.thehrplayhousehub.org/sign-in/">
+                  <a href="/sign-in/">
                     Sign in here
                   </a>
                 </div>
@@ -496,7 +496,7 @@ export default function SignupContent() {
                     <div className="consent-text">
                       I agree to the{" "}
                       <a
-                        href="https://learn.thehrplayhousehub.org/terms-of-service/"
+                        href="/terms-of-service/"
                         target="_blank"
                         rel="noreferrer"
                       >
@@ -504,7 +504,7 @@ export default function SignupContent() {
                       </a>{" "}
                       and{" "}
                       <a
-                        href="https://learn.thehrplayhousehub.org/privacy-policy/"
+                        href="/privacy-policy/"
                         target="_blank"
                         rel="noreferrer"
                       >
@@ -576,7 +576,7 @@ export default function SignupContent() {
             </div>
             <a
               className="success-cta"
-              href="https://learn.thehrplayhousehub.org/register-2/"
+              href="/register-2/"
               target="_blank"
               rel="noreferrer"
             >

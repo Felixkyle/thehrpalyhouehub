@@ -377,7 +377,7 @@ export default function AiSupportContent() {
           </Link>
           <a
             className="tnl"
-            href="https://learn.thehrplayhousehub.org/courses/"
+            href="/courses/"
           >
             Courses
           </a>

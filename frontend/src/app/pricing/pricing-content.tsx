@@ -118,7 +118,7 @@ export default function PricingContent() {
   return (
     <div className="pricing-page">
       <nav className="nav">
-        <a className="nav-logo" href="https://learn.thehrplayhousehub.org">
+        <a className="nav-logo" href="">
           <div className="nav-mark">HR</div>
           <span className="nav-name">HR Playhouse Hub</span>
         </a>
@@ -126,13 +126,13 @@ export default function PricingContent() {
         <div className="nav-links">
           <a
             className="nav-link"
-            href="https://learn.thehrplayhousehub.org/courses/"
+            href="/courses/"
           >
             Courses
           </a>
           <a
             className="nav-link"
-            href="https://learn.thehrplayhousehub.org/case-study-vault/"
+            href="/case-study-vault/"
           >
             Case Studies
           </a>
@@ -146,7 +146,7 @@ export default function PricingContent() {
         <div className="nav-right">
           <a
             className="nav-cta"
-            href="https://learn.thehrplayhousehub.org/sign-up/"
+            href="/sign-up/"
           >
             Start Free →
           </a>
@@ -346,7 +346,7 @@ export default function PricingContent() {
             </ul>
             <a
               className="plan-cta cta-ol"
-              href="https://learn.thehrplayhousehub.org/sign-up/"
+              href="/sign-up/"
             >
               Start for free
             </a>
@@ -396,7 +396,7 @@ export default function PricingContent() {
             </ul>
             <a
               className="plan-cta cta-nv"
-              href="https://learn.thehrplayhousehub.org/sign-up/"
+              href="/sign-up/"
             >
               Start Professional
             </a>
@@ -914,7 +914,7 @@ export default function PricingContent() {
           <div className="fbtns">
             <a
               className="btn-lg btn-ac"
-              href="https://learn.thehrplayhousehub.org/sign-up/"
+              href="/sign-up/"
             >
               Start free now →
             </a>

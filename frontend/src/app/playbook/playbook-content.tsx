@@ -404,7 +404,7 @@ export default function PlaybookContent() {
           </Link>
           <a
             className="bn-link"
-            href="https://learn.thehrplayhousehub.org/courses/"
+            href="/courses/"
           >
             Courses
           </a>

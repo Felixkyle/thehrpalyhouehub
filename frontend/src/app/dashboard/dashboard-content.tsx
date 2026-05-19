@@ -50,7 +50,7 @@ export default function DashboardContent() {
           </Link>
           <a
             className="tnl"
-            href="https://learn.thehrplayhousehub.org/courses/"
+            href="/courses/"
           >
             Courses
           </a>
@@ -140,7 +140,7 @@ export default function DashboardContent() {
             </Link>
             <a
               className="sn-item"
-              href="https://learn.thehrplayhousehub.org/courses/"
+              href="/courses/"
             >
               <div className="sn-icon" style={{ background: "#E8ECF4" }}>
                 🎓
@@ -209,7 +209,7 @@ export default function DashboardContent() {
             </div>
             <a
               className="wh-next-btn"
-              href="https://learn.thehrplayhousehub.org/courses/"
+              href="/courses/"
             >
               Continue learning →
             </a>
@@ -253,7 +253,7 @@ export default function DashboardContent() {
                 <div className="lc-action">
                   <a
                     className="lc-btn outline"
-                    href="https://learn.thehrplayhousehub.org/courses/"
+                    href="/courses/"
                   >
                     Review →
                   </a>
@@ -297,7 +297,7 @@ export default function DashboardContent() {
                 <div className="lc-action">
                   <a
                     className="lc-btn primary"
-                    href="https://learn.thehrplayhousehub.org/courses/"
+                    href="/courses/"
                   >
                     Continue →
                   </a>
@@ -396,7 +396,7 @@ export default function DashboardContent() {
             </div>
             <a
               className="nsb-btn"
-              href="https://learn.thehrplayhousehub.org/courses/"
+              href="/courses/"
             >
               Continue →
             </a>

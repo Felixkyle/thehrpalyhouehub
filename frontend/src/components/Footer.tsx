@@ -28,7 +28,7 @@ export default function Footer() {
             <div className="f-col-title">Platform</div>
             <a
               className="f-link"
-              href="https://learn.thehrplayhousehub.org/courses/"
+              href="/courses/"
             >
               Courses
             </a>
@@ -67,19 +67,19 @@ export default function Footer() {
             <div className="f-col-title">Legal</div>
             <a
               className="f-link"
-              href="https://learn.thehrplayhousehub.org/privacy-policy/"
+              href="/privacy-policy/"
             >
               Privacy Policy
             </a>
             <a
               className="f-link"
-              href="https://learn.thehrplayhousehub.org/terms-of-service/"
+              href="/terms-of-service/"
             >
               Terms &amp; Conditions
             </a>
             <a
               className="f-link"
-              href="https://learn.thehrplayhousehub.org/cookie-policy/"
+              href="/cookie-policy/"
             >
               Cookie Policy
             </a>
@@ -90,10 +90,10 @@ export default function Footer() {
             © 2026 HR Playhouse Hub Limited · RC 8387672
           </div>
           <div className="f-legal">
-            <a href="https://learn.thehrplayhousehub.org/privacy-policy/">
+            <a href="/privacy-policy/">
               Privacy
             </a>
-            <a href="https://learn.thehrplayhousehub.org/terms-of-service/">
+            <a href="/terms-of-service/">
               Terms
             </a>
           </div>

@@ -118,7 +118,7 @@ function signoff(tone?: string): string {
 function footer(): string {
   return [
     '<div class="e-footer">',
-    '  <div class="e-footer-links"><a href="https://www.thehrplayhousehub.org/">Website</a><a href="https://learn.thehrplayhousehub.org/courses/">Courses</a><a href="https://learn.thehrplayhousehub.org/case-study-vault/">Case Studies</a><a href="https://learn.thehrplayhousehub.org/hr-support/">AI Support</a></div>',
+    '  <div class="e-footer-links"><a href="https://www.thehrplayhousehub.org/">Website</a><a href="/courses/">Courses</a><a href="/case-study-vault/">Case Studies</a><a href="/hr-support/">AI Support</a></div>',
     '  <div class="e-footer-addr">The HR Playhouse Hub Limited · RC 8387672 · thehrplayhousehub.org · contact@thehrplayhousehub.org</div>',
     '  <div class="e-footer-unsub">You are receiving this because you are a member or enquirer of HR Playhouse Hub.<br><a href="https://www.thehrplayhousehub.org/preferences/">Manage preferences</a> · <a href="https://www.thehrplayhousehub.org/unsubscribe/">Unsubscribe</a></div>',
     "</div>",
@@ -173,10 +173,10 @@ function renderAnnounce(v: Vals): string {
       })
       .join(""),
     "  </div>",
-    '  <div class="e-cta-wrap"><a class="e-cta" href="https://learn.thehrplayhousehub.org/courses/">Enrol in the Programme →</a><div class="e-cta-note">Level 1 is free to start · <a href="https://learn.thehrplayhousehub.org/courses/">Preview the curriculum</a></div></div>',
+    '  <div class="e-cta-wrap"><a class="e-cta" href="/courses/">Enrol in the Programme →</a><div class="e-cta-note">Level 1 is free to start · <a href="/courses/">Preview the curriculum</a></div></div>',
     '  <div class="e-divider"></div>',
     signoff(),
-    '  <div class="e-ps"><p><strong>P.S.</strong> If you would like a closer look before enrolling, <a href="https://learn.thehrplayhousehub.org/courses/">preview the Level 1 curriculum here</a> — it is free to start with no commitment required.</p></div>',
+    '  <div class="e-ps"><p><strong>P.S.</strong> If you would like a closer look before enrolling, <a href="/courses/">preview the Level 1 curriculum here</a> — it is free to start with no commitment required.</p></div>',
     "</div>",
     footer(),
   ].join("");
@@ -240,10 +240,10 @@ function renderComplete(v: Vals): string {
         '</div><div class="e-hbox-desc">' +
         LEVEL_DATA[v.level + 1].topics +
         "</div></div>",
-    '  <div class="e-cta-wrap"><a class="e-cta" style="background:#1a7a4a" href="https://learn.thehrplayhousehub.org/dashboard/">View your certificate →</a>' +
+    '  <div class="e-cta-wrap"><a class="e-cta" style="background:#1a7a4a" href="/dashboard/">View your certificate →</a>' +
       (isLast
         ? ""
-        : '<div class="e-cta-note">Then <a href="https://learn.thehrplayhousehub.org/courses/">start Level ' +
+        : '<div class="e-cta-note">Then <a href="/courses/">start Level ' +
           (v.level + 1) +
           "</a> when you are ready</div>") +
       "</div>",
@@ -337,7 +337,7 @@ function renderNudge(v: Vals): string {
       '</div><div class="e-hbox-desc">Estimated time to finish this level: ' +
       pd.remaining +
       "</div></div>",
-    '  <div class="e-cta-wrap"><a class="e-cta" href="https://learn.thehrplayhousehub.org/courses/">Continue Level ' +
+    '  <div class="e-cta-wrap"><a class="e-cta" href="/courses/">Continue Level ' +
       pd.level +
       ' →</a><div class="e-cta-note">Your Level ' +
       pd.level +
@@ -389,11 +389,11 @@ function renderProgramme(v: Vals): string {
     '    <div class="e-hbox-title">What this certificate represents</div>',
     '    <div class="e-hbox-desc">This is not a participation certificate. You have demonstrated mastery across all four levels of professional HR practice. It is a serious credential, backed by an ACU grant and recognised across Commonwealth nations.</div>',
     "  </div>",
-    '  <div class="e-cta-wrap"><a class="e-cta" style="background:#C4830A" href="https://learn.thehrplayhousehub.org/dashboard/">View &amp; Download your Certificate →</a><div class="e-cta-note">All 5 certificates are saved in your dashboard</div></div>',
+    '  <div class="e-cta-wrap"><a class="e-cta" style="background:#C4830A" href="/dashboard/">View &amp; Download your Certificate →</a><div class="e-cta-note">All 5 certificates are saved in your dashboard</div></div>',
     '  <div class="e-divider"></div>',
     '  <div class="e-p">If you would like to share this achievement on LinkedIn or with your employer, I am happy to write a short verification note for you. Simply reply to this email and ask.</div>',
     signoff("genuine pride"),
-    '  <div class="e-ps"><p><strong>P.S.</strong> You are welcome to join the <a href="https://learn.thehrplayhousehub.org/virtual-innovation-lab/">Innovation Lab</a> community — a thinking space for HR professionals who want to go further. Your perspective, with four levels of practice behind it, would be genuinely valuable there.</p></div>',
+    '  <div class="e-ps"><p><strong>P.S.</strong> You are welcome to join the <a href="/virtual-innovation-lab/">Innovation Lab</a> community — a thinking space for HR professionals who want to go further. Your perspective, with four levels of practice behind it, would be genuinely valuable there.</p></div>',
     "</div>",
     footer(),
   ].join("");
@@ -419,7 +419,7 @@ function getPlainText(
       "Four progressive levels. 32+ original case studies. 12 games. A final HR Strategy Proposal. A certificate at every level — and a Full Programme Certificate when you complete all four.",
     );
     lines.push("");
-    lines.push("Enrol here: https://learn.thehrplayhousehub.org/courses/");
+    lines.push("Enrol here: /courses/");
     lines.push("");
     lines.push("Level 1 is free to start. No commitment required to begin.");
   } else if (currentTemplate === "complete") {
@@ -430,7 +430,7 @@ function getPlainText(
     lines.push(
       "Your certificate has been issued automatically. View, download and print it here:",
     );
-    lines.push("https://learn.thehrplayhousehub.org/dashboard/");
+    lines.push("/dashboard/");
     lines.push("");
     if (v.level < 4) {
       lines.push(
@@ -457,7 +457,7 @@ function getPlainText(
     lines.push("Estimated time remaining: " + pd.remaining);
     lines.push("");
     lines.push(
-      "Pick up where you left off: https://learn.thehrplayhousehub.org/courses/",
+      "Pick up where you left off: /courses/",
     );
   } else if (currentTemplate === "programme") {
     lines.push(
@@ -467,7 +467,7 @@ function getPlainText(
     lines.push(
       "Your Programme Certificate has been issued. View and download it here:",
     );
-    lines.push("https://learn.thehrplayhousehub.org/dashboard/");
+    lines.push("/dashboard/");
     lines.push("");
     lines.push(
       "This is a serious credential — backed by the ACU grant and recognised across the Commonwealth.",
@@ -511,11 +511,11 @@ function EmailFooter() {
     <div className="e-footer">
       <div className="e-footer-links">
         <a href="https://www.thehrplayhousehub.org/">Website</a>
-        <a href="https://learn.thehrplayhousehub.org/courses/">Courses</a>
-        <a href="https://learn.thehrplayhousehub.org/case-study-vault/">
+        <a href="/courses/">Courses</a>
+        <a href="/case-study-vault/">
           Case Studies
         </a>
-        <a href="https://learn.thehrplayhousehub.org/hr-support/">
+        <a href="/hr-support/">
           AI Support
         </a>
       </div>
@@ -712,12 +712,12 @@ function AnnouncePreview({ v }: { v: Vals }) {
           })}
         </div>
         <div className="e-cta-wrap">
-          <a className="e-cta" href="https://learn.thehrplayhousehub.org/courses/">
+          <a className="e-cta" href="/courses/">
             Enrol in the Programme →
           </a>
           <div className="e-cta-note">
             Level 1 is free to start ·{" "}
-            <a href="https://learn.thehrplayhousehub.org/courses/">
+            <a href="/courses/">
               Preview the curriculum
             </a>
           </div>
@@ -727,7 +727,7 @@ function AnnouncePreview({ v }: { v: Vals }) {
           <p>
             <strong>P.S.</strong> If you would like a closer look before
             enrolling,{" "}
-            <a href="https://learn.thehrplayhousehub.org/courses/">
+            <a href="/courses/">
               preview the Level 1 curriculum here
             </a>{" "}
             — it is free to start with no commitment required.
@@ -802,14 +802,14 @@ function CompletePreview({ v }: { v: Vals }) {
           <a
             className="e-cta"
             style={{ background: "#1a7a4a" }}
-            href="https://learn.thehrplayhousehub.org/dashboard/"
+            href="/dashboard/"
           >
             View your certificate →
           </a>
           {!isLast && (
             <div className="e-cta-note">
               Then{" "}
-              <a href="https://learn.thehrplayhousehub.org/courses/">
+              <a href="/courses/">
                 start Level {v.level + 1}
               </a>{" "}
               when you are ready
@@ -943,7 +943,7 @@ function NudgePreview({ v }: { v: Vals }) {
           </div>
         </div>
         <div className="e-cta-wrap">
-          <a className="e-cta" href="https://learn.thehrplayhousehub.org/courses/">
+          <a className="e-cta" href="/courses/">
             Continue Level {progress.level} →
           </a>
           <div className="e-cta-note">
@@ -1018,7 +1018,7 @@ function ProgrammePreview({ v }: { v: Vals }) {
           <a
             className="e-cta"
             style={{ background: "#C4830A" }}
-            href="https://learn.thehrplayhousehub.org/dashboard/"
+            href="/dashboard/"
           >
             View &amp; Download your Certificate →
           </a>
@@ -1035,7 +1035,7 @@ function ProgrammePreview({ v }: { v: Vals }) {
         <div className="e-ps">
           <p>
             <strong>P.S.</strong> You are welcome to join the{" "}
-            <a href="https://learn.thehrplayhousehub.org/virtual-innovation-lab/">
+            <a href="/virtual-innovation-lab/">
               Innovation Lab
             </a>{" "}
             community — a thinking space for HR professionals who want to go

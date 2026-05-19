@@ -180,7 +180,7 @@ const RESOURCES: Resource[] = [
     ],
     isNew: false,
     isFeatured: false,
-    file: "https://learn.thehrplayhousehub.org/playbook/",
+    file: "/playbook/",
     contents: [
       "Disciplinary procedures — step-by-step with template letters",
       "Grievance handling — formal and informal routes",
@@ -222,7 +222,7 @@ const RESOURCES: Resource[] = [
     ],
     isNew: false,
     isFeatured: false,
-    file: "https://learn.thehrplayhousehub.org/case-study-vault/",
+    file: "/case-study-vault/",
     contents: [
       "8 topic areas: Recruitment, Performance, DEIB, Retention, Strategy, Employee Relations, Wellbeing, Future of Work",
       "Each case study has: scenario, 3 decision points, pause & reflect, outcome, lessons, application questions",
@@ -420,7 +420,7 @@ export default function ResourcesContent() {
     <div className="resources-page">
       {/* ── NAV ─────────────────────────────────── */}
       <nav className="topnav">
-        <a className="nav-logo" href="https://learn.thehrplayhousehub.org">
+        <a className="nav-logo" href="">
           <div className="nav-logo-mark">HR</div>
           <span className="nav-logo-name">HR Playhouse Hub</span>
         </a>
@@ -428,7 +428,7 @@ export default function ResourcesContent() {
         <div className={`nav-links${navOpen ? " open" : ""}`}>
           <a
             className="nav-link"
-            href="https://learn.thehrplayhousehub.org/courses/"
+            href="/courses/"
           >
             Courses
           </a>
@@ -495,7 +495,7 @@ export default function ResourcesContent() {
         <div className="nav-right">
           <a
             className="nav-cta"
-            href="https://learn.thehrplayhousehub.org/courses/"
+            href="/courses/"
           >
             Start Learning
           </a>

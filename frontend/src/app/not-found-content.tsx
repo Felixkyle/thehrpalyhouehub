@@ -26,7 +26,7 @@ export default function NotFoundContent() {
     const q = query.trim();
     if (q) {
       window.location.href =
-        "https://learn.thehrplayhousehub.org/?s=" + encodeURIComponent(q);
+        "/?s=" + encodeURIComponent(q);
     }
   }
 
@@ -49,7 +49,7 @@ export default function NotFoundContent() {
               </Link>
               <a
                 className="btn btn-outline-white"
-                href="https://learn.thehrplayhousehub.org/courses/"
+                href="/courses/"
               >
                 Go to Courses
               </a>
@@ -71,7 +71,7 @@ export default function NotFoundContent() {
               <div className="err-chips">
                 <a
                   className="err-chip"
-                  href="https://learn.thehrplayhousehub.org/courses/"
+                  href="/courses/"
                 >
                   Courses
                 </a>

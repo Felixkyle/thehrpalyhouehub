@@ -29,13 +29,13 @@ import "./my-courses.css";
  */
 
 const LIVE_CONFIG = {
-  SITE_URL: "https://learn.thehrplayhousehub.org",
+  SITE_URL: "",
   COURSE_IDS: { L1: 0, L2: 0, L3: 0, L4: 0 },
   COURSE_URLS: {
-    L1: "https://learn.thehrplayhousehub.org/courses/level-1-hr-foundations/",
-    L2: "https://learn.thehrplayhousehub.org/courses/level-2-operational-hr/",
-    L3: "https://learn.thehrplayhousehub.org/courses/level-3-strategic-hr/",
-    L4: "https://learn.thehrplayhousehub.org/courses/level-4-future-forward-hr/",
+    L1: "/courses/level-1-hr-foundations/",
+    L2: "/courses/level-2-operational-hr/",
+    L3: "/courses/level-3-strategic-hr/",
+    L4: "/courses/level-4-future-forward-hr/",
   },
 };
 
@@ -671,13 +671,13 @@ export default function MyCoursesContent() {
           </Link>
           <a
             className="tnl"
-            href="https://learn.thehrplayhousehub.org/case-study-vault/"
+            href="/case-study-vault/"
           >
             Case Studies
           </a>
           <a
             className="tnl"
-            href="https://learn.thehrplayhousehub.org/playbook/"
+            href="/playbook/"
           >
             Playbook
           </a>
@@ -765,7 +765,7 @@ export default function MyCoursesContent() {
             </Link>
             <a
               className="sn-item"
-              href="https://learn.thehrplayhousehub.org/case-study-vault/"
+              href="/case-study-vault/"
             >
               <div className="sn-icon" style={{ background: "#FDF4DD" }}>
                 📚
@@ -775,7 +775,7 @@ export default function MyCoursesContent() {
             </a>
             <a
               className="sn-item"
-              href="https://learn.thehrplayhousehub.org/playbook/"
+              href="/playbook/"
             >
               <div className="sn-icon" style={{ background: "#E8ECF4" }}>
                 📖
@@ -1143,7 +1143,7 @@ export default function MyCoursesContent() {
                 <div className="cc-actions">
                   <a
                     className="cc-btn outline"
-                    href="https://learn.thehrplayhousehub.org/courses/"
+                    href="/courses/"
                   >
                     Review level →
                   </a>
@@ -1314,7 +1314,7 @@ export default function MyCoursesContent() {
                   </div>
                   <a
                     className="cc-btn accent"
-                    href="https://learn.thehrplayhousehub.org/courses/"
+                    href="/courses/"
                   >
                     Continue →
                   </a>
@@ -1329,13 +1329,13 @@ export default function MyCoursesContent() {
                 <div className="cc-actions">
                   <a
                     className="cc-btn outline"
-                    href="https://learn.thehrplayhousehub.org/courses/"
+                    href="/courses/"
                   >
                     View all lessons
                   </a>
                   <a
                     className="cc-btn accent"
-                    href="https://learn.thehrplayhousehub.org/courses/"
+                    href="/courses/"
                   >
                     Continue learning →
                   </a>
@@ -1979,7 +1979,7 @@ export default function MyCoursesContent() {
             </div>
             <a
               className="nsb-btn"
-              href="https://learn.thehrplayhousehub.org/courses/"
+              href="/courses/"
             >
               Continue →
             </a>

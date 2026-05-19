@@ -103,7 +103,7 @@ const DEFAULT_SESSIONS: Session[] = [
     speaker: "Dr. Marvellous Gberevbie",
     speakerRole: "Founder, HR Playhouse Hub",
     link: "",
-    recording: "https://learn.thehrplayhousehub.org/webinar-library/",
+    recording: "/webinar-library/",
   },
 ];
 

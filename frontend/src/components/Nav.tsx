@@ -26,7 +26,7 @@ export default function Nav() {
         <div className="nav-logo-text">Hub</div>
       </a>
       <div className={`nav-links${open ? " open" : ""}`} id="nav-links">
-        <a className="nl" href="https://learn.thehrplayhousehub.org/courses/">
+        <a className="nl" href="/courses/">
           Courses
         </a>
         <Link className="nl" href="/case-study-vault">
@@ -53,7 +53,7 @@ export default function Nav() {
       </button>
       <a
         className="nav-cta"
-        href="https://learn.thehrplayhousehub.org/courses/"
+        href="/courses/"
       >
         Start Learning →
       </a>
