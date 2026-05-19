@@ -1,6 +1,6 @@
 /* progress-report — page-specific styles.
- * Shared tokens/reset/nav/footer/components (.page-hero/.eyebrow/.card/.btn*/
- * .tag*/.wrap etc.) and the shared responsive blocks live in
+ * Shared tokens/reset/nav/footer/components (page-hero, eyebrow, card,
+ * buttons, tags, wrap, etc.) and the shared responsive blocks live in
  * app/design-system.css and are intentionally omitted here. Only the
  * progress-report-unique rules remain. */
 

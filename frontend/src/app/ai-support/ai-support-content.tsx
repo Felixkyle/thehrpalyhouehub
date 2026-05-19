@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { Fragment, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import "./ai-support.css";
 
@@ -16,11 +16,13 @@ import "./ai-support.css";
  * state: a `messages` array (rendered list), a `welcomeVisible` flag, an
  * `isLoading`/typing flag, and the uploaded-file fields. Every constant
  * (API endpoint, system prompt, suggested questions), the file-size limit
- * and icon map, the exact API request body, the markdown `formatResponse`
- * transform, error/alert text and message-building logic are preserved
- * verbatim. Assistant text is rendered through `formatResponse` (which
- * produces HTML) via `dangerouslySetInnerHTML`, matching the original
- * `innerHTML` rendering.
+ * and icon map, the exact API request body, error/alert text and
+ * message-building logic are preserved verbatim. Assistant and user text are
+ * rendered through the `<RichText>` component below, which parses the same
+ * lightweight markdown subset the original `formatResponse` HTML transform
+ * supported (bold `**x**`, italic `*x*`, `### h3`, `- ` list items wrapped
+ * in `<ul>`, paragraph breaks on `\n\n`) and emits real React elements
+ * instead of injecting HTML.
  *
  * Internal links (Dashboard, Playbook) use Next `<Link>`; the LMS course link
  * stays a plain anchor per the link-rewrite rules.
@@ -61,33 +63,79 @@ const SUGGESTED_QUESTIONS = [
   "How do I calculate statutory redundancy pay?",
 ];
 
-/** Markdown-like → HTML, ported verbatim from the original `formatResponse`. */
-function formatResponse(text: string): string {
+function renderInline(text: string, keyPrefix: string): ReactNode[] {
   return text
-    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-    .replace(/\*(.+?)\*/g, "<em>$1</em>")
-    .replace(/^### (.+)$/gm, "<h3>$1</h3>")
-    .replace(/^- (.+)$/gm, "<li>$1</li>")
-    .replace(/(<li>[\s\S]*<\/li>)/g, "<ul>$1</ul>")
-    .replace(/\n\n/g, "</p><p>")
-    .replace(/^(?!<[hul])(.+)/gm, (m) => (m.startsWith("<") ? m : m))
-    .split("\n")
-    .map((line) => {
-      if (
-        line.startsWith("<h3>") ||
-        line.startsWith("<ul>") ||
-        line.startsWith("<li>")
-      )
-        return line;
-      if (line.trim() === "") return "";
-      return line;
-    })
-    .join("\n")
-    .replace(/\n/g, " ")
-    .replace(/(^|>)([^<]+)(<|$)/g, (m, p, t, n) => {
-      if (p === ">" || n === "<") return m;
-      return p + t + n;
+    .split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g)
+    .filter(Boolean)
+    .map((part, index) => {
+      const key = `${keyPrefix}-${index}`;
+      if (part.startsWith("**") && part.endsWith("**")) {
+        return <strong key={key}>{part.slice(2, -2)}</strong>;
+      }
+      if (part.startsWith("*") && part.endsWith("*")) {
+        return <em key={key}>{part.slice(1, -1)}</em>;
+      }
+      return <Fragment key={key}>{part}</Fragment>;
     });
+}
+
+function RichText({ text }: { text: string }) {
+  const lines = text.split("\n");
+  const blocks: ReactNode[] = [];
+  let index = 0;
+
+  while (index < lines.length) {
+    const line = lines[index].trim();
+
+    if (!line) {
+      index += 1;
+      continue;
+    }
+
+    if (line.startsWith("### ")) {
+      blocks.push(
+        <h3 key={`h-${index}`}>{renderInline(line.slice(4), `h-${index}`)}</h3>,
+      );
+      index += 1;
+      continue;
+    }
+
+    if (line.startsWith("- ")) {
+      const items: string[] = [];
+      while (index < lines.length && lines[index].trim().startsWith("- ")) {
+        items.push(lines[index].trim().slice(2));
+        index += 1;
+      }
+      blocks.push(
+        <ul key={`ul-${index}`}>
+          {items.map((item, itemIndex) => (
+            <li key={`${index}-${itemIndex}`}>
+              {renderInline(item, `li-${index}-${itemIndex}`)}
+            </li>
+          ))}
+        </ul>,
+      );
+      continue;
+    }
+
+    const paragraph: string[] = [line];
+    index += 1;
+    while (
+      index < lines.length &&
+      lines[index].trim() &&
+      !lines[index].trim().startsWith("### ") &&
+      !lines[index].trim().startsWith("- ")
+    ) {
+      paragraph.push(lines[index].trim());
+      index += 1;
+    }
+
+    blocks.push(
+      <p key={`p-${index}`}>{renderInline(paragraph.join(" "), `p-${index}`)}</p>,
+    );
+  }
+
+  return <>{blocks}</>;
 }
 
 type ChatMessage = {
@@ -462,13 +510,7 @@ export default function AiSupportContent() {
                   {m.docName ? (
                     <div className="msg-doc-tag">📎 {m.docName}</div>
                   ) : null}
-                  {/* Original `appendMessage` rendered both user and
-                      assistant text through `formatResponse` + innerHTML. */}
-                  <span
-                    dangerouslySetInnerHTML={{
-                      __html: formatResponse(m.text),
-                    }}
-                  />
+                  <RichText text={m.text} />
                 </div>
               </div>
             ))}

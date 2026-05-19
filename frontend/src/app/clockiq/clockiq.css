@@ -1,6 +1,6 @@
 /* clockiq — page-specific styles.
- * Shared tokens/reset/nav/footer/components (.btn*/.eyebrow/.wrap etc.) and
- * the shared responsive blocks live in app/design-system.css and are
+ * Shared tokens/reset/nav/footer/components (buttons, eyebrow, wrap, etc.)
+ * and the shared responsive blocks live in app/design-system.css and are
  * intentionally omitted here. Only the ClockIQ-unique rules remain. */
 
 .cq-hero{background:linear-gradient(135deg,var(--navy-deep) 0%,#050f1e 50%,#0a1a10 100%);

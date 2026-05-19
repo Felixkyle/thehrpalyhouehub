@@ -242,6 +242,243 @@ function buildCertHTML(certKey: string, userName?: string) {
   ].join("");
 }
 
+function CertificatePreview({
+  certKey,
+  userName = "Ada Okonkwo",
+}: {
+  certKey: string;
+  userName?: string;
+}) {
+  const c = CERTS[certKey];
+  if (!c) return null;
+
+  const issued = c.date || "Date of Issue";
+  const isProg = c.programme;
+  const cornerStyle = {
+    position: "absolute" as const,
+    width: 20,
+    height: 20,
+    borderColor: c.color,
+    opacity: 0.4,
+  };
+
+  return (
+    <div
+      style={{
+        position: "relative",
+        border: `3px solid ${c.color}`,
+        borderRadius: 3,
+        padding: isProg ? "52px 60px" : "44px 60px",
+        textAlign: "center",
+        background: "#fff",
+      }}
+    >
+      <div
+        style={{
+          ...cornerStyle,
+          top: 10,
+          left: 10,
+          borderTop: `2px solid ${c.color}`,
+          borderLeft: `2px solid ${c.color}`,
+        }}
+      />
+      <div
+        style={{
+          ...cornerStyle,
+          top: 10,
+          right: 10,
+          borderTop: `2px solid ${c.color}`,
+          borderRight: `2px solid ${c.color}`,
+        }}
+      />
+      <div
+        style={{
+          ...cornerStyle,
+          bottom: 10,
+          left: 10,
+          borderBottom: `2px solid ${c.color}`,
+          borderLeft: `2px solid ${c.color}`,
+        }}
+      />
+      <div
+        style={{
+          ...cornerStyle,
+          right: 10,
+          bottom: 10,
+          borderRight: `2px solid ${c.color}`,
+          borderBottom: `2px solid ${c.color}`,
+        }}
+      />
+
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 10,
+          marginBottom: isProg ? 28 : 20,
+        }}
+      >
+        <div
+          style={{ width: 1, height: 24, background: c.color, opacity: 0.25 }}
+        />
+        <div
+          style={{
+            fontSize: 11,
+            fontWeight: 900,
+            letterSpacing: ".18em",
+            textTransform: "uppercase",
+            color: c.color,
+          }}
+        >
+          HR Playhouse Hub
+        </div>
+        <div
+          style={{ width: 1, height: 24, background: c.color, opacity: 0.25 }}
+        />
+      </div>
+
+      <div
+        style={{
+          fontSize: 10,
+          fontWeight: 700,
+          letterSpacing: ".2em",
+          textTransform: "uppercase",
+          color: "#9BABC0",
+          marginBottom: isProg ? 20 : 14,
+        }}
+      >
+        Certificate of {isProg ? "Programme Completion" : "Level Completion"}
+      </div>
+
+      {isProg && (
+        <div style={{ fontSize: 44, marginBottom: 16 }}>{c.badge}</div>
+      )}
+
+      <div style={{ fontSize: 14, color: "#9BABC0", marginBottom: 10 }}>
+        This certifies that
+      </div>
+      <div
+        style={{
+          fontSize: isProg ? 40 : 36,
+          fontWeight: 900,
+          color: "#0A1628",
+          lineHeight: 1,
+          marginBottom: isProg ? 20 : 14,
+          letterSpacing: -1,
+        }}
+      >
+        {userName}
+      </div>
+      <div style={{ fontSize: 14, color: "#9BABC0", marginBottom: 12 }}>
+        has successfully completed all requirements of
+      </div>
+      <div
+        style={{
+          fontSize: isProg ? 22 : 18,
+          fontWeight: 900,
+          color: c.color,
+          letterSpacing: -0.3,
+          marginBottom: 6,
+        }}
+      >
+        {c.level}
+      </div>
+      <div
+        style={{
+          fontSize: isProg ? 17 : 15,
+          fontWeight: 700,
+          color: "#0A1628",
+          marginBottom: 14,
+        }}
+      >
+        {c.title}
+      </div>
+
+      <div
+        style={{
+          fontSize: 12,
+          color: "#9BABC0",
+          maxWidth: 440,
+          margin: "0 auto 6px",
+          lineHeight: 1.6,
+        }}
+      >
+        {c.desc}
+      </div>
+      <div
+        style={{
+          fontSize: 11,
+          color: "#BFCAD8",
+          maxWidth: 440,
+          margin: `0 auto ${isProg ? 28 : 20}px`,
+          lineHeight: 1.55,
+        }}
+      >
+        {c.extras}
+      </div>
+
+      <div
+        style={{
+          height: 1,
+          background: "linear-gradient(90deg,transparent,#E8ECF4,transparent)",
+          marginBottom: isProg ? 28 : 20,
+        }}
+      />
+
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-end",
+        }}
+      >
+        <div style={{ textAlign: "left" }}>
+          <div
+            style={{
+              fontSize: 15,
+              fontWeight: 900,
+              color: "#0A1628",
+              marginBottom: 2,
+            }}
+          >
+            Dr. Marvellous Gberevbie
+          </div>
+          <div style={{ fontSize: 11, color: "#9BABC0" }}>
+            Founder &amp; CEO · HR Playhouse Hub
+          </div>
+          {isProg && (
+            <div style={{ fontSize: 11, color: "#9BABC0", marginTop: 2 }}>
+              Commonwealth Universities Grant — ACU
+            </div>
+          )}
+        </div>
+        <div style={{ textAlign: "center" }}>
+          <div style={{ fontSize: 24, marginBottom: 4 }}>
+            {isProg ? "🏆" : "🏅"}
+          </div>
+        </div>
+        <div style={{ textAlign: "right" }}>
+          <div
+            style={{
+              fontSize: 13,
+              fontWeight: 700,
+              color: "#0A1628",
+              marginBottom: 2,
+            }}
+          >
+            {issued}
+          </div>
+          <div style={{ fontSize: 11, color: "#9BABC0" }}>Date of Issue</div>
+          <div style={{ fontSize: 11, color: "#9BABC0", marginTop: 2 }}>
+            thehrplayhousehub.org
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function printCert(certKey: string) {
   const key = certKey || "l1";
   const certHTML = buildCertHTML(key, "Ada Okonkwo");
@@ -1710,17 +1947,19 @@ export default function MyCoursesContent() {
                     </button>
                   </div>
                 </div>
-                {/* Certificate body (generated markup, as in the original) */}
+                {/* Certificate body */}
                 <div
                   style={{
                     padding: "48px 64px",
                     textAlign: "center",
                     fontFamily: "sans-serif",
                   }}
-                  dangerouslySetInnerHTML={{
-                    __html: buildCertHTML(currentCertId, "Ada Okonkwo"),
-                  }}
-                />
+                >
+                  <CertificatePreview
+                    certKey={currentCertId}
+                    userName="Ada Okonkwo"
+                  />
+                </div>
               </div>
             </div>
           )}

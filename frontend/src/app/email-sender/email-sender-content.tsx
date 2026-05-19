@@ -12,10 +12,10 @@ import "./email-sender.css";
  * Crypto API. There is therefore no external library to load via `next/script`.
  *
  * The original built the live email preview by assigning an HTML string to
- * `innerHTML`; that exact string-building logic (every `render*`, `header`,
- * `signoff`, `footer`, `esc`, the `LEVEL_DATA` / `PROGRESS_DATA` / `TEMPLATES`
- * constants, the `new Date().toLocaleDateString` calls) is preserved verbatim
- * and rendered through `dangerouslySetInnerHTML`. The recipient form, template
+ * `innerHTML`; that string-building logic has been re-expressed as real React
+ * JSX components (preserving the `header`, `signoff`, `footer`, `esc`,
+ * `LEVEL_DATA` / `PROGRESS_DATA` / `TEMPLATES` constants, and the
+ * `new Date().toLocaleDateString` calls verbatim). The recipient form, template
  * picker, conditional level/progress fields, mailto subject/body, clipboard
  * copy, print-preview window, sent log, nav status, toast, and the password
  * gate (same SHA-256 digest comparison + `sessionStorage` key) all preserve
@@ -484,7 +484,578 @@ function getPlainText(
   return lines.join("\n");
 }
 
-type LogEntry = { first: string; last: string; email: string; line: string };
+function EmailHeader() {
+  return (
+    <div className="e-header">
+      <div className="e-pill">HR Playhouse</div>
+      <div className="e-logo-text">Hub</div>
+    </div>
+  );
+}
+
+function EmailSignoff({ tone = "warmth" }: { tone?: string }) {
+  return (
+    <>
+      <div className="e-divider" />
+      <div className="e-signoff">With {tone},</div>
+      <div className="e-name">Dr. Marvellous Gberevbie</div>
+      <div className="e-role-sig">
+        Founder &amp; CEO · HR Playhouse Hub Limited
+      </div>
+    </>
+  );
+}
+
+function EmailFooter() {
+  return (
+    <div className="e-footer">
+      <div className="e-footer-links">
+        <a href="https://www.thehrplayhousehub.org/">Website</a>
+        <a href="https://learn.thehrplayhousehub.org/courses/">Courses</a>
+        <a href="https://learn.thehrplayhousehub.org/case-study-vault/">
+          Case Studies
+        </a>
+        <a href="https://learn.thehrplayhousehub.org/hr-support/">
+          AI Support
+        </a>
+      </div>
+      <div className="e-footer-addr">
+        The HR Playhouse Hub Limited · RC 8387672 · thehrplayhousehub.org ·
+        contact@thehrplayhousehub.org
+      </div>
+      <div className="e-footer-unsub">
+        You are receiving this because you are a member or enquirer of HR
+        Playhouse Hub.
+        <br />
+        <a href="https://www.thehrplayhousehub.org/preferences/">
+          Manage preferences
+        </a>{" "}
+        ·{" "}
+        <a href="https://www.thehrplayhousehub.org/unsubscribe/">
+          Unsubscribe
+        </a>
+      </div>
+    </div>
+  );
+}
+
+function PersonalNote({ note }: { note: string }) {
+  return note ? <div className="e-p">{note}</div> : null;
+}
+
+function MiniCertificate({
+  programme = false,
+  name,
+  level,
+  title,
+  details,
+}: {
+  programme?: boolean;
+  name: string;
+  level: string;
+  title: string;
+  details: string;
+}) {
+  const date = new Date().toLocaleDateString("en-GB", {
+    month: "long",
+    year: "numeric",
+  });
+
+  return (
+    <div
+      className="cert-preview-mini"
+      style={
+        programme
+          ? {
+              borderColor: "#C4830A",
+              background: "linear-gradient(135deg,#fffdf5,#fff)",
+            }
+          : undefined
+      }
+    >
+      <div className="cpm-brand">HR Playhouse Hub</div>
+      <div className="cpm-head">
+        {programme
+          ? "Programme Certificate of Completion"
+          : "Certificate of Level Completion"}
+      </div>
+      <div className="cpm-badge">{programme ? "🏆" : "🏅"}</div>
+      <div className="cpm-certifies">This certifies that</div>
+      <div className="cpm-name">{name}</div>
+      <div className="cpm-done">
+        {programme
+          ? "has successfully completed all requirements of the"
+          : "has successfully completed all requirements of"}
+      </div>
+      <div className="cpm-level" style={programme ? { fontSize: 13 } : undefined}>
+        {level}
+      </div>
+      <div className="cpm-sub" style={programme ? { fontSize: 14 } : undefined}>
+        {title}
+      </div>
+      <div className="cpm-details">
+        {details.split("\n").map((line, index) => (
+          <span key={line}>
+            {index > 0 && <br />}
+            {line}
+          </span>
+        ))}
+      </div>
+      <div className="cpm-hr" />
+      <div className="cpm-foot">
+        <div>
+          <div className="cpm-sig">Dr. Marvellous Gberevbie</div>
+          <div>Founder &amp; CEO · HR Playhouse Hub</div>
+          {programme && <div>ACU Community Grant</div>}
+        </div>
+        <div style={{ textAlign: "right" }}>
+          <div style={{ fontWeight: 600, color: "var(--ink)" }}>{date}</div>
+          <div>Date of Issue</div>
+          {programme && <div>thehrplayhousehub.org</div>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EmailPreview({
+  template,
+  v,
+}: {
+  template: TemplateId;
+  v: Vals;
+}) {
+  if (template === "announce") {
+    return <AnnouncePreview v={v} />;
+  }
+  if (template === "complete") {
+    return <CompletePreview v={v} />;
+  }
+  if (template === "nudge") {
+    return <NudgePreview v={v} />;
+  }
+  return <ProgrammePreview v={v} />;
+}
+
+function AnnouncePreview({ v }: { v: Vals }) {
+  return (
+    <>
+      <EmailHeader />
+      <div
+        className="e-hero"
+        style={{ background: "linear-gradient(135deg,#0D1F3C 0%,#1E3560 100%)" }}
+      >
+        <div className="e-eyebrow" style={{ color: "#C9501E" }}>
+          Now Open · New Programme
+        </div>
+        <div className="e-title">
+          The HR Playhouse Hub
+          <br />
+          Professional Development
+          <br />
+          <em>Programme is now open.</em>
+        </div>
+        <div className="e-hero-sub">
+          Four levels. Real cases. Games that build instinct. A final project
+          you keep. Everything you need to go from competent to outstanding.
+        </div>
+      </div>
+      <div className="e-body">
+        <div className="e-greeting">Hi {v.first},</div>
+        <PersonalNote note={v.note} />
+        <div className="e-p">
+          I am excited to let you know that the{" "}
+          <strong>HR Playhouse Hub Professional Development Programme</strong>{" "}
+          is now open for enrolment.
+        </div>
+        <div className="e-p">
+          HR practice is changing fast — across Nigeria, the UK, and the
+          Commonwealth. The professionals who stand out are the ones who can{" "}
+          <strong>
+            think clearly under pressure, act with confidence, and lead the
+            moments that matter.
+          </strong>
+        </div>
+        <div className="e-hbox">
+          <div className="e-hbox-label">Programme Overview</div>
+          <div className="e-hbox-title">
+            Four progressive levels · 32+ case studies · 12 games
+          </div>
+          <div className="e-hbox-desc">
+            Multi-jurisdiction employment law · Final HR Strategy Proposal · ACU
+            grant-backed · Certificate at every level + Full Programme
+            Certificate
+          </div>
+        </div>
+        <div style={{ margin: "16px 0" }}>
+          {[1, 2, 3, 4].map((n) => {
+            const level = LEVEL_DATA[n];
+            return (
+              <div className="e-inc-row" key={n}>
+                <div
+                  className="e-dot"
+                  style={{
+                    background: n === 1 ? "#e8f7ee" : "#E8ECF4",
+                    color: n === 1 ? "#1a7a4a" : "#1E3560",
+                  }}
+                >
+                  {n === 1 ? "✓" : n}
+                </div>
+                <div className="e-inc-text">
+                  <strong>
+                    Level {n} — {level.name}
+                  </strong>
+                  <span className="e-inc-sub">{level.topics}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <div className="e-cta-wrap">
+          <a className="e-cta" href="https://learn.thehrplayhousehub.org/courses/">
+            Enrol in the Programme →
+          </a>
+          <div className="e-cta-note">
+            Level 1 is free to start ·{" "}
+            <a href="https://learn.thehrplayhousehub.org/courses/">
+              Preview the curriculum
+            </a>
+          </div>
+        </div>
+        <EmailSignoff />
+        <div className="e-ps">
+          <p>
+            <strong>P.S.</strong> If you would like a closer look before
+            enrolling,{" "}
+            <a href="https://learn.thehrplayhousehub.org/courses/">
+              preview the Level 1 curriculum here
+            </a>{" "}
+            — it is free to start with no commitment required.
+          </p>
+        </div>
+      </div>
+      <EmailFooter />
+    </>
+  );
+}
+
+function CompletePreview({ v }: { v: Vals }) {
+  const level = LEVEL_DATA[v.level];
+  const isLast = v.level === 4;
+  const name = v.first + (v.last ? " " + v.last : "");
+
+  return (
+    <>
+      <EmailHeader />
+      <div
+        className="e-hero"
+        style={{ background: "linear-gradient(135deg,#041a0c 0%,#0a2e18 100%)" }}
+      >
+        <div className="e-eyebrow" style={{ color: "#28ca65" }}>
+          🎉 Congratulations
+        </div>
+        <div className="e-title">
+          You have completed
+          <br />
+          <em>
+            Level {v.level} — {level.name}.
+          </em>
+        </div>
+        <div className="e-hero-sub">
+          Your certificate has been issued and is ready to view, download and
+          share right now.
+        </div>
+      </div>
+      <div className="e-body">
+        <div className="e-greeting">Hi {v.first},</div>
+        <PersonalNote note={v.note} />
+        <div className="e-p">
+          You did it.{" "}
+          <strong>
+            Level {v.level} — {level.name} is complete.
+          </strong>{" "}
+          Every topic covered, the case study done, all games completed.
+        </div>
+        <MiniCertificate
+          name={name}
+          level={`Level ${v.level}`}
+          title={level.name}
+          details={`${level.topics}\nCase Study: ${level.cs} · Games: ${level.games}`}
+        />
+        {!isLast && (
+          <div
+            className="e-hbox"
+            style={{ borderLeftColor: "var(--green)", background: "#e8f7ee" }}
+          >
+            <div className="e-hbox-label" style={{ color: "var(--green)" }}>
+              What comes next
+            </div>
+            <div className="e-hbox-title">
+              Level {v.level + 1} — {LEVEL_DATA[v.level + 1].name}
+            </div>
+            <div className="e-hbox-desc">
+              {LEVEL_DATA[v.level + 1].topics}
+            </div>
+          </div>
+        )}
+        <div className="e-cta-wrap">
+          <a
+            className="e-cta"
+            style={{ background: "#1a7a4a" }}
+            href="https://learn.thehrplayhousehub.org/dashboard/"
+          >
+            View your certificate →
+          </a>
+          {!isLast && (
+            <div className="e-cta-note">
+              Then{" "}
+              <a href="https://learn.thehrplayhousehub.org/courses/">
+                start Level {v.level + 1}
+              </a>{" "}
+              when you are ready
+            </div>
+          )}
+        </div>
+        <EmailSignoff tone="genuinely proud of you" />
+        <div className="e-ps" style={{ background: "#E8ECF4" }}>
+          <p>
+            Your Level {v.level} certificate is saved permanently in your
+            dashboard. Download or print it any time.{" "}
+            {v.level < 4
+              ? `${4 - v.level} more level${4 - v.level > 1 ? "s" : ""} to go — and a Programme Certificate waiting at the end.`
+              : "You have earned the full programme certificate too — check your dashboard."}
+          </p>
+        </div>
+      </div>
+      <EmailFooter />
+    </>
+  );
+}
+
+function NudgePreview({ v }: { v: Vals }) {
+  const progress = PROGRESS_DATA[v.progress] || PROGRESS_DATA["L2_75"];
+  const level = LEVEL_DATA[progress.level];
+  const topics = level.topics.split(" · ");
+  const doneCount = Math.floor((topics.length * progress.pct) / 100);
+
+  return (
+    <>
+      <EmailHeader />
+      <div
+        className="e-hero"
+        style={{ background: "linear-gradient(135deg,#0D1F3C 0%,#1E3560 100%)" }}
+      >
+        <div className="e-eyebrow" style={{ color: "#C9501E" }}>
+          You were so close
+        </div>
+        <div className="e-title">
+          Your next lesson
+          <br />
+          <em>is waiting for you.</em>
+        </div>
+        <div className="e-hero-sub">
+          You are {progress.pct}% through Level {progress.level} — {level.name}.
+          Keep going — you are genuinely close.
+        </div>
+      </div>
+      <div className="e-body">
+        <div className="e-greeting">Hi {v.first},</div>
+        <PersonalNote note={v.note} />
+        <div className="e-p">
+          It has been a little while since you last logged in. That is
+          completely fine — life gets busy. But I did not want your progress to
+          sit there without a gentle nudge.
+        </div>
+        <div className="e-p">
+          You are{" "}
+          <strong>
+            {progress.pct}% through Level {progress.level} — {level.name}.
+          </strong>{" "}
+          You are genuinely close to finishing this level and earning your
+          certificate.
+        </div>
+        <div
+          style={{
+            background: "#F0F2F8",
+            borderRadius: 10,
+            padding: "16px 18px",
+            margin: "16px 0",
+          }}
+        >
+          <div
+            style={{
+              fontSize: 10,
+              fontWeight: 700,
+              letterSpacing: ".09em",
+              textTransform: "uppercase",
+              color: "var(--ink4)",
+              marginBottom: 12,
+              fontFamily: "var(--fb)",
+            }}
+          >
+            Your Level {progress.level} progress
+          </div>
+          {topics.map((topic, i) => {
+            const done = i < doneCount;
+            const current = i === doneCount;
+            const pct = done
+              ? 100
+              : current
+                ? (progress.pct % Math.floor(100 / topics.length)) * 3
+                : 0;
+            const color = done ? "#1a7a4a" : current ? "#C9501E" : "#E8ECF4";
+            const label = done ? "✓" : current ? `${progress.pct}%` : "—";
+            const labelColor = done
+              ? "#1a7a4a"
+              : current
+                ? "#C9501E"
+                : "#9BABC0";
+            return (
+              <div className="prog-row" key={topic}>
+                <div
+                  className="prog-label"
+                  style={
+                    current
+                      ? { fontWeight: 700, color: "#C9501E" }
+                      : undefined
+                  }
+                >
+                  {topic}
+                </div>
+                <div className="prog-bar-wrap">
+                  <div
+                    className="prog-bar"
+                    style={{ width: `${pct}%`, background: color }}
+                  />
+                </div>
+                <div className="prog-pct" style={{ color: labelColor }}>
+                  {label}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <div className="e-hbox">
+          <div className="e-hbox-label">Pick up where you left off</div>
+          <div className="e-hbox-title">Next: {progress.topic}</div>
+          <div className="e-hbox-desc">
+            Estimated time to finish this level: {progress.remaining}
+          </div>
+        </div>
+        <div className="e-cta-wrap">
+          <a className="e-cta" href="https://learn.thehrplayhousehub.org/courses/">
+            Continue Level {progress.level} →
+          </a>
+          <div className="e-cta-note">
+            Your Level {progress.level} certificate is {100 - progress.pct}%
+            away
+          </div>
+        </div>
+        <EmailSignoff />
+      </div>
+      <EmailFooter />
+    </>
+  );
+}
+
+function ProgrammePreview({ v }: { v: Vals }) {
+  const name = v.first + (v.last ? " " + v.last : "");
+
+  return (
+    <>
+      <EmailHeader />
+      <div
+        className="e-hero"
+        style={{ background: "linear-gradient(135deg,#1a0e00 0%,#2a1a06 100%)" }}
+      >
+        <div className="e-eyebrow" style={{ color: "#C4830A" }}>
+          🏆 Programme Complete
+        </div>
+        <div className="e-title">
+          You have done it.
+          <br />
+          <em>All four levels. Done.</em>
+        </div>
+        <div className="e-hero-sub">
+          Your HR Playhouse Hub Programme Certificate has been issued. You are
+          now among a small group of HR professionals who have completed the
+          full programme.
+        </div>
+      </div>
+      <div className="e-body">
+        <div className="e-greeting">Hi {v.first},</div>
+        <PersonalNote note={v.note} />
+        <div className="e-p">
+          I mean this: <strong>well done.</strong> Completing all four levels —
+          every topic, every case study, every game, and your final HR Strategy
+          Proposal — is a genuine achievement.
+        </div>
+        <MiniCertificate
+          programme
+          name={name}
+          level="Full Programme"
+          title="HR Playhouse Hub Professional Development Programme"
+          details={
+            "Levels 1–4 · All topics, case studies, games and the final HR Strategy Proposal\nCommonwealth Universities (ACU) Grant · Cohort 2026 · Recognised across the Commonwealth"
+          }
+        />
+        <div
+          className="e-hbox"
+          style={{ borderLeftColor: "#C4830A", background: "#FDF4DD" }}
+        >
+          <div className="e-hbox-label" style={{ color: "#C4830A" }}>
+            Your credential
+          </div>
+          <div className="e-hbox-title">What this certificate represents</div>
+          <div className="e-hbox-desc">
+            This is not a participation certificate. You have demonstrated
+            mastery across all four levels of professional HR practice. It is a
+            serious credential, backed by an ACU grant and recognised across
+            Commonwealth nations.
+          </div>
+        </div>
+        <div className="e-cta-wrap">
+          <a
+            className="e-cta"
+            style={{ background: "#C4830A" }}
+            href="https://learn.thehrplayhousehub.org/dashboard/"
+          >
+            View &amp; Download your Certificate →
+          </a>
+          <div className="e-cta-note">
+            All 5 certificates are saved in your dashboard
+          </div>
+        </div>
+        <EmailSignoff tone="genuine pride" />
+        <div className="e-p">
+          If you would like to share this achievement on LinkedIn or with your
+          employer, I am happy to write a short verification note for you. Simply
+          reply to this email and ask.
+        </div>
+        <div className="e-ps">
+          <p>
+            <strong>P.S.</strong> You are welcome to join the{" "}
+            <a href="https://learn.thehrplayhousehub.org/virtual-innovation-lab/">
+              Innovation Lab
+            </a>{" "}
+            community — a thinking space for HR professionals who want to go
+            further. Your perspective, with four levels of practice behind it,
+            would be genuinely valuable there.
+          </p>
+        </div>
+      </div>
+      <EmailFooter />
+    </>
+  );
+}
+
+type LogEntry = {
+  first: string;
+  last: string;
+  email: string;
+  templateLabel: string;
+  sentAt: string;
+};
 
 export default function EmailSenderContent() {
   const [gatePassed, setGatePassed] = useState(false);
@@ -671,17 +1242,14 @@ export default function EmailSenderContent() {
       hour: "2-digit",
       minute: "2-digit",
     });
-    const line =
-      "<strong>" +
-      esc(v.first + (v.last ? " " + v.last : "")) +
-      "</strong> &lt;" +
-      esc(v.email) +
-      "&gt;<br>" +
-      TEMPLATES[currentTemplate].label +
-      " · " +
-      now;
     setSentLog((prev) => [
-      { first: v.first, last: v.last, email: v.email, line },
+      {
+        first: v.first,
+        last: v.last,
+        email: v.email,
+        templateLabel: TEMPLATES[currentTemplate].label,
+        sentAt: now,
+      },
       ...prev,
     ]);
     setNavStatus("Last sent: " + v.first + " · " + now);
@@ -869,11 +1437,15 @@ export default function EmailSenderContent() {
                 </div>
               ) : (
                 sentLog.map((entry, i) => (
-                  <div
-                    key={i}
-                    className="log-item"
-                    dangerouslySetInnerHTML={{ __html: entry.line }}
-                  />
+                  <div key={i} className="log-item">
+                    <strong>
+                      {entry.first}
+                      {entry.last ? ` ${entry.last}` : ""}
+                    </strong>{" "}
+                    &lt;{entry.email}&gt;
+                    <br />
+                    {entry.templateLabel} · {entry.sentAt}
+                  </div>
                 ))
               )}
             </div>
@@ -891,10 +1463,9 @@ export default function EmailSenderContent() {
               </button>
             </div>
           </div>
-          <div
-            className="email-shell"
-            dangerouslySetInnerHTML={{ __html: renderEmail() }}
-          />
+          <div className="email-shell">
+            <EmailPreview template={currentTemplate} v={vals()} />
+          </div>
         </div>
       </div>
 

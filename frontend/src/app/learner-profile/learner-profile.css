@@ -1,6 +1,6 @@
 /* learner-profile — page-specific styles.
- * Shared tokens/reset/nav/footer/components (.page-hero/.eyebrow/.page-title/
- * .hero-navy/.wrap/.card/.field/.btn*/.tag*/.divider) and the shared
+ * Shared tokens/reset/nav/footer/components (page-hero, eyebrow, page-title,
+ * hero-navy, wrap, card, field, buttons, tags, divider) and the shared
  * responsive blocks all live in app/design-system.css and are intentionally
  * omitted here. Only the profile/settings rules unique to this page remain. */
 
