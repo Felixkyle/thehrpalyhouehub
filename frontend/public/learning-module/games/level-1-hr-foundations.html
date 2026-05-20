@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HR Foundations — Game Suite</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;min-height:100vh;font-family:system-ui,-apple-system,sans-serif;font-size:14px;color:#0f172a;background:#f8fafc}
+
+/* ── SCREENS ── */
+.screen{display:none;min-height:100vh}
+.screen.active{display:flex;flex-direction:column}
+
+/* ── MENU ── */
+#s-menu{background:#fff}
+.menu-top{background:#0f172a;padding:32px 40px 28px}
+.menu-logo{font-size:22px;font-weight:700;color:#fff;letter-spacing:-.3px}
+.menu-logo span{color:#0d9488}
+.menu-tagline{font-size:14px;color:#64748b;margin-top:6px}
+.menu-body{padding:32px 40px;flex:1}
+.menu-section-label{font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:16px}
+.menu-theme{font-size:13px;color:#475569;margin-bottom:20px;padding:10px 14px;background:#f1f5f9;border-radius:8px;border-left:3px solid #0d9488}
+.game-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-bottom:32px}
+.game-card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:20px;cursor:pointer;transition:border-color .15s,transform .15s;position:relative;overflow:hidden}
+.game-card:hover{border-color:#0d9488;transform:translateY(-2px)}
+.game-card-num{font-size:11px;font-weight:700;color:#0d9488;letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px}
+.game-card-title{font-size:16px;font-weight:600;color:#0f172a;margin-bottom:6px}
+.game-card-sub{font-size:12px;color:#64748b;line-height:1.5;margin-bottom:14px}
+.game-card-tags{display:flex;gap:6px;flex-wrap:wrap}
+.tag{font-size:11px;padding:2px 8px;border-radius:6px;font-weight:500}
+.tag-blue{background:#dbeafe;color:#1e40af}
+.tag-green{background:#dcfce7;color:#166534}
+.tag-amber{background:#fef3c7;color:#92400e}
+.game-card-badge{position:absolute;top:14px;right:14px;font-size:22px}
+.start-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;background:#0f172a;color:#fff;border-radius:8px;font-size:13px;font-weight:500;border:none;cursor:pointer;font-family:inherit;transition:opacity .15s}
+.start-btn:hover{opacity:.88}
+
+/* ── SHARED APP CHROME ── */
+.app-bar{background:#0f172a;height:50px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;flex-shrink:0}
+.app-bar-left{display:flex;align-items:center;gap:10px}
+.app-bar-title{font-size:14px;font-weight:600;color:#fff}
+.back-btn{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);border-radius:7px;padding:5px 12px;font-size:12px;color:#94a3b8;cursor:pointer;font-family:inherit;transition:.15s}
+.back-btn:hover{background:rgba(255,255,255,.14);color:#e2e8f0}
+.app-bar-right{display:flex;align-items:center;gap:8px}
+.pts-pill{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:4px 12px;font-size:12px;color:#fbbf24;font-weight:600}
+.streak-pill{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:4px 12px;font-size:12px;color:#f97316;font-weight:600}
+
+.game-body{flex:1;padding:24px;max-width:760px;margin:0 auto;width:100%}
+
+/* ── CARDS ── */
+.card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:20px;margin-bottom:14px}
+.card-title{font-size:14px;font-weight:600;color:#0f172a;margin-bottom:4px}
+.card-sub{font-size:12px;color:#64748b;line-height:1.6;margin-bottom:14px}
+
+/* ── PROGRESS ── */
+.progress-wrap{height:5px;background:#f1f5f9;border-radius:3px;overflow:hidden;margin-bottom:20px}
+.progress-fill{height:5px;border-radius:3px;background:#0d9488;transition:width .4s}
+
+/* ── BUTTONS ── */
+.btn{border:1px solid #e2e8f0;border-radius:8px;padding:8px 18px;font-size:13px;cursor:pointer;background:#fff;color:#0f172a;font-family:inherit;transition:.15s}
+.btn:hover{background:#f8fafc;border-color:#94a3b8}
+.btn-primary{background:#0f172a;color:#fff;border-color:#0f172a}
+.btn-primary:hover{opacity:.88}
+.btn-teal{background:#0d9488;color:#fff;border-color:#0d9488}
+.btn-teal:hover{opacity:.88}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;border-radius:10px;padding:9px 20px;font-size:13px;opacity:0;transition:opacity .25s;pointer-events:none;white-space:nowrap;z-index:999}
+#toast.show{opacity:1}
+
+/* ── GAME 1: HR QUEST ── */
+.mission-list{display:flex;flex-direction:column;gap:10px}
+.mission-item{display:flex;align-items:center;gap:12px;padding:14px 16px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;cursor:pointer;transition:border-color .15s}
+.mission-item:hover{border-color:#0d9488}
+.mission-item.done{opacity:.6;background:#f0fdf4;border-color:#bbf7d0;cursor:default}
+.mission-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.mission-icon-bg-blue{background:#dbeafe}
+.mission-icon-bg-green{background:#dcfce7}
+.mission-icon-bg-amber{background:#fef3c7}
+.mission-info{flex:1}
+.mission-title{font-size:13px;font-weight:600;color:#0f172a}
+.mission-desc{font-size:12px;color:#64748b;margin-top:2px}
+.mission-pts{font-size:12px;font-weight:600;color:#0d9488}
+.mission-check{font-size:16px;color:#16a34a}
+
+/* match task */
+.match-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.match-col-label{font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.match-item{padding:10px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;cursor:pointer;transition:border-color .15s,background .15s;background:#fff;user-select:none}
+.match-item:hover{border-color:#0d9488}
+.match-item.selected{border-color:#0d9488;background:#f0fdfa}
+.match-item.matched-correct{border-color:#16a34a;background:#f0fdf4;color:#166534;cursor:default}
+.match-item.matched-wrong{border-color:#dc2626;background:#fef2f2;color:#991b1b}
+.match-item.disabled{opacity:.45;cursor:default}
+
+/* roles task */
+.role-list{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
+.role-item{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border:1px solid #e2e8f0;border-radius:8px;cursor:pointer;transition:.15s;background:#fff}
+.role-item:hover{border-color:#0d9488}
+.role-item.selected-correct{border-color:#16a34a;background:#f0fdf4}
+.role-item.selected-wrong{border-color:#dc2626;background:#fef2f2}
+.role-checkbox{width:18px;height:18px;border:2px solid #cbd5e1;border-radius:4px;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;font-size:11px}
+.role-checkbox.checked{background:#0d9488;border-color:#0d9488;color:#fff}
+.role-text{font-size:13px;color:#0f172a}
+.role-sub{font-size:11px;color:#64748b;margin-top:2px}
+
+/* badge award */
+.badge-award{text-align:center;padding:32px 20px}
+.badge-award-icon{font-size:72px;margin-bottom:12px}
+.badge-award-title{font-size:22px;font-weight:700;color:#0f172a;margin-bottom:6px}
+.badge-award-sub{font-size:14px;color:#64748b;line-height:1.6;margin-bottom:20px}
+.insight-box{background:#f0fdfa;border:1px solid #99f6e4;border-radius:10px;padding:14px 16px;margin-bottom:20px;text-align:left}
+.insight-label{font-size:11px;font-weight:700;color:#0d9488;text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px}
+.insight-text{font-size:13px;color:#134e4a;line-height:1.6}
+
+/* ── GAME 2: ENGAGEMENT PULSE ── */
+.quiz-q{font-size:16px;font-weight:600;color:#0f172a;line-height:1.5;margin-bottom:18px}
+.quiz-context{font-size:13px;color:#475569;background:#f8fafc;border-radius:8px;padding:12px 14px;margin-bottom:16px;line-height:1.6;border-left:3px solid #cbd5e1}
+.quiz-options{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.quiz-opt{padding:12px 14px;border:1px solid #e2e8f0;border-radius:9px;cursor:pointer;font-size:13px;color:#0f172a;background:#fff;text-align:left;font-family:inherit;transition:.15s;line-height:1.5}
+.quiz-opt:hover:not(:disabled){border-color:#0d9488;background:#f0fdfa}
+.quiz-opt.correct{border-color:#16a34a;background:#f0fdf4;color:#166534;cursor:default}
+.quiz-opt.wrong{border-color:#dc2626;background:#fef2f2;color:#991b1b;cursor:default}
+.quiz-opt.neutral{opacity:.55;cursor:default}
+.feedback-box{border-radius:9px;padding:12px 14px;font-size:13px;line-height:1.6;margin-bottom:14px}
+.feedback-correct{background:#f0fdf4;border:1px solid #bbf7d0;color:#166534}
+.feedback-wrong{background:#fef2f2;border:1px solid #fecaca;color:#991b1b}
+.streak-bar{display:flex;gap:5px;margin-bottom:16px}
+.streak-dot{width:12px;height:12px;border-radius:3px;background:#e2e8f0}
+.streak-dot.lit{background:#f97316}
+.quiz-score-panel{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.qs-box{background:#f8fafc;border-radius:8px;padding:12px;text-align:center}
+.qs-val{font-size:24px;font-weight:700;color:#0f172a}
+.qs-lbl{font-size:11px;color:#64748b;margin-top:3px}
+
+/* ── GAME 3: MANAGER SIMULATOR ── */
+.sim-header{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.sim-avatar{width:44px;height:44px;border-radius:50%;background:#dbeafe;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.sim-team-name{font-size:14px;font-weight:600;color:#0f172a}
+.sim-week{font-size:12px;color:#64748b}
+.engagement-meter{margin-bottom:18px}
+.eng-label{display:flex;justify-content:space-between;font-size:12px;color:#64748b;margin-bottom:5px}
+.eng-track{height:10px;background:#f1f5f9;border-radius:5px;overflow:hidden}
+.eng-fill{height:10px;border-radius:5px;transition:width .6s,background .4s}
+.eng-fill.high{background:#16a34a}
+.eng-fill.mid{background:#d97706}
+.eng-fill.low{background:#dc2626}
+.team-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+.team-card{background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:10px;text-align:center}
+.team-card-emoji{font-size:22px;margin-bottom:4px}
+.team-card-name{font-size:11px;font-weight:600;color:#0f172a}
+.team-card-mood{font-size:10px;margin-top:3px}
+.mood-happy{color:#16a34a}
+.mood-ok{color:#d97706}
+.mood-sad{color:#dc2626}
+.sim-scenario{font-size:14px;font-weight:600;color:#0f172a;margin-bottom:8px;line-height:1.4}
+.sim-context{font-size:12px;color:#475569;background:#f8fafc;padding:10px 12px;border-radius:8px;margin-bottom:14px;line-height:1.6;border-left:3px solid #cbd5e1}
+.sim-choices{display:flex;flex-direction:column;gap:7px;margin-bottom:14px}
+.sim-choice{padding:11px 13px;border:1px solid #e2e8f0;border-radius:8px;cursor:pointer;font-size:13px;color:#0f172a;background:#fff;text-align:left;font-family:inherit;transition:.15s;line-height:1.5}
+.sim-choice:hover:not(:disabled){border-color:#0d9488;background:#f0fdfa}
+.sim-choice.chosen-good{border-color:#16a34a;background:#f0fdf4;cursor:default}
+.sim-choice.chosen-ok{border-color:#d97706;background:#fffbeb;cursor:default}
+.sim-choice.chosen-bad{border-color:#dc2626;background:#fef2f2;cursor:default}
+.sim-choice.neutral{opacity:.5;cursor:default}
+.sim-impact{border-radius:9px;padding:12px 14px;font-size:13px;line-height:1.6;margin-bottom:14px}
+.impact-good{background:#f0fdf4;border:1px solid #bbf7d0;color:#166534}
+.impact-ok{background:#fffbeb;border:1px solid #fde68a;color:#92400e}
+.impact-bad{background:#fef2f2;border:1px solid #fecaca;color:#991b1b}
+.sim-stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.sim-stat{background:#f8fafc;border-radius:8px;padding:10px;text-align:center}
+.sim-stat-val{font-size:20px;font-weight:700;color:#0f172a}
+.sim-stat-delta{font-size:11px}
+.delta-up{color:#16a34a}
+.delta-down{color:#dc2626}
+.delta-zero{color:#94a3b8}
+.sim-stat-lbl{font-size:11px;color:#64748b;margin-top:2px}
+.week-indicator{display:flex;gap:5px;margin-bottom:14px}
+.week-dot{width:24px;height:6px;border-radius:3px;background:#e2e8f0}
+.week-dot.done{background:#0d9488}
+.week-dot.current{background:#0f172a}
+
+/* ── RESULT SCREENS ── */
+.result-wrap{text-align:center;padding:40px 20px}
+.result-icon{font-size:64px;margin-bottom:12px}
+.result-title{font-size:24px;font-weight:700;color:#0f172a;margin-bottom:6px}
+.result-sub{font-size:14px;color:#64748b;line-height:1.6;margin-bottom:24px}
+.result-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:24px;max-width:400px;margin-left:auto;margin-right:auto}
+.rs-box{background:#f8fafc;border-radius:10px;padding:14px}
+.rs-val{font-size:26px;font-weight:700;color:#0f172a}
+.rs-lbl{font-size:11px;color:#64748b;margin-top:3px}
+.result-insight{background:#f0fdfa;border:1px solid #99f6e4;border-radius:10px;padding:14px 16px;margin-bottom:20px;text-align:left;max-width:500px;margin-left:auto;margin-right:auto}
+.result-insight .insight-label{font-size:11px;font-weight:700;color:#0d9488;text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px}
+.result-insight p{font-size:13px;color:#134e4a;line-height:1.6}
+</style>
+</head>
+<body>
+
+<!-- ── MENU ── -->
+<div class="screen active" id="s-menu">
+  <div class="menu-top">
+    <div class="menu-logo">HR<span>Foundations</span></div>
+    <div class="menu-tagline" style="color:#94a3b8;font-size:13px;margin-top:6px">Foundations Series · Understanding HR Basics</div>
+  </div>
+  <div class="menu-body">
+    <div class="menu-section-label">Theme: Awareness + Engagement</div>
+    <div class="menu-theme">Three interactive games to build foundational HR knowledge through scenario-based learning, immediate feedback, and a progressive reward system.</div>
+    <div class="game-cards">
+      <div class="game-card" onclick="launch('g1')">
+        <div class="game-card-badge">🎒</div>
+        <div class="game-card-num">Game 01</div>
+        <div class="game-card-title">HR Quest Starter Pack</div>
+        <div class="game-card-sub">Complete onboarding missions — identify HR roles and match terms to meanings. Earn the HR Explorer Badge.</div>
+        <div class="game-card-tags">
+          <span class="tag tag-blue">Onboarding</span>
+          <span class="tag tag-green">Microlearning</span>
+        </div>
+        <div style="margin-top:14px"><button class="start-btn" onclick="launch('g1')">Start mission →</button></div>
+      </div>
+      <div class="game-card" onclick="launch('g2')">
+        <div class="game-card-badge">💬</div>
+        <div class="game-card-num">Game 02</div>
+        <div class="game-card-title">Engagement Pulse</div>
+        <div class="game-card-sub">Scenario-based quiz — choose the action that best improves employee engagement. Instant feedback + streak system.</div>
+        <div class="game-card-tags">
+          <span class="tag tag-amber">Engagement</span>
+          <span class="tag tag-green">Scenario Quiz</span>
+        </div>
+        <div style="margin-top:14px"><button class="start-btn" onclick="launch('g2')">Start quiz →</button></div>
+      </div>
+      <div class="game-card" onclick="launch('g3')">
+        <div class="game-card-badge">👔</div>
+        <div class="game-card-num">Game 03</div>
+        <div class="game-card-title">Manager Impact Simulator</div>
+        <div class="game-card-sub">Step into a manager's shoes. Make decisions and watch their real-time impact on your team's engagement score.</div>
+        <div class="game-card-tags">
+          <span class="tag tag-blue">Simulation</span>
+          <span class="tag tag-amber">Leadership</span>
+        </div>
+        <div style="margin-top:14px"><button class="start-btn" onclick="launch('g3')">Start sim →</button></div>
+      </div>
+    </div>
+    <div style="font-size:12px;color:#94a3b8">HR Foundations Series · Part of HRLab ⚗️ · Suitable for undergraduates and workplace L&D</div>
+  </div>
+</div>
+
+<!-- ── GAME 1: HR QUEST STARTER PACK ── -->
+<div class="screen" id="s-g1">
+  <div class="app-bar">
+    <div class="app-bar-left">
+      <button class="back-btn" onclick="goMenu()">← Menu</button>
+      <span class="app-bar-title">🎒 HR Quest Starter Pack</span>
+    </div>
+    <div class="app-bar-right">
+      <div class="pts-pill">⭐ <span id="g1-pts">0</span> pts</div>
+    </div>
+  </div>
+  <div class="game-body" id="g1-body"></div>
+</div>
+
+<!-- ── GAME 2: ENGAGEMENT PULSE ── -->
+<div class="screen" id="s-g2">
+  <div class="app-bar">
+    <div class="app-bar-left">
+      <button class="back-btn" onclick="goMenu()">← Menu</button>
+      <span class="app-bar-title">💬 Engagement Pulse</span>
+    </div>
+    <div class="app-bar-right">
+      <div class="streak-pill">🔥 <span id="g2-streak">0</span></div>
+      <div class="pts-pill">⭐ <span id="g2-pts">0</span></div>
+    </div>
+  </div>
+  <div class="game-body" id="g2-body"></div>
+</div>
+
+<!-- ── GAME 3: MANAGER SIMULATOR ── -->
+<div class="screen" id="s-g3">
+  <div class="app-bar">
+    <div class="app-bar-left">
+      <button class="back-btn" onclick="goMenu()">← Menu</button>
+      <span class="app-bar-title">👔 Manager Impact Simulator</span>
+    </div>
+    <div class="app-bar-right">
+      <div class="pts-pill">⭐ <span id="g3-pts">0</span></div>
+    </div>
+  </div>
+  <div class="game-body" id="g3-body"></div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── UTILS ──────────────────────────────────────────────
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo(0,0);}
+function goMenu(){showScreen('s-menu');}
+function launch(g){if(g==='g1')startG1();else if(g==='g2')startG2();else if(g==='g3')startG3();showScreen('s-'+g);}
+let _tt;
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(_tt);_tt=setTimeout(()=>t.classList.remove('show'),2800);}
+
+// ════════════════════════════════════════════════════════
+// GAME 1 — HR QUEST STARTER PACK
+// ════════════════════════════════════════════════════════
+const G1_MISSIONS=[
+  {id:'roles',title:'Identify HR Roles',desc:'Select all the positions that belong in an HR department',icon:'👥',bg:'mission-icon-bg-blue',pts:50,done:false},
+  {id:'terms',title:'Match HR Terms',desc:'Connect each HR term to its correct definition',icon:'📚',bg:'mission-icon-bg-amber',pts:75,done:false},
+];
+
+let g1pts=0, g1state='list'; // list | mission | badge
+
+function startG1(){g1pts=0;G1_MISSIONS.forEach(m=>m.done=false);g1state='list';document.getElementById('g1-pts').textContent=0;renderG1();}
+
+function renderG1(){
+  const el=document.getElementById('g1-body');
+  if(g1state==='badge'){renderG1Badge(el);return;}
+  if(g1state==='roles'){renderG1Roles(el);return;}
+  if(g1state==='terms'){renderG1Terms(el);return;}
+  // mission list
+  const done=G1_MISSIONS.filter(m=>m.done).length;
+  const pct=Math.round((done/G1_MISSIONS.length)*100);
+  el.innerHTML=`
+    <div class="progress-wrap"><div class="progress-fill" style="width:${pct}%"></div></div>
+    <div class="card">
+      <div class="card-title">🎒 Your HR Quest Missions</div>
+      <div class="card-sub">Complete all missions to earn the HR Explorer Badge. Each mission unlocks microlearning content.</div>
+    </div>
+    <div class="mission-list">
+      ${G1_MISSIONS.map(m=>`
+        <div class="mission-item ${m.done?'done':''}" onclick="${m.done?'':'startMission(\''+m.id+'\')'}">
+          <div class="mission-icon ${m.bg}">${m.icon}</div>
+          <div class="mission-info">
+            <div class="mission-title">${m.title} ${m.done?'<span style="color:#16a34a">✓</span>':''}</div>
+            <div class="mission-desc">${m.desc}</div>
+          </div>
+          <div>
+            ${m.done?`<div class="mission-check">✓</div>`:`<div class="mission-pts">+${m.pts} pts</div>`}
+          </div>
+        </div>`).join('')}
+    </div>
+    ${done===G1_MISSIONS.length?`<div style="text-align:center;margin-top:20px"><button class="btn btn-teal" onclick="g1state='badge';renderG1()">Claim your badge! 🏅</button></div>`:''}
+  `;
+}
+
+window.startMission=function(id){g1state=id;renderG1();}
+
+// ROLES MISSION
+const HR_ROLES=[
+  {label:'HR Business Partner',isHR:true,sub:'Strategic advisor linking HR to business goals'},
+  {label:'Talent Acquisition Specialist',isHR:true,sub:'Recruits and sources candidates for open roles'},
+  {label:'Learning & Development Manager',isHR:true,sub:'Designs training programmes and career pathways'},
+  {label:'Chief Financial Officer',isHR:false,sub:'Oversees company finances and financial reporting'},
+  {label:'People Analytics Analyst',isHR:true,sub:'Uses data to inform workforce decisions'},
+  {label:'Compensation & Benefits Manager',isHR:true,sub:'Manages pay structures and employee benefits'},
+  {label:'Marketing Director',isHR:false,sub:'Leads brand strategy and marketing campaigns'},
+  {label:'Employee Relations Advisor',isHR:true,sub:'Handles workplace disputes and grievances'},
+];
+let rolesSelected=new Set(), rolesSubmitted=false;
+
+function renderG1Roles(el){
+  el.innerHTML=`
+    <div class="progress-wrap"><div class="progress-fill" style="width:50%"></div></div>
+    <div class="card">
+      <div class="card-title">👥 Mission 1 — Identify HR Roles</div>
+      <div class="card-sub">Select ALL roles that typically sit within an HR department. There are 6 correct answers.</div>
+    </div>
+    <div class="role-list" id="role-list">
+      ${HR_ROLES.map((r,i)=>`
+        <div class="role-item" id="ri-${i}" onclick="toggleRole(${i})">
+          <div class="role-checkbox" id="rc-${i}"></div>
+          <div>
+            <div class="role-text">${r.label}</div>
+            <div class="role-sub">${r.sub}</div>
+          </div>
+        </div>`).join('')}
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-primary" onclick="submitRoles()">Submit answers</button>
+      <button class="btn" onclick="g1state='list';renderG1()">Back</button>
+    </div>
+    <div id="roles-feedback" style="margin-top:12px"></div>
+  `;
+  rolesSelected=new Set();rolesSubmitted=false;
+}
+
+window.toggleRole=function(i){
+  if(rolesSubmitted)return;
+  if(rolesSelected.has(i)){rolesSelected.delete(i);document.getElementById('rc-'+i).classList.remove('checked');document.getElementById('rc-'+i).textContent='';}
+  else{rolesSelected.add(i);const cb=document.getElementById('rc-'+i);cb.classList.add('checked');cb.textContent='✓';}
+};
+
+window.submitRoles=function(){
+  if(rolesSelected.size===0){toast('Select at least one role first!');return;}
+  rolesSubmitted=true;
+  let correct=0,wrong=0;
+  HR_ROLES.forEach((r,i)=>{
+    const selected=rolesSelected.has(i);
+    const el=document.getElementById('ri-'+i);
+    if(r.isHR&&selected){correct++;el.classList.add('selected-correct');}
+    else if(!r.isHR&&selected){wrong++;el.classList.add('selected-wrong');}
+    else if(r.isHR&&!selected){el.style.borderColor='#fde68a';}
+  });
+  const pts=Math.max(0,correct*10-wrong*8);
+  g1pts+=pts;document.getElementById('g1-pts').textContent=g1pts;
+  const allCorrect=correct===6&&wrong===0;
+  document.getElementById('roles-feedback').innerHTML=`
+    <div class="feedback-box ${allCorrect?'feedback-correct':'feedback-wrong'}">
+      ${allCorrect?'✅ Perfect! You identified all 6 HR roles correctly.':'⚠️ '+correct+' of 6 correct, '+wrong+' incorrect. Review the highlighted roles above.'}
+      <div style="font-size:12px;margin-top:6px;opacity:.85">💡 HR departments vary by organisation size. In smaller companies, one person often covers all these functions.</div>
+    </div>
+    <button class="btn btn-primary" onclick="completeRolesMission()" style="margin-top:4px">Continue →</button>
+  `;
+};
+
+window.completeRolesMission=function(){
+  G1_MISSIONS[0].done=true;
+  const pts=50;g1pts+=pts;document.getElementById('g1-pts').textContent=g1pts;
+  toast('Mission 1 complete! +'+pts+' pts');
+  g1state='list';renderG1();
+};
+
+// TERMS MISSION
+const HR_TERMS=[
+  {term:'Onboarding',def:'The process of integrating a new employee into the organisation'},
+  {term:'Attrition',def:'The gradual reduction of staff through resignation or retirement'},
+  {term:'KPI',def:'A measurable value used to evaluate success in achieving objectives'},
+  {term:'HRIS',def:'A software system used to manage employee data and HR processes'},
+  {term:'Grievance',def:'A formal complaint raised by an employee about a workplace issue'},
+  {term:'Succession Planning',def:'Identifying and developing future leaders for key roles'},
+];
+let termSelected=null, defSelected=null, termMatched=new Set(), defMatched=new Set(), termShuffled=[], defShuffled=[];
+
+function shuffle(arr){return [...arr].sort(()=>Math.random()-.5);}
+
+function renderG1Terms(el){
+  termShuffled=shuffle(HR_TERMS);defShuffled=shuffle(HR_TERMS);
+  termSelected=null;defSelected=null;termMatched=new Set();defMatched=new Set();
+  el.innerHTML=`
+    <div class="progress-wrap"><div class="progress-fill" style="width:75%"></div></div>
+    <div class="card">
+      <div class="card-title">📚 Mission 2 — Match HR Terms</div>
+      <div class="card-sub">Click a term on the left, then click its matching definition on the right. Match all 6 pairs to complete the mission.</div>
+    </div>
+    <div class="match-grid">
+      <div>
+        <div class="match-col-label">Terms</div>
+        <div id="terms-col">${termShuffled.map((t,i)=>`<div class="match-item" id="tm-${i}" onclick="selectTerm(${i})">${t.term}</div>`).join('')}</div>
+      </div>
+      <div>
+        <div class="match-col-label">Definitions</div>
+        <div id="defs-col">${defShuffled.map((d,i)=>`<div class="match-item" id="dm-${i}" onclick="selectDef(${i})">${d.def}</div>`).join('')}</div>
+      </div>
+    </div>
+    <div id="match-score" style="font-size:13px;color:#64748b">Matched: <b id="match-count">0</b> / ${HR_TERMS.length}</div>
+    <div id="terms-feedback" style="margin-top:10px"></div>
+  `;
+}
+
+window.selectTerm=function(i){
+  if(termMatched.has(i))return;
+  if(termSelected!==null)document.getElementById('tm-'+termSelected).classList.remove('selected');
+  termSelected=i;
+  document.getElementById('tm-'+i).classList.add('selected');
+  tryMatch();
+};
+
+window.selectDef=function(i){
+  if(defMatched.has(i))return;
+  if(defSelected!==null)document.getElementById('dm-'+defSelected).classList.remove('selected');
+  defSelected=i;
+  document.getElementById('dm-'+i).classList.add('selected');
+  tryMatch();
+};
+
+function tryMatch(){
+  if(termSelected===null||defSelected===null)return;
+  const t=termShuffled[termSelected];
+  const d=defShuffled[defSelected];
+  const tEl=document.getElementById('tm-'+termSelected);
+  const dEl=document.getElementById('dm-'+defSelected);
+  if(t.term===d.term){
+    tEl.classList.remove('selected');dEl.classList.remove('selected');
+    tEl.classList.add('matched-correct');dEl.classList.add('matched-correct');
+    termMatched.add(termSelected);defMatched.add(defSelected);
+    g1pts+=15;document.getElementById('g1-pts').textContent=g1pts;
+    const cnt=termMatched.size;
+    document.getElementById('match-count').textContent=cnt;
+    toast('✓ Matched! +15 pts');
+    if(cnt===HR_TERMS.length){
+      setTimeout(()=>{
+        document.getElementById('terms-feedback').innerHTML=`
+          <div class="feedback-box feedback-correct" style="margin-top:8px">✅ All 6 terms matched correctly! Excellent HR vocabulary.</div>
+          <button class="btn btn-primary" onclick="completeTermsMission()" style="margin-top:8px">Complete mission →</button>`;
+      },400);
+    }
+  } else {
+    tEl.classList.add('matched-wrong');dEl.classList.add('matched-wrong');
+    setTimeout(()=>{
+      tEl.classList.remove('matched-wrong','selected');
+      dEl.classList.remove('matched-wrong','selected');
+    },800);
+    toast('Not a match — try again');
+  }
+  termSelected=null;defSelected=null;
+}
+
+window.completeTermsMission=function(){
+  G1_MISSIONS[1].done=true;
+  const pts=75;g1pts+=pts;document.getElementById('g1-pts').textContent=g1pts;
+  toast('Mission 2 complete! +'+pts+' pts');
+  g1state='badge';renderG1();
+};
+
+function renderG1Badge(el){
+  el.innerHTML=`
+    <div class="badge-award">
+      <div class="badge-award-icon">🏅</div>
+      <div class="badge-award-title">HR Explorer Badge Earned!</div>
+      <div class="badge-award-sub">You've completed the HR Quest Starter Pack. You can now identify core HR roles and speak the language of the HR profession.</div>
+      <div class="insight-box">
+        <div class="insight-label">💡 Microlearning Insight</div>
+        <div class="insight-text">Research shows that breaking learning into short, focused bursts (like these missions) improves knowledge retention by up to 80% compared to traditional long-form learning. This approach is called <strong>microlearning</strong> — and it's the design principle behind this game.</div>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="launch('g2')">Next: Engagement Pulse →</button>
+        <button class="btn" onclick="goMenu()">Back to menu</button>
+      </div>
+      <div style="margin-top:20px;font-size:13px;color:#64748b">Final score: <strong>${g1pts} pts</strong></div>
+    </div>
+  `;
+}
+
+// ════════════════════════════════════════════════════════
+// GAME 2 — ENGAGEMENT PULSE
+// ════════════════════════════════════════════════════════
+const G2_QUESTIONS=[
+  {
+    context:'Acme Corp ran their annual survey. Results: 47% engagement score, eNPS of −3. Team leads have not been trained on how to run 1-on-1s.',
+    q:'Which action would most directly improve engagement in the short term?',
+    opts:['Send a company-wide motivational email from the CEO','Train all team leads to conduct regular, structured 1-on-1s with direct reports','Launch a new office perks programme (free coffee, ping pong table)','Publish the survey results on the intranet and ask employees to submit ideas'],
+    correct:1,
+    explanations:[
+      'A one-off email rarely moves engagement scores. It signals awareness but not action — employees have heard it before.',
+      'Correct! Manager behaviour is the single biggest driver of team engagement. Structured 1-on-1s build trust, clarify expectations, and create psychological safety — all direct engagement levers.',
+      'Perks improve satisfaction, not engagement. Engagement is about purpose, autonomy, and connection — not amenities.',
+      'Transparency is valuable, but asking for ideas without acting on them quickly erodes trust further.',
+    ]
+  },
+  {
+    context:'A product team manager notices two high performers are becoming withdrawn and missing deadlines. Their engagement scores (from weekly pulse surveys) have dropped from 82% to 58% over 6 weeks.',
+    q:'What is the most appropriate first step for the manager?',
+    opts:['Put both employees on a formal performance improvement plan','Schedule individual confidential conversations to understand what has changed','Offer both employees a pay rise to boost motivation','Copy HR into all future communications with both employees'],
+    correct:1,
+    explanations:[
+      'A PIP is a performance management tool — jumping to it without understanding the cause is likely to worsen the situation and damage trust irreparably.',
+      'Correct! Before any intervention, understand the root cause. A confidential 1-on-1 shows you care, protects dignity, and may reveal something a PIP or pay rise would never fix (e.g. a personal circumstance or a team dynamic issue).',
+      'Pay can motivate in the short term but rarely fixes disengagement rooted in workload, relationships, or purpose issues.',
+      'Copying HR into routine communications is disproportionate at this stage and would likely feel threatening to the employees.',
+    ]
+  },
+  {
+    context:'A new HR manager joins a retail company with 68% engagement (just above the 50% at-risk threshold). Turnover is 18%. Exit interviews mention "lack of development opportunities" repeatedly.',
+    q:'Which HR action addresses both the engagement and turnover problem at its root cause?',
+    opts:['Increase starting salaries for all new hires','Launch a structured career development framework with clear progression pathways','Run a fun team-building away day for every department','Hire more managers to reduce team sizes'],
+    correct:1,
+    explanations:[
+      'Higher starting pay attracts new talent but does not retain existing employees who are already citing development — not pay — as the issue.',
+      'Correct! If exit interviews consistently cite lack of development, the data is telling you the solution. A clear career framework gives employees a reason to stay and shows the company is investing in them — directly addressing both metrics.',
+      'A team-building event may temporarily lift morale but will not address the structural development gap that is driving turnover.',
+      'Smaller teams may help with workload but don\'t address the development gap identified in exit data.',
+    ]
+  },
+  {
+    context:'An employee tells you privately that their manager publicly criticises team members in meetings and takes credit for others\' work. Three other employees have hinted at similar issues.',
+    q:'As an HR professional, what is the correct course of action?',
+    opts:['Tell the employee this is between them and their manager to resolve','Document the concern, investigate confidentially, and assess whether a pattern exists','Send an anonymous survey to the whole team about their manager','Immediately inform the manager\'s line manager without informing HR\'s manager'],
+    correct:1,
+    explanations:[
+      'Dismissing a formal concern without investigation breaches duty of care and may expose the organisation to legal risk.',
+      'Correct! HR must document concerns, investigate properly, and establish whether this is isolated or systemic. Acting too quickly or too slowly both carry risk — proportionate, confidential investigation is the standard.',
+      'An anonymous survey before completing a basic investigation could alert the manager, compromise evidence, and distress affected employees further.',
+      'Escalating without proper process, documentation, or informing your own manager could breach HR governance procedures.',
+    ]
+  },
+  {
+    context:'A company introduced remote work three years ago. Recent data shows: remote employees score 12% lower on "feeling connected to the team" than office workers. Turnover among remote staff is 24% vs 11% for office staff.',
+    q:'What does this data suggest HR should prioritise?',
+    opts:['Mandate that all remote employees return to the office immediately','Investigate connection and inclusion practices for remote employees and pilot targeted interventions','Remove remote working as a benefit to standardise the experience','Increase remote employees\' salaries to compensate for the feeling of disconnection'],
+    correct:1,
+    explanations:[
+      'Mandating a return to office ignores the data and will likely accelerate turnover among remote staff who have chosen that working model.',
+      'Correct! The data points to a connection and inclusion gap — not a productivity problem. Evidence-based HR would investigate root causes (Are remote staff excluded from meetings? Lack of informal communication? No onboarding into team culture?) before designing targeted solutions.',
+      'Removing a valued benefit will damage the employment brand and accelerate the turnover it is trying to solve.',
+      'Pay doesn\'t compensate for belonging. The data shows a connection problem — pay doesn\'t address that.',
+    ]
+  },
+  {
+    context:'During a performance review, a line manager tells their direct report: "Everyone thinks you\'re difficult to work with, but I won\'t say who told me." The employee is visibly upset.',
+    q:'Which feedback principle has the manager violated?',
+    opts:['They gave the feedback too early in the review','They gave anonymous, unverifiable feedback without specific examples — this is not constructive feedback','They should have involved HR in the review','They gave the feedback in person rather than in writing'],
+    correct:1,
+    explanations:[
+      'Timing within a review is rarely the primary issue here — the content and delivery are the problem.',
+      'Correct! Good feedback must be specific, observable, and referenced to behaviours — not rumour or anonymous opinion. The SBI (Situation–Behaviour–Impact) framework exists precisely to prevent this kind of vague, unverifiable feedback that damages trust without improving performance.',
+      'HR doesn\'t need to attend every performance review. The issue is the quality and ethics of the feedback delivered.',
+      'In-person feedback is generally better. The problem is the content, not the channel.',
+    ]
+  },
+];
+
+let g2q=0, g2pts2=0, g2streak=0, g2correct=0, g2answered=false;
+
+function startG2(){g2q=0;g2pts2=0;g2streak=0;g2correct=0;g2answered=false;document.getElementById('g2-pts').textContent=0;document.getElementById('g2-streak').textContent=0;renderG2();}
+
+function renderG2(){
+  const el=document.getElementById('g2-body');
+  if(g2q>=G2_QUESTIONS.length){renderG2Result(el);return;}
+  const qd=G2_QUESTIONS[g2q];
+  const pct=Math.round((g2q/G2_QUESTIONS.length)*100);
+  const streakDots=Array.from({length:5},(_,i)=>`<div class="streak-dot ${i<g2streak?'lit':''}"></div>`).join('');
+  el.innerHTML=`
+    <div class="progress-wrap"><div class="progress-fill" style="width:${pct}%"></div></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <span style="font-size:12px;color:#64748b">Question ${g2q+1} of ${G2_QUESTIONS.length}</span>
+      <div class="streak-bar">${streakDots}</div>
+    </div>
+    <div class="card">
+      <div class="quiz-context">${qd.context}</div>
+      <div class="quiz-q">${qd.q}</div>
+      <div class="quiz-options" id="quiz-opts">
+        ${qd.opts.map((o,i)=>`<button class="quiz-opt" id="qo-${i}" onclick="answerG2(${i})">${o}</button>`).join('')}
+      </div>
+      <div id="quiz-feedback"></div>
+      <div id="quiz-next" style="display:none;margin-top:8px">
+        <button class="btn btn-primary" onclick="nextG2()">${g2q<G2_QUESTIONS.length-1?'Next question →':'See results'}</button>
+      </div>
+    </div>
+  `;
+  g2answered=false;
+}
+
+window.answerG2=function(i){
+  if(g2answered)return;
+  g2answered=true;
+  const qd=G2_QUESTIONS[g2q];
+  const correct=i===qd.correct;
+  document.querySelectorAll('.quiz-opt').forEach((btn,j)=>{
+    btn.disabled=true;
+    if(j===qd.correct)btn.classList.add('correct');
+    else if(j===i&&!correct)btn.classList.add('wrong');
+    else btn.classList.add('neutral');
+  });
+  if(correct){
+    g2streak++;g2correct++;
+    const bonus=g2streak>=3?20:g2streak>=2?10:0;
+    const base=30;
+    g2pts2+=base+bonus;
+    document.getElementById('g2-pts').textContent=g2pts2;
+    document.getElementById('g2-streak').textContent=g2streak;
+    document.getElementById('quiz-feedback').innerHTML=`<div class="feedback-box feedback-correct">✅ ${qd.explanations[i]}${bonus>0?` <strong>(+${bonus} streak bonus!)</strong>`:''}</div>`;
+  } else {
+    g2streak=0;
+    document.getElementById('g2-streak').textContent=0;
+    document.getElementById('quiz-feedback').innerHTML=`<div class="feedback-box feedback-wrong">❌ ${qd.explanations[i]}<div style="margin-top:6px;padding-top:6px;border-top:1px solid #fecaca"><strong>Correct answer:</strong> ${qd.explanations[qd.correct]}</div></div>`;
+  }
+  document.getElementById('quiz-next').style.display='block';
+};
+
+window.nextG2=function(){g2q++;renderG2();};
+
+function renderG2Result(el){
+  const pct=Math.round((g2correct/G2_QUESTIONS.length)*100);
+  const grade=pct===100?'Perfect!':pct>=80?'Excellent':pct>=60?'Good':pct>=40?'Keep practising':'Review recommended';
+  const gradeIcon=pct===100?'🏆':pct>=80?'⭐':pct>=60?'👍':pct>=40?'📚':'💪';
+  el.innerHTML=`
+    <div class="result-wrap">
+      <div class="result-icon">${gradeIcon}</div>
+      <div class="result-title">${grade}</div>
+      <div class="result-sub">You answered ${g2correct} of ${G2_QUESTIONS.length} questions correctly.</div>
+      <div class="result-stats">
+        <div class="rs-box"><div class="rs-val">${g2correct}/${G2_QUESTIONS.length}</div><div class="rs-lbl">Correct</div></div>
+        <div class="rs-box"><div class="rs-val">${g2pts2}</div><div class="rs-lbl">Points</div></div>
+        <div class="rs-box"><div class="rs-val">${pct}%</div><div class="rs-lbl">Score</div></div>
+      </div>
+      <div class="result-insight">
+        <div class="insight-label">💡 Learning Insight</div>
+        <p>Engagement is driven primarily by managers — research consistently shows that up to 70% of team engagement variance is explained by manager behaviour (Gallup, 2023). Perks and pay matter, but connection, feedback, and development are the most powerful levers.</p>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="launch('g3')">Next: Manager Simulator →</button>
+        <button class="btn btn-teal" onclick="startG2()">Retry quiz</button>
+        <button class="btn" onclick="goMenu()">Back to menu</button>
+      </div>
+    </div>
+  `;
+}
+
+// ════════════════════════════════════════════════════════
+// GAME 3 — MANAGER IMPACT SIMULATOR
+// ════════════════════════════════════════════════════════
+const TEAM=[
+  {name:'Aisha',emoji:'👩‍💻',role:'Analyst'},
+  {name:'Marcus',emoji:'👨‍🎨',role:'Designer'},
+  {name:'Priya',emoji:'👩‍💼',role:'Coordinator'},
+];
+
+const G3_SCENARIOS=[
+  {
+    week:1,
+    scenario:'Aisha just delivered a major report under a tight deadline. She worked late three nights in a row to get it done.',
+    context:'How do you, as her manager, respond?',
+    choices:[
+      {text:'Acknowledge her effort publicly in the team meeting and offer a half-day off as a thank-you',impact:'good',eng:+12,label:'Recognition + recovery',explain:'Public recognition meets the need for acknowledgement and belonging. Offering recovery time shows you value wellbeing — two of the most powerful engagement levers.',member:0},
+      {text:'Say "great job" briefly in passing, then move on to the next project',impact:'ok',eng:+3,label:'Minimal acknowledgement',explain:'Brief thanks is better than nothing, but it misses an opportunity. Employees who feel their effort goes unnoticed are significantly more likely to disengage.',member:0},
+      {text:'Immediately assign her the next big project — "She clearly handles pressure well"',impact:'bad',eng:-8,label:'No rest, more pressure',explain:'Rewarding high performance with more pressure without rest is a fast route to burnout. It signals that effort has no payoff.',member:0},
+    ]
+  },
+  {
+    week:2,
+    scenario:'Marcus has been quiet in team meetings lately and his work quality has dipped. His pulse survey score dropped from 74% to 52% over four weeks.',
+    context:'What do you do?',
+    choices:[
+      {text:'Schedule a private 1-on-1 to check in on how he\'s doing — no performance agenda',impact:'good',eng:+10,label:'Empathetic check-in',explain:'A no-agenda check-in signals psychological safety. Marcus may be dealing with something personal or professional that a performance conversation would shut down. Meeting him where he is builds trust.',member:1},
+      {text:'Copy him into a team-wide email about maintaining quality standards',impact:'bad',eng:-10,label:'Public indirect signal',explain:'Passive-aggressive communication is perceived as a public reprimand. It damages trust and is likely to reduce engagement further.',member:1},
+      {text:'Wait and see — maybe it\'s just a difficult phase and will resolve itself',impact:'ok',eng:-3,label:'Passive observation',explain:'Watchful waiting allows a temporary dip to become a permanent exit. Early, caring intervention costs almost nothing compared to the cost of losing a skilled team member.',member:1},
+    ]
+  },
+  {
+    week:3,
+    scenario:'Priya asks if she can lead the next client presentation. She has never led one before but has been preparing thoroughly.',
+    context:'How do you respond?',
+    choices:[
+      {text:'Let her lead it with you present as support — debrief together afterwards',impact:'good',eng:+15,label:'Stretch + support',explain:'Stretch assignments with a safety net are the most powerful development tool available to managers. Priya grows, feels trusted, and you retain her ambition.',member:2},
+      {text:'Tell her she\'s not ready yet and that you\'ll let her know when she is',impact:'bad',eng:-12,label:'Blocked development',explain:'Vague "not yet" responses without a development path are a primary driver of talented people leaving. Priya has signalled she wants to grow — blocking that signals you don\'t believe in her.',member:2},
+      {text:'Let her lead it but without telling the client it\'s her first time',impact:'ok',eng:+5,label:'Unsupported stretch',explain:'Giving her the opportunity is good, but leaving her entirely without support is risky for her confidence and the client relationship. Presence-as-support is the better choice.',member:2},
+    ]
+  },
+  {
+    week:4,
+    scenario:'The team has been working hard for 6 weeks on a product launch. The launch went well but the team looks exhausted. There\'s another project starting next week.',
+    context:'What do you prioritise this week?',
+    choices:[
+      {text:'Hold a short team retrospective, celebrate the win, and build in lighter work before the next sprint',impact:'good',eng:+14,label:'Celebrate + recover',explain:'Celebration followed by a recovery period resets capacity and morale. Skipping celebration and rest erodes the team\'s trust that hard work is valued.',member:null},
+      {text:'Brief the team on the next project immediately — "momentum is important"',impact:'bad',eng:-9,label:'No recovery',explain:'Launching immediately into new demands without acknowledging the previous sprint sends a clear message: your effort doesn\'t matter. Sustained sprinting without recovery leads to team burnout.',member:null},
+      {text:'Send the team a group thank-you message and give everyone Friday afternoon off',impact:'ok',eng:+7,label:'Partial recognition',explain:'A thank-you message and time off are good. A shared retrospective is more powerful because it acknowledges the team\'s collective achievement together — building cohesion as well as morale.',member:null},
+    ]
+  },
+  {
+    week:5,
+    scenario:'You receive the quarterly engagement survey results. Your team scores 61% — up from 52% three months ago. The company average is 67%.',
+    context:'You share the results with your team. What do you say?',
+    choices:[
+      {text:'"We\'ve improved by 9 points — that\'s real progress. Here are the three areas you told us still need work, and here\'s what I\'m committing to change."',impact:'good',eng:+13,label:'Transparent + action-led',explain:'Sharing data, acknowledging progress AND committing to specific action is the gold standard. It closes the loop between survey and action — the most common failure point in engagement programmes.',member:null},
+      {text:'"Results were okay. Let\'s keep working hard and I\'m sure they\'ll improve."',impact:'bad',eng:-7,label:'Vague non-response',explain:'Vague responses to survey data are one of the fastest ways to erode trust in the process. Employees disengage from surveys when they see no action taken — and stop responding honestly in future.',member:null},
+      {text:'"We\'re still below the company average — we need to do better. I\'ll look at what we can improve."',impact:'ok',eng:+3,label:'Focus on gap, not progress',explain:'Focusing only on the gap without acknowledging the 9-point improvement is demotivating. Progress deserves recognition even when there\'s more to do.',member:null},
+    ]
+  },
+];
+
+let g3week=0, g3eng=55, g3pts3=0, g3history=[];
+const g3teamMoods=[65,60,70]; // per team member
+
+function startG3(){g3week=0;g3eng=55;g3pts3=0;g3history=[];g3teamMoods[0]=65;g3teamMoods[1]=60;g3teamMoods[2]=70;document.getElementById('g3-pts').textContent=0;renderG3();}
+
+function getMoodLabel(v){return v>=70?{label:'Engaged',cls:'mood-happy'}:v>=50?{label:'Neutral',cls:'mood-ok'}:{label:'Disengaged',cls:'mood-sad'};}
+function getEngColor(v){return v>=65?'high':v>=45?'mid':'low';}
+
+function renderG3(){
+  const el=document.getElementById('g3-body');
+  if(g3week>=G3_SCENARIOS.length){renderG3Result(el);return;}
+  const sc=G3_SCENARIOS[g3week];
+  const weekDots=Array.from({length:G3_SCENARIOS.length},(_,i)=>`<div class="week-dot ${i<g3week?'done':i===g3week?'current':''}"></div>`).join('');
+  const moodRows=TEAM.map((m,i)=>{const mo=getMoodLabel(g3teamMoods[i]);return`<div class="team-card"><div class="team-card-emoji">${m.emoji}</div><div class="team-card-name">${m.name}</div><div class="team-card-mood ${mo.cls}">${mo.label}</div></div>`;}).join('');
+  el.innerHTML=`
+    <div class="week-indicator">${weekDots}</div>
+    <div class="sim-header">
+      <div class="sim-avatar">👔</div>
+      <div>
+        <div class="sim-team-name">Your Team — Product Division</div>
+        <div class="sim-week">Week ${sc.week} of ${G3_SCENARIOS.length}</div>
+      </div>
+    </div>
+    <div class="engagement-meter">
+      <div class="eng-label"><span>Team engagement score</span><span id="eng-val">${Math.round(g3eng)}%</span></div>
+      <div class="eng-track"><div class="eng-fill ${getEngColor(g3eng)}" id="eng-bar" style="width:${Math.round(g3eng)}%"></div></div>
+    </div>
+    <div class="team-cards">${moodRows}</div>
+    <div class="card">
+      <div class="sim-scenario">${sc.scenario}</div>
+      <div class="sim-context">${sc.context}</div>
+      <div class="sim-choices" id="sim-choices">
+        ${sc.choices.map((c,i)=>`<button class="sim-choice" id="sc-${i}" onclick="chooseG3(${i})">${c.text}</button>`).join('')}
+      </div>
+      <div id="sim-feedback"></div>
+      <div id="sim-next" style="display:none;margin-top:10px">
+        <button class="btn btn-primary" onclick="nextG3()">${g3week<G3_SCENARIOS.length-1?'Next week →':'See final results'}</button>
+      </div>
+    </div>
+  `;
+}
+
+window.chooseG3=function(i){
+  const sc=G3_SCENARIOS[g3week];
+  const c=sc.choices[i];
+  document.querySelectorAll('.sim-choice').forEach((btn,j)=>{
+    btn.disabled=true;
+    if(j===i)btn.classList.add('chosen-'+c.impact);
+    else btn.classList.add('neutral');
+  });
+  const prevEng=g3eng;
+  g3eng=Math.min(100,Math.max(0,g3eng+c.eng));
+  const pts=c.impact==='good'?30:c.impact==='ok'?10:0;
+  g3pts3+=pts;document.getElementById('g3-pts').textContent=g3pts3;
+  // update team mood
+  if(sc.member!==null){g3teamMoods[sc.member]=Math.min(100,Math.max(0,g3teamMoods[sc.member]+c.eng));}
+  else{g3teamMoods.forEach((_,j)=>{g3teamMoods[j]=Math.min(100,Math.max(0,g3teamMoods[j]+c.eng/2));});}
+  g3history.push({week:sc.week,label:c.label,impact:c.impact,delta:c.eng});
+  const deltaStr=c.eng>0?'+'+c.eng+'%':c.eng+'%';
+  const impactIcon=c.impact==='good'?'✅':c.impact==='ok'?'⚠️':'❌';
+  const impactBg=c.impact==='good'?'impact-good':c.impact==='ok'?'impact-ok':'impact-bad';
+  document.getElementById('sim-feedback').innerHTML=`
+    <div class="sim-impact ${impactBg}">
+      ${impactIcon} <strong>${c.label}</strong> — Engagement ${deltaStr}<br>
+      <span style="font-size:12px;opacity:.9;margin-top:4px;display:block">${c.explain}</span>
+    </div>`;
+  // animate bar
+  setTimeout(()=>{
+    const bar=document.getElementById('eng-bar');
+    const val=document.getElementById('eng-val');
+    if(bar){bar.style.width=Math.round(g3eng)+'%';bar.className='eng-fill '+getEngColor(g3eng);}
+    if(val)val.textContent=Math.round(g3eng)+'%';
+  },100);
+  document.getElementById('sim-next').style.display='block';
+};
+
+window.nextG3=function(){g3week++;renderG3();};
+
+function renderG3Result(el){
+  const final=Math.round(g3eng);
+  const grade=final>=75?'Excellent Manager':final>=60?'Good Manager':final>=45?'Developing Manager':'Needs Development';
+  const gradeIcon=final>=75?'🏆':final>=60?'⭐':final>=45?'📈':'📚';
+  const historyRows=g3history.map(h=>{
+    const cls=h.impact==='good'?'#16a34a':h.impact==='ok'?'#d97706':'#dc2626';
+    const d=h.delta>0?'+'+h.delta+'%':h.delta+'%';
+    return`<tr><td style="padding:5px 8px;color:#64748b">Week ${h.week}</td><td style="padding:5px 8px;color:#0f172a">${h.label}</td><td style="padding:5px 8px;font-weight:600;color:${cls}">${d}</td></tr>`;
+  }).join('');
+  el.innerHTML=`
+    <div class="result-wrap">
+      <div class="result-icon">${gradeIcon}</div>
+      <div class="result-title">${grade}</div>
+      <div class="result-sub">Your team's engagement moved from 55% to ${final}% across 5 weeks under your management.</div>
+      <div class="result-stats">
+        <div class="rs-box"><div class="rs-val">${final}%</div><div class="rs-lbl">Final engagement</div></div>
+        <div class="rs-box"><div class="rs-val">${final>=55?'+':''}${final-55}%</div><div class="rs-lbl">Change</div></div>
+        <div class="rs-box"><div class="rs-val">${g3pts3}</div><div class="rs-lbl">Points</div></div>
+      </div>
+      <div class="card" style="margin-bottom:14px;text-align:left">
+        <div class="card-title">Your decision log</div>
+        <table style="width:100%;border-collapse:collapse;font-size:12px">${historyRows}</table>
+      </div>
+      <div class="result-insight">
+        <div class="insight-label">💡 Key Insight — Manager-Driven Engagement</div>
+        <p>Gallup research (2023) shows that managers account for up to 70% of variance in team engagement scores. The most impactful manager behaviours are: recognition of effort, development through stretch, psychological safety in 1-on-1s, and closing the loop on survey feedback. These are skills — they can be trained.</p>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+        <button class="btn btn-teal" onclick="startG3()">Replay simulator</button>
+        <button class="btn" onclick="goMenu()">Back to menu</button>
+      </div>
+    </div>
+  `;
+}
+
+// ── ENTER KEYPRESS ─────────────────────────────────────
+window.launch=function(g){if(g==='g1')startG1();else if(g==='g2')startG2();else if(g==='g3')startG3();showScreen('s-'+g);};
+</script>
+</body>
+</html>

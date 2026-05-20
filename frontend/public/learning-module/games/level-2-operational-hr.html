@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HR Operations — Game Suite</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;min-height:100vh;font-family:system-ui,-apple-system,sans-serif;font-size:14px;color:#0f172a;background:#f8fafc}
+.screen{display:none;min-height:100vh}.screen.active{display:flex;flex-direction:column}
+
+/* ── MENU ── */
+#s-menu{background:#fff}
+.menu-top{background:#1e293b;padding:32px 40px 28px}
+.menu-logo{font-size:22px;font-weight:700;color:#fff}
+.menu-logo span{color:#f59e0b}
+.menu-body{padding:32px 40px;flex:1}
+.sec-label{font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px}
+.theme-band{font-size:13px;color:#475569;background:#f1f5f9;border-radius:8px;padding:10px 14px;margin-bottom:22px;border-left:3px solid #f59e0b}
+.game-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-bottom:32px}
+.game-card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:20px;cursor:pointer;transition:border-color .15s,transform .15s;position:relative}
+.game-card:hover{border-color:#f59e0b;transform:translateY(-2px)}
+.game-num{font-size:11px;font-weight:700;color:#f59e0b;letter-spacing:.07em;text-transform:uppercase;margin-bottom:7px}
+.game-title{font-size:16px;font-weight:600;color:#0f172a;margin-bottom:6px}
+.game-desc{font-size:12px;color:#64748b;line-height:1.5;margin-bottom:14px}
+.game-tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.tag{font-size:11px;padding:2px 8px;border-radius:6px;font-weight:500}
+.tag-red{background:#fee2e2;color:#991b1b}
+.tag-amber{background:#fef3c7;color:#92400e}
+.tag-blue{background:#dbeafe;color:#1e40af}
+.tag-green{background:#dcfce7;color:#166534}
+.tag-purple{background:#ede9fe;color:#5b21b6}
+.game-badge{position:absolute;top:14px;right:14px;font-size:22px}
+.start-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;background:#1e293b;color:#fff;border-radius:8px;font-size:13px;font-weight:500;border:none;cursor:pointer;font-family:inherit;transition:opacity .15s}
+.start-btn:hover{opacity:.87}
+
+/* ── APP CHROME ── */
+.app-bar{background:#1e293b;height:50px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;flex-shrink:0}
+.app-bar-left{display:flex;align-items:center;gap:10px}
+.app-bar-title{font-size:14px;font-weight:600;color:#fff}
+.back-btn{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);border-radius:7px;padding:5px 12px;font-size:12px;color:#94a3b8;cursor:pointer;font-family:inherit;transition:.15s}
+.back-btn:hover{background:rgba(255,255,255,.14);color:#e2e8f0}
+.pts-pill{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:4px 12px;font-size:12px;color:#fbbf24;font-weight:600}
+
+.game-body{flex:1;padding:20px;max-width:780px;margin:0 auto;width:100%}
+
+/* ── SHARED ── */
+.card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:18px 20px;margin-bottom:12px}
+.card-title{font-size:14px;font-weight:600;color:#0f172a;margin-bottom:4px}
+.card-sub{font-size:12px;color:#64748b;line-height:1.6;margin-bottom:12px}
+.progress-wrap{height:5px;background:#f1f5f9;border-radius:3px;overflow:hidden;margin-bottom:18px}
+.progress-fill{height:5px;border-radius:3px;transition:width .5s}
+.btn{border:1px solid #e2e8f0;border-radius:8px;padding:8px 18px;font-size:13px;cursor:pointer;background:#fff;color:#0f172a;font-family:inherit;transition:.15s}
+.btn:hover{background:#f8fafc;border-color:#94a3b8}
+.btn-dark{background:#1e293b;color:#fff;border-color:#1e293b}
+.btn-dark:hover{opacity:.88}
+.btn-amber{background:#f59e0b;color:#fff;border-color:#f59e0b}
+.btn-amber:hover{opacity:.88}
+.btn-green{background:#16a34a;color:#fff;border-color:#16a34a}
+.btn-green:hover{opacity:.88}
+.feedback-good{background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;border-radius:8px;padding:12px 14px;font-size:13px;line-height:1.6;margin-top:10px}
+.feedback-ok{background:#fffbeb;border:1px solid #fde68a;color:#92400e;border-radius:8px;padding:12px 14px;font-size:13px;line-height:1.6;margin-top:10px}
+.feedback-bad{background:#fef2f2;border:1px solid #fecaca;color:#991b1b;border-radius:8px;padding:12px 14px;font-size:13px;line-height:1.6;margin-top:10px}
+.insight-box{background:#fffbeb;border:1px solid #fde68a;border-left:3px solid #f59e0b;border-radius:8px;padding:12px 14px;margin-top:12px}
+.insight-label{font-size:10px;font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px}
+.insight-text{font-size:12px;color:#78350f;line-height:1.6}
+.result-wrap{text-align:center;padding:36px 20px}
+.result-icon{font-size:60px;margin-bottom:10px}
+.result-title{font-size:22px;font-weight:700;color:#0f172a;margin-bottom:6px}
+.result-sub{font-size:14px;color:#64748b;line-height:1.6;margin-bottom:22px}
+.stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;max-width:400px;margin-left:auto;margin-right:auto}
+.stat-box{background:#f8fafc;border-radius:10px;padding:13px;text-align:center}
+.stat-val{font-size:24px;font-weight:700;color:#0f172a}
+.stat-lbl{font-size:11px;color:#64748b;margin-top:3px}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;border-radius:10px;padding:9px 20px;font-size:13px;opacity:0;transition:opacity .25s;pointer-events:none;white-space:nowrap;z-index:999}
+#toast.show{opacity:1}
+
+/* ══ GAME 1: BURNOUT DETECTIVE ══════════════════════════ */
+.case-header{display:flex;align-items:center;gap:14px;margin-bottom:14px}
+.case-avatar{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;background:#f1f5f9}
+.case-name{font-size:16px;font-weight:600;color:#0f172a}
+.case-role{font-size:12px;color:#64748b}
+.case-dept{font-size:11px;background:#dbeafe;color:#1e40af;padding:2px 8px;border-radius:6px;display:inline-block;margin-top:3px}
+.signals-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.signal-item{padding:10px 12px;border-radius:8px;font-size:12px;line-height:1.5;border:1px solid transparent}
+.signal-red{background:#fef2f2;border-color:#fecaca;color:#991b1b}
+.signal-amber{background:#fffbeb;border-color:#fde68a;color:#92400e}
+.signal-green{background:#f0fdf4;border-color:#bbf7d0;color:#166534}
+.signal-icon{font-size:14px;margin-right:5px}
+.risk-meter{margin-bottom:16px}
+.risk-label{display:flex;justify-content:space-between;font-size:12px;color:#64748b;margin-bottom:5px}
+.risk-track{height:8px;background:#f1f5f9;border-radius:4px;overflow:hidden}
+.risk-fill{height:8px;border-radius:4px;transition:width .6s}
+.risk-high{background:#dc2626}.risk-mid{background:#d97706}.risk-low{background:#16a34a}
+.intervention-list{display:flex;flex-direction:column;gap:7px;margin-bottom:12px}
+.intervention-btn{padding:11px 13px;border:1px solid #e2e8f0;border-radius:8px;cursor:pointer;font-size:13px;color:#0f172a;background:#fff;text-align:left;font-family:inherit;transition:.15s;line-height:1.5}
+.intervention-btn:hover:not(:disabled){border-color:#1e293b;background:#f8fafc}
+.intervention-btn.best{border-color:#16a34a;background:#f0fdf4;cursor:default}
+.intervention-btn.ok{border-color:#d97706;background:#fffbeb;cursor:default}
+.intervention-btn.poor{border-color:#dc2626;background:#fef2f2;cursor:default}
+.intervention-btn.neutral{opacity:.5;cursor:default}
+.case-nav{display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.case-dot{width:8px;height:8px;border-radius:50%;background:#e2e8f0}
+.case-dot.done{background:#16a34a}
+.case-dot.current{background:#1e293b}
+
+/* ══ GAME 2: TOTAL REWARDS BUILDER ══════════════════════ */
+.employee-profile{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:center;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid #f1f5f9}
+.emp-avatar{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;background:#f1f5f9}
+.emp-name{font-size:16px;font-weight:600;color:#0f172a}
+.emp-info{font-size:12px;color:#64748b;margin-top:2px}
+.emp-tags{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+.budget-bar{margin-bottom:16px}
+.budget-label{display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px}
+.budget-used{color:#1e293b;font-weight:600}
+.budget-total{color:#64748b}
+.budget-track{height:8px;background:#f1f5f9;border-radius:4px;overflow:hidden}
+.budget-fill{height:8px;border-radius:4px;transition:width .4s,background .3s}
+.budget-ok{background:#16a34a}.budget-warn{background:#d97706}.budget-over{background:#dc2626}
+.rewards-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.reward-card{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px}
+.reward-card-title{font-size:12px;font-weight:600;color:#0f172a;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.reward-slider{width:100%;margin:6px 0 2px;-webkit-appearance:none;height:4px;background:#e2e8f0;border-radius:2px;outline:none;cursor:pointer}
+.reward-slider::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;background:#1e293b;border-radius:50%;cursor:pointer}
+.reward-val{font-size:13px;font-weight:600;color:#1e293b;margin-top:2px}
+.reward-val-sub{font-size:11px;color:#94a3b8}
+.package-toggle{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px}
+.pkg-opt{padding:5px 10px;border:1px solid #e2e8f0;border-radius:6px;font-size:11px;cursor:pointer;background:#fff;font-family:inherit;transition:.15s;color:#475569}
+.pkg-opt:hover{border-color:#94a3b8}
+.pkg-opt.active{background:#1e293b;color:#fff;border-color:#1e293b}
+.retention-meter{margin-bottom:14px}
+.ret-label{display:flex;justify-content:space-between;font-size:12px;color:#64748b;margin-bottom:5px}
+.ret-track{height:10px;background:#f1f5f9;border-radius:5px;overflow:hidden}
+.ret-fill{height:10px;border-radius:5px;transition:width .5s,background .3s}
+.ret-high{background:#16a34a}.ret-mid{background:#d97706}.ret-low{background:#dc2626}
+
+/* ══ GAME 3: HR SCAVENGER HUNT ═══════════════════════════ */
+.hunt-map{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.hunt-room{border-radius:10px;padding:14px;text-align:center;cursor:pointer;border:2px solid transparent;transition:.15s;position:relative}
+.hunt-room:hover:not(.locked):not(.found){border-color:#1e293b}
+.hunt-room.locked{opacity:.45;cursor:not-allowed;background:#f8fafc;border-color:#e2e8f0}
+.hunt-room.available{background:#fff;border-color:#e2e8f0}
+.hunt-room.found{background:#f0fdf4;border-color:#16a34a}
+.hunt-room.current-target{border-color:#f59e0b;background:#fffbeb}
+.hunt-room-icon{font-size:28px;margin-bottom:6px}
+.hunt-room-name{font-size:12px;font-weight:600;color:#0f172a}
+.hunt-room-status{font-size:10px;color:#94a3b8;margin-top:3px}
+.hunt-room-badge{position:absolute;top:6px;right:6px;font-size:12px}
+.hunt-clue{background:#fffbeb;border:1px solid #fde68a;border-left:3px solid #f59e0b;border-radius:8px;padding:12px 14px;margin-bottom:12px}
+.hunt-clue-label{font-size:10px;font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px}
+.hunt-clue-text{font-size:13px;color:#78350f;line-height:1.5}
+.hunt-progress-row{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.hunt-step-dot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
+.hsd-done{background:#16a34a;color:#fff}
+.hsd-current{background:#1e293b;color:#fff}
+.hsd-pending{background:#f1f5f9;color:#94a3b8}
+.hunt-challenge{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:14px;margin-top:8px}
+.hunt-q{font-size:13px;font-weight:600;color:#0f172a;margin-bottom:10px;line-height:1.5}
+.hunt-opts{display:flex;flex-direction:column;gap:6px}
+.hunt-opt{padding:9px 12px;border:1px solid #e2e8f0;border-radius:7px;cursor:pointer;font-size:12px;color:#0f172a;background:#fff;text-align:left;font-family:inherit;transition:.15s;line-height:1.5}
+.hunt-opt:hover{border-color:#1e293b}
+.hunt-opt.correct{border-color:#16a34a;background:#f0fdf4;color:#166534;cursor:default}
+.hunt-opt.wrong{border-color:#dc2626;background:#fef2f2;color:#991b1b;cursor:default}
+.hunt-opt.dim{opacity:.5;cursor:default}
+.xp-burst{display:inline-block;background:#fef3c7;color:#92400e;font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;margin-left:6px}
+</style>
+</head>
+<body>
+
+<!-- ── MENU ── -->
+<div class="screen active" id="s-menu">
+  <div class="menu-top">
+    <div class="menu-logo">HR<span>Operations</span></div>
+    <div style="color:#94a3b8;font-size:13px;margin-top:6px">Operations Series · Applying HR Practices</div>
+  </div>
+  <div class="menu-body">
+    <div class="sec-label">Theme: Decision-Making + Real-Life Application</div>
+    <div class="theme-band">Three immersive simulations that put you in the role of an HR practitioner — diagnosing burnout, building reward packages, and navigating a new workplace.</div>
+    <div class="game-grid">
+      <div class="game-card" onclick="launch('g1')">
+        <div class="game-badge">🔍</div>
+        <div class="game-num">Game 01</div>
+        <div class="game-title">Burnout Detective</div>
+        <div class="game-desc">Analyse employee cases for burnout signals. Choose the right intervention strategy. Earn the Wellness Guardian Badge.</div>
+        <div class="game-tags"><span class="tag tag-red">Burnout</span><span class="tag tag-amber">Wellbeing</span><span class="tag tag-purple">Case Study</span></div>
+        <button class="start-btn" onclick="launch('g1')">Investigate →</button>
+      </div>
+      <div class="game-card" onclick="launch('g2')">
+        <div class="game-badge">💰</div>
+        <div class="game-num">Game 02</div>
+        <div class="game-title">Total Rewards Builder</div>
+        <div class="game-desc">Build compensation packages for real employee profiles. Balance salary, benefits, and experience within budget to maximise retention likelihood.</div>
+        <div class="game-tags"><span class="tag tag-green">Compensation</span><span class="tag tag-amber">Benefits</span><span class="tag tag-blue">Retention</span></div>
+        <button class="start-btn" onclick="launch('g2')">Build packages →</button>
+      </div>
+      <div class="game-card" onclick="launch('g3')">
+        <div class="game-badge">🗺️</div>
+        <div class="game-num">Game 03</div>
+        <div class="game-title">HR Scavenger Hunt</div>
+        <div class="game-desc">Day 1 on the job. Navigate the organisation, find policies, tools, and departments. Unlock each stage as you discover what HR really does.</div>
+        <div class="game-tags"><span class="tag tag-blue">Onboarding</span><span class="tag tag-purple">Gamification</span><span class="tag tag-green">Exploration</span></div>
+        <button class="start-btn" onclick="launch('g3')">Start hunt →</button>
+      </div>
+    </div>
+    <div style="font-size:12px;color:#94a3b8">HR Operations Series · Part of HRLab ⚗️ · Suitable for undergraduates and workplace L&D</div>
+  </div>
+</div>
+
+<!-- ── GAME 1 ── -->
+<div class="screen" id="s-g1">
+  <div class="app-bar">
+    <div class="app-bar-left"><button class="back-btn" onclick="goMenu()">← Menu</button><span class="app-bar-title">🔍 Burnout Detective</span></div>
+    <div class="app-bar-right"><div class="pts-pill">⭐ <span id="g1-pts">0</span></div></div>
+  </div>
+  <div class="game-body" id="g1-body"></div>
+</div>
+
+<!-- ── GAME 2 ── -->
+<div class="screen" id="s-g2">
+  <div class="app-bar">
+    <div class="app-bar-left"><button class="back-btn" onclick="goMenu()">← Menu</button><span class="app-bar-title">💰 Total Rewards Builder</span></div>
+    <div class="app-bar-right"><div class="pts-pill">⭐ <span id="g2-pts">0</span></div></div>
+  </div>
+  <div class="game-body" id="g2-body"></div>
+</div>
+
+<!-- ── GAME 3 ── -->
+<div class="screen" id="s-g3">
+  <div class="app-bar">
+    <div class="app-bar-left"><button class="back-btn" onclick="goMenu()">← Menu</button><span class="app-bar-title">🗺️ HR Scavenger Hunt</span></div>
+    <div class="app-bar-right"><div class="pts-pill">⭐ <span id="g3-pts">0</span></div></div>
+  </div>
+  <div class="game-body" id="g3-body"></div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── UTILS ──────────────────────────────────────────────
+function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo(0,0);}
+function goMenu(){show('s-menu');}
+window.launch=function(g){
+  if(g==='g1')initG1(); else if(g==='g2')initG2(); else if(g==='g3')initG3();
+  show('s-'+g);
+};
+let _tt;
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(_tt);_tt=setTimeout(()=>t.classList.remove('show'),2800);}
+
+// ════════════════════════════════════════════════════════
+// GAME 1 — BURNOUT DETECTIVE
+// ════════════════════════════════════════════════════════
+const CASES=[
+  {
+    name:'Jordan Kim', role:'Software Engineer', dept:'Product & Tech', emoji:'👨‍💻',
+    risk:85,
+    signals:[
+      {text:'Misses 3–4 team standups per week, says "too busy"',level:'red'},
+      {text:'Submitted code with significant errors last sprint — unusual for them',level:'red'},
+      {text:'Works past 10pm most nights — Slack messages at midnight',level:'red'},
+      {text:'Declined team lunch three weeks in a row',level:'amber'},
+      {text:'Manager feedback: "seems detached and irritable in meetings"',level:'red'},
+      {text:'Taken no annual leave in 11 months',level:'amber'},
+    ],
+    interventions:[
+      {text:'Enforce an immediate two-week period of protected time — no after-hours messages, meetings capped at 4 hours/day. Schedule a wellbeing 1-on-1 this week.',quality:'best',explain:'Jordan shows critical burnout signals: chronic overwork, social withdrawal, declining performance, and zero leave. Protected recovery time and a private, empathetic check-in are the evidence-based first steps. Immediate workload relief is non-negotiable at this stage.'},
+      {text:'Organise a team wellbeing workshop on stress management next month.',quality:'poor',explain:'A generic group workshop next month is too little, too late. Jordan needs individual, immediate intervention — not a future group session.'},
+      {text:'Set a performance improvement plan to address the recent code quality issues.',quality:'poor',explain:'A PIP is entirely the wrong tool here. The declining performance is a symptom of burnout, not a conduct issue. A PIP would worsen the situation and could be legally and ethically challenged.'},
+      {text:'Send a friendly email reminding the whole team about the importance of work-life balance.',quality:'ok',explain:'A team-wide message is low cost but does nothing targeted for Jordan. It may actually increase shame ("everyone can see this is about me"). Individual action is needed.'},
+    ]
+  },
+  {
+    name:'Priya Nair', role:'Customer Success Manager', dept:'Commercial', emoji:'👩‍💼',
+    risk:62,
+    signals:[
+      {text:'Engagement survey score dropped from 78% to 49% in two quarters',level:'amber'},
+      {text:'Still meeting KPIs but quality of written work has declined',level:'amber'},
+      {text:'Three colleagues independently mentioned she "seems unlike herself"',level:'amber'},
+      {text:'Took two unplanned sick days last month — first in two years',level:'amber'},
+      {text:'Recently took on a second team\'s workload to cover a vacancy',level:'red'},
+      {text:'Mentioned to a colleague she "doesn\'t feel heard" in team meetings',level:'amber'},
+    ],
+    interventions:[
+      {text:'Schedule a genuine check-in 1-on-1 focused entirely on how she\'s doing — no performance agenda. Review workload and discuss temporary relief from the extra team coverage.',quality:'best',explain:'Priya shows multiple early-to-mid burnout indicators. The extra workload coverage is a clear contributing factor. A caring, no-agenda check-in gives her a safe space to be honest, and addressing the workload directly removes a structural stressor before it becomes critical.'},
+      {text:'Offer her a promotion to formally recognise the additional work she has taken on.',quality:'ok',explain:'A promotion acknowledges her contribution, but without first checking what she actually needs, it could increase her responsibilities when she is already at risk. Address the person before the role title.'},
+      {text:'Assign a temporary colleague to cover the extra workload without speaking to Priya first.',quality:'ok',explain:'Redistributing workload is the right action, but doing it without involving Priya removes her autonomy — which may be part of the problem. Involve her in the decision.'},
+      {text:'Wait to see if the situation resolves after the vacancy is filled next quarter.',quality:'poor',explain:'Passive waiting when early signals are visible is a common management failure. Priya may not make it to next quarter without either leaving or experiencing full burnout.'},
+    ]
+  },
+  {
+    name:'Marcus Webb', role:'Finance Analyst', dept:'Finance', emoji:'👨‍💼',
+    risk:40,
+    signals:[
+      {text:'Completed all deadlines on time this quarter',level:'green'},
+      {text:'Mentioned feeling "stretched" in a recent 1-on-1 but said they were managing',level:'amber'},
+      {text:'Colleagues report he is "focused and professional" in team work',level:'green'},
+      {text:'Did not attend the optional Friday team social last week',level:'green'},
+      {text:'Requested flexible working to start 30 minutes earlier and leave earlier',level:'amber'},
+      {text:'Engagement score steady at 67%',level:'green'},
+    ],
+    interventions:[
+      {text:'Acknowledge the "stretched" comment in your next 1-on-1. Explore what\'s driving it and whether current workload is sustainable. Approve the flexible working request promptly.',quality:'best',explain:'Marcus shows mostly healthy indicators with a few early cautions. The right response is proportionate: follow up on the "stretched" comment (it\'s data), approve the flexible working request (a low-cost retention signal), and maintain regular check-ins. No crisis intervention is warranted.'},
+      {text:'Immediately reduce Marcus\'s workload by 30% and put him on a wellbeing support plan.',quality:'poor',explain:'This is disproportionate. Marcus is functioning well with early, mild caution signals. Over-intervening can be patronising and signals poor HR judgement. Match the intervention to the risk level.'},
+      {text:'Recommend Marcus to occupational health for a formal assessment.',quality:'poor',explain:'Occupational health referral is appropriate for moderate-high risk presentations. Marcus\'s current indicators don\'t warrant this level of escalation — it could even alarm him unnecessarily.'},
+      {text:'Note the signals in his employee file and revisit in 6 weeks at his regular check-in.',quality:'ok',explain:'This is reasonable but slightly passive. Addressing the flexible working request now and proactively following up on the "stretched" comment would be better than simply noting and waiting.'},
+    ]
+  },
+  {
+    name:'Sienna Torres', role:'HR Coordinator', dept:'People & Culture', emoji:'👩‍🦱',
+    risk:78,
+    signals:[
+      {text:'Cried in a meeting last week — attributed it to "just being tired"',level:'red'},
+      {text:'Has been the sole HR contact for a 400-person restructure for 8 months',level:'red'},
+      {text:'Works through lunch every day and skips team catch-ups',level:'amber'},
+      {text:'Told a colleague she feels "guilty asking for help" as she\'s supposed to support others',level:'red'},
+      {text:'Leave balance shows 18 days untaken',level:'amber'},
+      {text:'Recently received a "Star of the Month" award for her dedication',level:'amber'},
+    ],
+    interventions:[
+      {text:'Acknowledge the emotional toll privately and with empathy. Temporarily redistribute restructure workload across the team. Mandate she takes at least 5 days leave this month. Arrange a confidential EAP referral.',quality:'best',explain:'HR professionals supporting organisational change are at exceptionally high burnout risk — they often have no one to turn to ("who supports the supporters?"). Sienna\'s signals are serious. Redistributing work, mandating leave, and offering EAP access are all essential. The "Star" award is a warning sign — recognition without workload relief can mask a crisis.'},
+      {text:'Praise her publicly for her dedication and give her a performance bonus.',quality:'poor',explain:'Rewarding unsustainable behaviour without addressing its root cause sends the message that burning out is what the organisation values. Public praise for overwork can deepen the problem.'},
+      {text:'Add two more restructure tasks to her plate — she\'s clearly the most capable person for them.',quality:'poor',explain:'This would be dangerous and ethically irresponsible given the visible signals. Capability is not the same as capacity.'},
+      {text:'Suggest she speak to a trusted colleague if she\'s feeling overwhelmed.',quality:'ok',explain:'Peer support is valuable but informal and insufficient here. Sienna needs structural change (workload redistribution) and professional support (EAP), not just a colleague chat.'},
+    ]
+  },
+];
+
+let g1case=0, g1pts=0, g1answered=false;
+
+function initG1(){g1case=0;g1pts=0;g1answered=false;document.getElementById('g1-pts').textContent=0;renderG1();}
+
+function renderG1(){
+  const el=document.getElementById('g1-body');
+  if(g1case>=CASES.length){renderG1Result(el);return;}
+  const c=CASES[g1case];
+  const pct=Math.round((g1case/CASES.length)*100);
+  const riskClass=c.risk>=70?'risk-high':c.risk>=45?'risk-mid':'risk-low';
+  const riskLabel=c.risk>=70?'High risk':c.risk>=45?'Moderate risk':'Low risk';
+  const dots=CASES.map((_,i)=>`<div class="case-dot ${i<g1case?'done':i===g1case?'current':''}"></div>`).join('');
+  const sigs=c.signals.map(s=>`<div class="signal-item signal-${s.level}"><span class="signal-icon">${s.level==='red'?'🔴':s.level==='amber'?'🟡':'🟢'}</span>${s.text}</div>`).join('');
+  const ints=c.interventions.map((iv,i)=>`<button class="intervention-btn" id="iv-${i}" onclick="chooseIntervention(${i})">${iv.text}</button>`).join('');
+  el.innerHTML=`
+    <div class="progress-wrap"><div class="progress-fill" style="width:${pct}%;background:#1e293b"></div></div>
+    <div class="case-nav">${dots}<span style="font-size:12px;color:#64748b;margin-left:4px">Case ${g1case+1} of ${CASES.length}</span></div>
+    <div class="card">
+      <div class="case-header">
+        <div class="case-avatar">${c.emoji}</div>
+        <div>
+          <div class="case-name">${c.name}</div>
+          <div class="case-role">${c.role}</div>
+          <div class="case-dept">${c.dept}</div>
+        </div>
+      </div>
+      <div class="risk-meter">
+        <div class="risk-label"><span>Burnout risk level</span><span style="font-weight:600;color:${c.risk>=70?'#dc2626':c.risk>=45?'#d97706':'#16a34a'}">${riskLabel} — ${c.risk}%</span></div>
+        <div class="risk-track"><div class="risk-fill ${riskClass}" style="width:${c.risk}%"></div></div>
+      </div>
+      <div class="card-title" style="margin-bottom:8px">Signals observed</div>
+      <div class="signals-grid">${sigs}</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Choose your intervention strategy</div>
+      <div class="card-sub">Select the response that best fits this employee's situation and risk level.</div>
+      <div class="intervention-list" id="int-list">${ints}</div>
+      <div id="int-feedback"></div>
+      <div id="int-next" style="display:none;margin-top:10px">
+        <button class="btn btn-dark" onclick="nextCase()">${g1case<CASES.length-1?'Next case →':'See results'}</button>
+      </div>
+    </div>
+  `;
+  g1answered=false;
+}
+
+window.chooseIntervention=function(i){
+  if(g1answered)return;
+  g1answered=true;
+  const c=CASES[g1case];
+  const iv=c.interventions[i];
+  document.querySelectorAll('.intervention-btn').forEach((btn,j)=>{
+    btn.disabled=true;
+    if(j===i)btn.classList.add(iv.quality==='best'?'best':iv.quality==='ok'?'ok':'poor');
+    else btn.classList.add('neutral');
+  });
+  const pts=iv.quality==='best'?40:iv.quality==='ok'?15:0;
+  g1pts+=pts;document.getElementById('g1-pts').textContent=g1pts;
+  const cls=iv.quality==='best'?'feedback-good':iv.quality==='ok'?'feedback-ok':'feedback-bad';
+  const icon=iv.quality==='best'?'✅':iv.quality==='ok'?'⚠️':'❌';
+  if(pts>0)toast('+'+pts+' pts');
+  document.getElementById('int-feedback').innerHTML=`<div class="${cls}">${icon} <strong>${iv.quality==='best'?'Best approach':''+iv.quality==='ok'?'Acceptable':'Poor approach'}</strong> — ${iv.explain}</div>`;
+  document.getElementById('int-next').style.display='block';
+};
+
+window.nextCase=function(){g1case++;renderG1();};
+
+function renderG1Result(el){
+  const pct=Math.round((g1pts/(CASES.length*40))*100);
+  const grade=pct>=80?'Wellness Guardian':pct>=60?'Wellbeing Advocate':pct>=40?'Developing Practitioner':'Learning in Progress';
+  const icon=pct>=80?'🛡️':pct>=60?'💚':pct>=40?'📚':'💪';
+  el.innerHTML=`
+    <div class="result-wrap">
+      <div class="result-icon">${icon}</div>
+      <div class="result-title">${grade}</div>
+      <div class="result-sub">You completed all four burnout cases.${pct>=80?' You earned the Wellness Guardian Badge!':''}</div>
+      <div class="stat-row">
+        <div class="stat-box"><div class="stat-val">${g1pts}</div><div class="stat-lbl">Points</div></div>
+        <div class="stat-box"><div class="stat-val">${pct}%</div><div class="stat-lbl">Accuracy</div></div>
+        <div class="stat-box"><div class="stat-val">${CASES.length}</div><div class="stat-lbl">Cases reviewed</div></div>
+      </div>
+      ${pct>=80?`<div style="font-size:48px;margin-bottom:12px">🛡️</div><div style="font-size:16px;font-weight:600;color:#0f172a;margin-bottom:6px">Wellness Guardian Badge Earned!</div>`:''}
+      <div class="insight-box" style="max-width:520px;margin:0 auto 20px;text-align:left">
+        <div class="insight-label">💡 Burnout insight</div>
+        <div class="insight-text">The World Health Organization classified burnout as an occupational phenomenon in 2019. It has three dimensions: exhaustion, cynicism/detachment, and reduced professional efficacy. Early detection and proportionate intervention are far more effective than crisis management. Managers and HR play different but complementary roles — managers provide day-to-day protective factors; HR designs the systems, policies, and escalation pathways.</div>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+        <button class="btn btn-amber" onclick="launch('g2')">Next: Total Rewards Builder →</button>
+        <button class="btn btn-dark" onclick="initG1();show('s-g1')">Retry</button>
+        <button class="btn" onclick="goMenu()">Menu</button>
+      </div>
+    </div>`;
+}
+
+// ════════════════════════════════════════════════════════
+// GAME 2 — TOTAL REWARDS BUILDER
+// ════════════════════════════════════════════════════════
+const EMPLOYEES=[
+  {
+    name:'Amara Osei',emoji:'👩‍🔬',role:'Data Scientist',dept:'Analytics',
+    yoe:6, priority:'development',
+    bio:'Mid-career professional with strong technical skills. Received a competing offer 12% above current salary. Values growth and learning opportunities highly.',
+    budget:95000,
+    tags:['Mid-career','Technical','Growth-focused'],
+    baseMin:72000,baseMax:92000,
+    weights:{salary:0.35,bonus:0.15,benefits:0.2,flex:0.15,learning:0.15},
+    marketSalary:85000,
+  },
+  {
+    name:'Tom Adeyemi',emoji:'👨‍🎓',role:'Graduate HR Analyst',dept:'People & Culture',
+    yoe:0.5, priority:'stability',
+    bio:'Recent graduate, 6 months in the role. Enthusiastic but financially stretched. Student loan repayments are a concern. Wants job security and a clear development path.',
+    budget:42000,
+    tags:['Early career','Learning-focused','Budget-constrained'],
+    baseMin:28000,baseMax:40000,
+    weights:{salary:0.4,bonus:0.1,benefits:0.25,flex:0.1,learning:0.15},
+    marketSalary:35000,
+  },
+  {
+    name:'Claire Dubois',emoji:'👩‍💼',role:'Head of Sales',dept:'Commercial',
+    yoe:14, priority:'performance',
+    bio:'Senior leader who drives 40% of company revenue. Recently promoted. Motivated by performance-linked rewards and autonomy. Comparing offers from competitors.',
+    budget:160000,
+    tags:['Senior leader','Performance-driven','High earner'],
+    baseMin:100000,baseMax:145000,
+    weights:{salary:0.25,bonus:0.35,benefits:0.15,flex:0.1,learning:0.15},
+    marketSalary:135000,
+  },
+];
+
+const BENEFIT_OPTIONS={
+  health:['Basic (£500/yr)','Standard (£1,500/yr)','Premium (£3,000/yr)'],
+  pension:['Minimum 3%','Standard 5%','Enhanced 8%','Generous 10%'],
+  leave:['25 days','28 days','30 days + birthday'],
+};
+const BENEFIT_COSTS={health:[500,1500,3000],pension:[0.03,0.05,0.08,0.10],leave:[0,400,900]};
+
+let g2emp=0, g2pts=0, g2scores=[];
+
+function initG2(){g2emp=0;g2pts=0;g2scores=[];document.getElementById('g2-pts').textContent=0;renderG2();}
+
+function renderG2(){
+  const el=document.getElementById('g2-body');
+  if(g2emp>=EMPLOYEES.length){renderG2Result(el);return;}
+  const e=EMPLOYEES[g2emp];
+  const pct=Math.round((g2emp/EMPLOYEES.length)*100);
+  el.innerHTML=`
+    <div class="progress-wrap"><div class="progress-fill" style="width:${pct}%;background:#f59e0b"></div></div>
+    <div style="font-size:12px;color:#64748b;margin-bottom:12px">Employee ${g2emp+1} of ${EMPLOYEES.length}</div>
+    <div class="card">
+      <div class="employee-profile">
+        <div class="emp-avatar">${e.emoji}</div>
+        <div>
+          <div class="emp-name">${e.name}</div>
+          <div class="emp-info">${e.role} · ${e.dept} · ${e.yoe} years experience</div>
+          <div class="emp-tags">${e.tags.map(t=>`<span class="tag tag-blue">${t}</span>`).join('')}</div>
+        </div>
+      </div>
+      <div style="font-size:13px;color:#475569;line-height:1.6;padding:10px 12px;background:#f8fafc;border-radius:8px">${e.bio}</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Build the package — Budget: £${e.budget.toLocaleString()}</div>
+      <div class="budget-bar">
+        <div class="budget-label">
+          <span class="budget-used">Used: £<span id="budget-used">0</span></span>
+          <span class="budget-total">Remaining: £<span id="budget-rem">${e.budget.toLocaleString()}</span></span>
+        </div>
+        <div class="budget-track"><div class="budget-fill budget-ok" id="budget-bar" style="width:0%"></div></div>
+      </div>
+      <div class="rewards-grid">
+        <div class="reward-card">
+          <div class="reward-card-title">💷 Base Salary</div>
+          <input type="range" class="reward-slider" id="sl-salary" min="${e.baseMin}" max="${e.baseMax}" step="1000" value="${Math.round((e.baseMin+e.baseMax)/2)}" oninput="updateG2Package()">
+          <div class="reward-val">£<span id="v-salary">${Math.round((e.baseMin+e.baseMax)/2).toLocaleString()}</span></div>
+          <div class="reward-val-sub">Market rate: £${e.marketSalary.toLocaleString()}</div>
+        </div>
+        <div class="reward-card">
+          <div class="reward-card-title">🎯 Performance Bonus</div>
+          <input type="range" class="reward-slider" id="sl-bonus" min="0" max="30" step="5" value="10" oninput="updateG2Package()">
+          <div class="reward-val"><span id="v-bonus">10</span>% of salary</div>
+          <div class="reward-val-sub">Annual target-linked bonus</div>
+        </div>
+        <div class="reward-card">
+          <div class="reward-card-title">🏥 Health Insurance</div>
+          <div class="package-toggle" id="health-toggle">
+            ${BENEFIT_OPTIONS.health.map((h,i)=>`<button class="pkg-opt ${i===1?'active':''}" onclick="selectPkg('health',${i})">${h}</button>`).join('')}
+          </div>
+          <div class="reward-val-sub">Selected: <span id="v-health">£1,500/yr</span></div>
+        </div>
+        <div class="reward-card">
+          <div class="reward-card-title">🏦 Pension Contribution</div>
+          <div class="package-toggle" id="pension-toggle">
+            ${BENEFIT_OPTIONS.pension.map((p,i)=>`<button class="pkg-opt ${i===1?'active':''}" onclick="selectPkg('pension',${i})">${p}</button>`).join('')}
+          </div>
+          <div class="reward-val-sub">Employer contribution</div>
+        </div>
+        <div class="reward-card">
+          <div class="reward-card-title">🏖️ Annual Leave</div>
+          <div class="package-toggle" id="leave-toggle">
+            ${BENEFIT_OPTIONS.leave.map((l,i)=>`<button class="pkg-opt ${i===1?'active':''}" onclick="selectPkg('leave',${i})">${l}</button>`).join('')}
+          </div>
+        </div>
+        <div class="reward-card">
+          <div class="reward-card-title">🎓 L&D Budget</div>
+          <input type="range" class="reward-slider" id="sl-learning" min="0" max="5000" step="250" value="1000" oninput="updateG2Package()">
+          <div class="reward-val">£<span id="v-learning">1,000</span>/yr</div>
+          <div class="reward-val-sub">Training & development</div>
+        </div>
+      </div>
+      <div class="retention-meter">
+        <div class="ret-label"><span>Retention likelihood</span><span id="ret-val" style="font-weight:600">—</span></div>
+        <div class="ret-track"><div class="ret-fill ret-mid" id="ret-bar" style="width:50%"></div></div>
+      </div>
+      <button class="btn btn-dark" onclick="submitG2Package()">Submit package →</button>
+      <div id="pkg-feedback" style="margin-top:12px"></div>
+    </div>
+  `;
+  // state
+  window._g2pkgState={health:1,pension:1,leave:1};
+  updateG2Package();
+}
+
+window.selectPkg=function(type,i){
+  window._g2pkgState[type]=i;
+  document.querySelectorAll('#'+type+'-toggle .pkg-opt').forEach((b,j)=>b.classList.toggle('active',j===i));
+  updateG2Package();
+};
+
+window.updateG2Package=function(){
+  const e=EMPLOYEES[g2emp];
+  const salary=parseInt(document.getElementById('sl-salary').value);
+  const bonusPct=parseInt(document.getElementById('sl-bonus').value)/100;
+  const ldg=parseInt(document.getElementById('sl-learning').value);
+  const st=window._g2pkgState;
+  const healthCost=BENEFIT_COSTS.health[st.health];
+  const pensionCost=salary*BENEFIT_COSTS.pension[st.pension];
+  const leaveCost=BENEFIT_COSTS.leave[st.leave];
+  const bonusCost=salary*bonusPct;
+  const total=salary+bonusCost+healthCost+pensionCost+leaveCost+ldg;
+  document.getElementById('v-salary').textContent=salary.toLocaleString();
+  document.getElementById('v-bonus').textContent=Math.round(bonusPct*100);
+  document.getElementById('v-health').textContent='£'+healthCost.toLocaleString()+'/yr';
+  document.getElementById('v-learning').textContent=ldg.toLocaleString();
+  const used=Math.round(total);
+  const usedPct=Math.min(120,Math.round((used/e.budget)*100));
+  document.getElementById('budget-used').textContent=used.toLocaleString();
+  document.getElementById('budget-rem').textContent=Math.max(0,e.budget-used).toLocaleString();
+  const bar=document.getElementById('budget-bar');
+  bar.style.width=Math.min(100,usedPct)+'%';
+  bar.className='budget-fill '+(usedPct>105?'budget-over':usedPct>90?'budget-warn':'budget-ok');
+  // retention score
+  const w=e.weights;
+  let score=0;
+  score+=w.salary*(salary>=e.marketSalary?1:salary/(e.marketSalary));
+  score+=w.bonus*(bonusPct>=0.15?1:bonusPct/0.15);
+  score+=w.benefits*((st.health+1)/3*0.5+(st.pension+1)/4*0.5);
+  score+=w.flex*((st.leave+1)/3);
+  score+=w.learning*(ldg>=2000?1:ldg/2000);
+  const overBudget=total>e.budget*1.05;
+  if(overBudget)score*=0.6;
+  const retPct=Math.min(98,Math.round(score*100));
+  document.getElementById('ret-val').textContent=retPct+'% likely to accept & stay 1yr';
+  const retBar=document.getElementById('ret-bar');
+  retBar.style.width=retPct+'%';
+  retBar.className='ret-fill '+(retPct>=70?'ret-high':retPct>=45?'ret-mid':'ret-low');
+  window._g2currentScore={retPct,overBudget,total,salary,e};
+};
+
+window.submitG2Package=function(){
+  const {retPct,overBudget,total,salary}=window._g2currentScore||{retPct:50,overBudget:false,total:0,salary:0};
+  const e=EMPLOYEES[g2emp];
+  const pts=retPct>=75?40:retPct>=55?20:5;
+  g2pts+=pts;document.getElementById('g2-pts').textContent=g2pts;
+  g2scores.push({name:e.name,retPct,pts});
+  const feedClass=retPct>=75?'feedback-good':retPct>=55?'feedback-ok':'feedback-bad';
+  const icon=retPct>=75?'✅':retPct>=55?'⚠️':'❌';
+  let msg=retPct>=75?`Strong package. The salary is competitive with market rate, benefits align with ${e.priority} priorities, and the package is within budget.`
+    :retPct>=55?`Decent package but there's room to improve. Consider aligning more closely with this employee's stated priorities: ${e.priority}.`
+    :`This package underdelivers. ${overBudget?'You also exceeded the budget — this package isn\'t viable as submitted. ':''}Review the employee\'s priorities and market rate alignment.`;
+  document.getElementById('pkg-feedback').innerHTML=`
+    <div class="${feedClass}">${icon} Retention likelihood: <strong>${retPct}%</strong> — ${msg}</div>
+    <button class="btn btn-dark" onclick="nextG2Emp()" style="margin-top:8px">${g2emp<EMPLOYEES.length-1?'Next employee →':'See results'}</button>`;
+  document.querySelector('#g2-body .btn-dark').disabled=true;
+};
+
+window.nextG2Emp=function(){g2emp++;renderG2();};
+
+function renderG2Result(el){
+  const avg=Math.round(g2scores.reduce((s,x)=>s+x.retPct,0)/g2scores.length);
+  const grade=avg>=75?'Total Rewards Expert':avg>=60?'Rewards Practitioner':'Developing Analyst';
+  el.innerHTML=`
+    <div class="result-wrap">
+      <div class="result-icon">💰</div>
+      <div class="result-title">${grade}</div>
+      <div class="result-sub">Average retention likelihood across all packages: <strong>${avg}%</strong></div>
+      <div class="stat-row">
+        <div class="stat-box"><div class="stat-val">${g2pts}</div><div class="stat-lbl">Points</div></div>
+        <div class="stat-box"><div class="stat-val">${avg}%</div><div class="stat-lbl">Avg retention</div></div>
+        <div class="stat-box"><div class="stat-val">${EMPLOYEES.length}</div><div class="stat-lbl">Packages built</div></div>
+      </div>
+      <div class="card" style="text-align:left;margin-bottom:14px">
+        <div class="card-title" style="margin-bottom:10px">Package summary</div>
+        ${g2scores.map(s=>`
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:13px">
+            <span style="color:#0f172a;font-weight:500">${s.name}</span>
+            <span style="color:${s.retPct>=75?'#16a34a':s.retPct>=55?'#d97706':'#dc2626'};font-weight:600">${s.retPct}% retention</span>
+          </div>`).join('')}
+      </div>
+      <div class="insight-box" style="max-width:520px;margin:0 auto 20px;text-align:left">
+        <div class="insight-label">💡 Total rewards insight</div>
+        <div class="insight-text">Total rewards is not just about salary — research consistently shows that benefits, flexibility, development opportunities, and purpose can be valued as highly as cash. A CIPD study found that 44% of employees would take a pay cut for better work-life balance. The key skill is understanding individual priorities — there is no single package that works for everyone.</div>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+        <button class="btn btn-amber" onclick="launch('g3')">Next: Scavenger Hunt →</button>
+        <button class="btn btn-dark" onclick="initG2();show('s-g2')">Retry</button>
+        <button class="btn" onclick="goMenu()">Menu</button>
+      </div>
+    </div>`;
+}
+
+// ════════════════════════════════════════════════════════
+// GAME 3 — HR SCAVENGER HUNT
+// ════════════════════════════════════════════════════════
+const ROOMS=[
+  {id:'r0',name:'HR Office',icon:'🏢',unlocked:true,found:false,
+   clue:'Your first stop on Day 1. The HR team will introduce themselves and give you your starter pack. Head here to meet your HR buddy.',
+   challenge:{q:'What document should every new employee receive on their first day?',opts:['A performance review form','A written employment contract and employee handbook','A list of company KPIs','A confidentiality agreement only'],correct:1,explain:'Every employee is legally entitled to a Written Statement of Particulars (employment contract) from Day 1 in the UK. The employee handbook outlines policies, procedures, and expectations.'},
+   badge:'🏢',xp:20},
+  {id:'r1',name:'IT & Systems',icon:'💻',unlocked:false,found:false,
+   clue:'Without this department, you can\'t log in, access files, or send emails. Find them to get your equipment and system access set up.',
+   challenge:{q:'Which HR system would you most likely use to access your payslips, book leave, and view your benefits?',opts:['A CRM (Customer Relationship Management) system','An HRIS (Human Resource Information System)','A Learning Management System','A project management tool like Asana'],correct:1,explain:'An HRIS (e.g. Workday, SAP SuccessFactors, BambooHR) is the central HR data platform. It handles employee records, payslips, leave management, and often performance reviews.'},
+   badge:'💻',xp:20},
+  {id:'r2',name:'Finance & Payroll',icon:'💷',unlocked:false,found:false,
+   clue:'This department makes sure everyone gets paid correctly and on time. You\'ll need to submit your bank details and tax code here.',
+   challenge:{q:'If an employee is on a PAYE (Pay As You Earn) system in the UK, who deducts their income tax?',opts:['The employee deducts it themselves annually','The employer deducts it at source before paying the employee','The government sends a bill directly to the employee','Tax is optional for salaried employees'],correct:1,explain:'Under PAYE, employers deduct income tax and National Insurance contributions from employees\' gross pay before paying them. HR and Payroll coordinate to ensure correct tax codes are applied.'},
+   badge:'💷',xp:20},
+  {id:'r3',name:'L&D Hub',icon:'🎓',unlocked:false,found:false,
+   clue:'This is where your induction training modules live and where you can access professional development courses. Find it to complete your mandatory training.',
+   challenge:{q:'What is mandatory training typically completed during employee onboarding?',opts:['Advanced project management certification','Health & Safety, GDPR/Data Protection, and Equality & Diversity awareness','Leadership development courses','External industry qualifications only'],correct:1,explain:'Most organisations require all new employees to complete Health & Safety, GDPR/Data Protection, and Equality & Diversity training during onboarding. These are legal and compliance obligations — not optional extras.'},
+   badge:'🎓',xp:25},
+  {id:'r4',name:'Policy Library',icon:'📋',unlocked:false,found:false,
+   clue:'All the rules of the organisation live here. Disciplinary, grievance, flexible working, parental leave — find this to know your rights and the company\'s expectations.',
+   challenge:{q:'An employee wants to request a permanent change from 5 days to 4 days per week. Under UK employment law, which policy governs this?',opts:['The disciplinary and grievance policy','The flexible working policy — employees with 26+ weeks service have a statutory right to request','The redundancy policy','The equal pay policy'],correct:1,explain:'Employees with 26 or more weeks of continuous service have a statutory right to make a flexible working request in the UK. The employer must consider it seriously and can only refuse on specific business grounds.'},
+   badge:'📋',xp:25},
+  {id:'r5',name:'Employee Wellbeing',icon:'💚',unlocked:false,found:false,
+   clue:'This space holds your Employee Assistance Programme (EAP) details, mental health first aiders, and the wellbeing calendar. Find it to know what support is available to you.',
+   challenge:{q:'What is an Employee Assistance Programme (EAP)?',opts:['A performance management tool used for employees on PIPs','A confidential support service providing counselling, legal advice, and financial guidance — free to employees','A government scheme that pays salaries during economic downturns','A training programme for line managers'],correct:1,explain:'An EAP is a voluntary, confidential programme that helps employees deal with personal and professional challenges. Services typically include short-term counselling, financial advice, and legal guidance — all free and confidential to the employee.'},
+   badge:'💚',xp:25},
+  {id:'r6',name:'Your Manager',icon:'👔',unlocked:false,found:false,
+   clue:'The most important meeting of your first week. Your manager will discuss your 30-60-90 day plan, your key objectives, and introduce you to your team.',
+   challenge:{q:'What is the main purpose of a 30-60-90 day onboarding plan?',opts:['To assess whether to offer the employee a permanent contract','To set clear milestones, priorities, and expectations for the first three months — helping the new hire succeed and settle in','To replace the probationary review meeting','To assign project deadlines for the first quarter'],correct:1,explain:'A 30-60-90 day plan helps new employees understand what success looks like in their role during the first three months. It reduces uncertainty, accelerates productivity, and gives the manager structured touchpoints to provide support.'},
+   badge:'👔',xp:30},
+  {id:'r7',name:'Canteen & Community',icon:'☕',unlocked:false,found:false,
+   clue:'Don\'t underestimate this one. The informal culture of an organisation — the way people actually work together — is often built in spaces like this.',
+   challenge:{q:'Research on organisational culture suggests that informal spaces at work contribute to which of the following?',opts:['Formal performance outcomes only','Psychological safety, belonging, and knowledge sharing — all of which drive engagement and retention','Compliance with HR policies','Reducing the need for formal team meetings'],correct:1,explain:'Research by Google (Project Aristotle) and others shows that psychological safety — the feeling that it\'s safe to be yourself and speak up — is the strongest predictor of high-performing teams. Informal spaces build the trust that underpins this safety.'},
+   badge:'☕',xp:20},
+  {id:'r8',name:'HR Director\'s Office',icon:'🌟',unlocked:false,found:false,
+   clue:'The final stage. You\'ve explored the whole organisation. Now meet the person who leads HR strategy — and reflect on how all these pieces fit together.',
+   challenge:{q:'Which of the following best describes the strategic role of HR in a modern organisation?',opts:['Processing contracts, payroll, and disciplinary cases only','Aligning people strategy with business strategy — attracting, developing, and retaining talent that drives organisational goals','Managing the office space and facilities','Enforcing rules and policies on behalf of senior leadership'],correct:1,explain:'Modern HR has evolved from an administrative function to a strategic partner. The most effective HR functions align people strategy with business strategy — using data, design thinking, and stakeholder influence to help the organisation achieve its goals through its people.'},
+   badge:'🌟',xp:40},
+];
+
+let g3pts=0, g3step=0, g3answered=false;
+
+function initG3(){g3pts=0;g3step=0;g3answered=false;ROOMS.forEach((r,i)=>{r.unlocked=i===0;r.found=false;});document.getElementById('g3-pts').textContent=0;renderG3();}
+
+function renderG3(){
+  const el=document.getElementById('g3-body');
+  if(ROOMS.every(r=>r.found)){renderG3Result(el);return;}
+  const currentRoom=ROOMS[g3step];
+  const pct=Math.round((g3step/ROOMS.length)*100);
+  const stepDots=ROOMS.map((_,i)=>`<div class="case-dot ${i<g3step?'done':i===g3step?'current':''}"></div>`).join('');
+  const mapHtml=ROOMS.map((r,i)=>`
+    <div class="hunt-room ${r.found?'found':r.unlocked&&i===g3step?'current-target':r.unlocked?'available':'locked'}" onclick="visitRoom(${i})">
+      <div class="hunt-room-icon">${r.icon}</div>
+      <div class="hunt-room-name">${r.name}</div>
+      <div class="hunt-room-status">${r.found?'✓ Found':i===g3step?'← You are here':r.unlocked?'Available':'Locked'}</div>
+      ${r.found?`<div class="hunt-room-badge">${r.badge}</div>`:''}
+    </div>`).join('');
+  el.innerHTML=`
+    <div class="progress-wrap"><div class="progress-fill" style="width:${pct}%;background:#f59e0b"></div></div>
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:14px">${stepDots}<span style="font-size:12px;color:#64748b;margin-left:4px">${g3step+1} of ${ROOMS.length} locations</span></div>
+    <div class="card">
+      <div class="card-title" style="margin-bottom:8px">Organisation Map — Day 1</div>
+      <div class="hunt-map">${mapHtml}</div>
+    </div>
+    <div id="room-detail"></div>
+  `;
+  if(currentRoom.unlocked&&!currentRoom.found){
+    showRoomDetail(g3step);
+  }
+}
+
+function showRoomDetail(i){
+  const r=ROOMS[i];
+  const el=document.getElementById('room-detail');
+  if(!el)return;
+  const opts=r.challenge.opts.map((o,j)=>`<button class="hunt-opt" id="ho-${j}" onclick="answerHunt(${i},${j})">${o}</button>`).join('');
+  el.innerHTML=`
+    <div class="hunt-clue">
+      <div class="hunt-clue-label">📍 Clue — ${r.name}</div>
+      <div class="hunt-clue-text">${r.clue}</div>
+    </div>
+    <div class="hunt-challenge">
+      <div class="hunt-q">${r.challenge.q}</div>
+      <div class="hunt-opts" id="hunt-opts-${i}">${opts}</div>
+      <div id="hunt-fb-${i}"></div>
+      <div id="hunt-next-${i}" style="display:none;margin-top:10px">
+        <button class="btn btn-dark" onclick="nextHuntRoom()">${i<ROOMS.length-1?'Continue exploring →':'Finish'}</button>
+      </div>
+    </div>`;
+  g3answered=false;
+}
+
+window.visitRoom=function(i){
+  if(!ROOMS[i].unlocked)return;
+  document.getElementById('room-detail').innerHTML='';
+  showRoomDetail(i);
+};
+
+window.answerHunt=function(roomIdx,optIdx){
+  if(g3answered)return;
+  g3answered=true;
+  const r=ROOMS[roomIdx];
+  const correct=optIdx===r.challenge.correct;
+  document.querySelectorAll(`#hunt-opts-${roomIdx} .hunt-opt`).forEach((btn,j)=>{
+    btn.disabled=true;
+    if(j===r.challenge.correct)btn.classList.add('correct');
+    else if(j===optIdx&&!correct)btn.classList.add('wrong');
+    else btn.classList.add('dim');
+  });
+  const xp=correct?r.xp:Math.round(r.xp*0.3);
+  g3pts+=xp;document.getElementById('g3-pts').textContent=g3pts;
+  if(correct){toast(`✓ Unlocked: ${r.name}! +${xp} pts`);}
+  else{toast(`+${xp} pts — read the explanation`);}
+  document.getElementById('hunt-fb-'+roomIdx).innerHTML=`
+    <div class="${correct?'feedback-good':'feedback-bad'}" style="margin-top:8px">
+      ${correct?'✅':'❌'} ${r.challenge.explain}
+      <span class="xp-burst">+${xp} XP</span>
+    </div>`;
+  document.getElementById('hunt-next-'+roomIdx).style.display='block';
+};
+
+window.nextHuntRoom=function(){
+  ROOMS[g3step].found=true;
+  g3step++;
+  if(g3step<ROOMS.length)ROOMS[g3step].unlocked=true;
+  renderG3();
+  if(g3step<ROOMS.length)showRoomDetail(g3step);
+};
+
+function renderG3Result(el){
+  const max=ROOMS.reduce((s,r)=>s+r.xp,0);
+  const pct=Math.round((g3pts/max)*100);
+  const grade=pct>=85?'Onboarding Champion':pct>=65?'Workplace Navigator':'Getting Oriented';
+  const icon=pct>=85?'🌟':pct>=65?'🗺️':'📍';
+  el.innerHTML=`
+    <div class="result-wrap">
+      <div class="result-icon">${icon}</div>
+      <div class="result-title">${grade}</div>
+      <div class="result-sub">You completed your Day 1 scavenger hunt — you know your way around!</div>
+      <div class="stat-row">
+        <div class="stat-box"><div class="stat-val">${g3pts}</div><div class="stat-lbl">XP earned</div></div>
+        <div class="stat-box"><div class="stat-val">${pct}%</div><div class="stat-lbl">Accuracy</div></div>
+        <div class="stat-box"><div class="stat-val">${ROOMS.length}</div><div class="stat-lbl">Locations found</div></div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:20px">
+        ${ROOMS.map(r=>`<span style="font-size:22px" title="${r.name}">${r.badge}</span>`).join('')}
+      </div>
+      <div class="insight-box" style="max-width:520px;margin:0 auto 20px;text-align:left">
+        <div class="insight-label">💡 Onboarding insight</div>
+        <div class="insight-text">Organisations with a structured onboarding process see 69% greater employee retention at the 3-year mark (SHRM). Gamified onboarding — like this scavenger hunt — has been shown to increase engagement with onboarding content by up to 60% compared to document-based inductions. The goal isn't just information delivery; it's building familiarity, confidence, and connection from Day 1.</div>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+        <button class="btn btn-dark" onclick="initG3();show('s-g3')">Replay hunt</button>
+        <button class="btn btn-amber" onclick="goMenu()">Back to menu</button>
+      </div>
+    </div>`;
+}
+</script>
+</body>
+</html>

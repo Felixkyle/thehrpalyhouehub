@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HR Advanced — Strategic Thinking Suite</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;min-height:100vh;font-family:system-ui,-apple-system,sans-serif;font-size:14px;color:#0f172a;background:#f8fafc}
+.screen{display:none;min-height:100vh}.screen.active{display:flex;flex-direction:column}
+
+/* ── MENU ── */
+#s-menu{background:#fff}
+.menu-top{background:#1e293b;padding:32px 40px 28px}
+.menu-logo{font-size:22px;font-weight:700;color:#fff}
+.menu-logo span{color:#818cf8}
+.game-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-bottom:28px}
+.game-card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:20px;cursor:pointer;transition:border-color .15s,transform .15s;position:relative}
+.game-card:hover{border-color:#818cf8;transform:translateY(-2px)}
+.game-num{font-size:11px;font-weight:700;color:#818cf8;letter-spacing:.07em;text-transform:uppercase;margin-bottom:7px}
+.game-title{font-size:16px;font-weight:600;color:#0f172a;margin-bottom:6px}
+.game-desc{font-size:12px;color:#64748b;line-height:1.5;margin-bottom:14px}
+.game-badge{position:absolute;top:14px;right:14px;font-size:22px}
+.tag{font-size:11px;padding:2px 8px;border-radius:6px;font-weight:500;display:inline-block}
+.tag-purple{background:#ede9fe;color:#5b21b6}
+.tag-blue{background:#dbeafe;color:#1e40af}
+.tag-amber{background:#fef3c7;color:#92400e}
+.tag-green{background:#dcfce7;color:#166534}
+.tag-red{background:#fee2e2;color:#991b1b}
+.start-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;background:#1e293b;color:#fff;border-radius:8px;font-size:13px;font-weight:500;border:none;cursor:pointer;font-family:inherit;transition:opacity .15s}
+.start-btn:hover{opacity:.87}
+
+/* ── APP BAR ── */
+.app-bar{background:#1e293b;height:50px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;flex-shrink:0;position:sticky;top:0;z-index:20}
+.app-bar-left{display:flex;align-items:center;gap:10px}
+.app-bar-title{font-size:14px;font-weight:600;color:#fff}
+.back-btn{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);border-radius:7px;padding:5px 12px;font-size:12px;color:#94a3b8;cursor:pointer;font-family:inherit;transition:.15s}
+.back-btn:hover{background:rgba(255,255,255,.14);color:#e2e8f0}
+.pts-pill{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:4px 12px;font-size:12px;color:#a5b4fc;font-weight:600}
+
+.game-body{flex:1;padding:20px;max-width:820px;margin:0 auto;width:100%}
+
+/* ── CARDS & SHARED ── */
+.card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:18px 20px;margin-bottom:12px}
+.card-title{font-size:14px;font-weight:600;color:#0f172a;margin-bottom:4px}
+.card-sub{font-size:12px;color:#64748b;line-height:1.6;margin-bottom:12px}
+.progress-wrap{height:5px;background:#f1f5f9;border-radius:3px;overflow:hidden;margin-bottom:16px}
+.progress-fill{height:5px;border-radius:3px;transition:width .5s}
+.btn{border:1px solid #e2e8f0;border-radius:8px;padding:8px 18px;font-size:13px;cursor:pointer;background:#fff;color:#0f172a;font-family:inherit;transition:.15s}
+.btn:hover{background:#f8fafc;border-color:#94a3b8}
+.btn-dark{background:#1e293b;color:#fff;border-color:#1e293b}
+.btn-dark:hover{opacity:.88}
+.btn-indigo{background:#6366f1;color:#fff;border-color:#6366f1}
+.btn-indigo:hover{opacity:.88}
+.btn-green{background:#16a34a;color:#fff;border-color:#16a34a}
+.btn-green:hover{opacity:.88}
+.sec-label{font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}
+.fb-good{background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;border-radius:8px;padding:12px 14px;font-size:13px;line-height:1.6;margin-top:10px}
+.fb-ok{background:#fffbeb;border:1px solid #fde68a;color:#92400e;border-radius:8px;padding:12px 14px;font-size:13px;line-height:1.6;margin-top:10px}
+.fb-bad{background:#fef2f2;border:1px solid #fecaca;color:#991b1b;border-radius:8px;padding:12px 14px;font-size:13px;line-height:1.6;margin-top:10px}
+.insight-chip{background:#ede9fe;border:1px solid #c4b5fd;border-left:3px solid #818cf8;border-radius:8px;padding:11px 14px;margin-top:10px;font-size:12px;color:#3730a3;line-height:1.6}
+.result-wrap{text-align:center;padding:36px 20px}
+.result-icon{font-size:60px;margin-bottom:10px}
+.result-title{font-size:22px;font-weight:700;color:#0f172a;margin-bottom:6px}
+.result-sub{font-size:14px;color:#64748b;line-height:1.6;margin-bottom:22px}
+.stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px;max-width:420px;margin-left:auto;margin-right:auto}
+.stat-box{background:#f8fafc;border-radius:10px;padding:13px;text-align:center}
+.stat-val{font-size:24px;font-weight:700;color:#0f172a}
+.stat-lbl{font-size:11px;color:#64748b;margin-top:3px}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;border-radius:10px;padding:9px 20px;font-size:13px;opacity:0;transition:opacity .25s;pointer-events:none;white-space:nowrap;z-index:999}
+#toast.show{opacity:1}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:600px){.two-col{grid-template-columns:1fr}.stat-row{grid-template-columns:1fr 1fr}}
+
+/* ══ GAME 1: ENGAGEMENT STRATEGY LAB ════════════════════ */
+.phase-strip{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
+.phase-pill{padding:4px 12px;border-radius:16px;font-size:12px;font-weight:600;border:1px solid #e2e8f0;background:#f8fafc;color:#94a3b8}
+.phase-pill.active{background:#1e293b;color:#fff;border-color:#1e293b}
+.phase-pill.done{background:#f0fdf4;color:#16a34a;border-color:#bbf7d0}
+.option-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.opt-card{border:1px solid #e2e8f0;border-radius:10px;padding:13px;cursor:pointer;background:#fff;transition:.15s;position:relative}
+.opt-card:hover{border-color:#818cf8;background:#fafafe}
+.opt-card.selected{border-color:#6366f1;background:#eef2ff}
+.opt-card.disabled{opacity:.45;cursor:default}
+.opt-card-title{font-size:13px;font-weight:600;color:#0f172a;margin-bottom:3px}
+.opt-card-desc{font-size:11px;color:#64748b;line-height:1.5}
+.opt-card-stat{position:absolute;top:10px;right:10px;font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px}
+.stat-pos{background:#dcfce7;color:#166534}
+.stat-neg{background:#fee2e2;color:#991b1b}
+.stat-neu{background:#f1f5f9;color:#64748b}
+.sim-gauge{margin-bottom:14px}
+.gauge-label{display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px}
+.gauge-track{height:12px;background:#f1f5f9;border-radius:6px;overflow:hidden}
+.gauge-fill{height:12px;border-radius:6px;transition:width .7s,background .4s}
+.score-preview{font-size:28px;font-weight:700;color:#6366f1;margin-bottom:4px}
+.choice-log{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.log-item{display:flex;align-items:center;gap:8px;font-size:12px;color:#475569;padding:5px 8px;background:#f8fafc;border-radius:6px}
+.log-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+
+/* ══ GAME 2: AI VS HUMAN ═════════════════════════════════ */
+.scenario-panel{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:18px 20px;margin-bottom:12px}
+.scenario-context{font-size:13px;color:#475569;background:#f8fafc;border-radius:8px;padding:12px 14px;margin-bottom:14px;line-height:1.6;border-left:3px solid #cbd5e1}
+.scenario-q{font-size:15px;font-weight:600;color:#0f172a;margin-bottom:14px;line-height:1.4}
+.decision-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.decision-btn{padding:16px 14px;border:1px solid #e2e8f0;border-radius:10px;cursor:pointer;background:#fff;text-align:center;font-family:inherit;transition:.15s}
+.decision-btn:hover{border-color:#1e293b}
+.decision-btn .db-icon{font-size:28px;margin-bottom:6px}
+.decision-btn .db-title{font-size:14px;font-weight:600;color:#0f172a;margin-bottom:3px}
+.decision-btn .db-sub{font-size:11px;color:#64748b}
+.decision-btn.chosen-good{border-color:#16a34a;background:#f0fdf4}
+.decision-btn.chosen-bad{border-color:#dc2626;background:#fef2f2}
+.decision-btn.neutral{opacity:.45;cursor:default}
+.ethics-tag{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:3px 9px;border-radius:6px;margin-bottom:10px}
+.ethics-low{background:#dcfce7;color:#166534}
+.ethics-med{background:#fef3c7;color:#92400e}
+.ethics-high{background:#fee2e2;color:#991b1b}
+.ethics-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.ethics-bar-label{font-size:11px;color:#64748b;width:80px;flex-shrink:0}
+.ethics-bar-track{flex:1;height:5px;background:#f1f5f9;border-radius:3px;overflow:hidden}
+.ethics-bar-fill{height:5px;border-radius:3px}
+.score-counter{display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+.score-chip{padding:4px 12px;border-radius:16px;font-size:12px;font-weight:600}
+.chip-ai{background:#dbeafe;color:#1e40af}
+.chip-human{background:#dcfce7;color:#166534}
+.chip-hybrid{background:#ede9fe;color:#5b21b6}
+.chip-pts{background:#f1f5f9;color:#64748b}
+
+/* ══ GAME 3: DATA INSIGHT CHALLENGE ════════════════════ */
+.dataset-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:14px}
+.dataset-table th{background:#f8fafc;font-size:11px;font-weight:600;color:#64748b;text-align:left;padding:7px 10px;border-bottom:1px solid #e2e8f0;text-transform:uppercase;letter-spacing:.04em}
+.dataset-table td{padding:8px 10px;border-bottom:1px solid #f1f5f9;color:#0f172a;vertical-align:middle}
+.dataset-table tr:hover td{background:#fafafe}
+.cell-bar-wrap{width:70px;height:5px;background:#f1f5f9;border-radius:3px;display:inline-block;vertical-align:middle;overflow:hidden;margin-left:6px}
+.cell-bar{height:5px;border-radius:3px}
+.flag-red{color:#dc2626;font-weight:700}
+.flag-amber{color:#d97706;font-weight:600}
+.flag-green{color:#16a34a;font-weight:500}
+.analysis-opts{display:flex;flex-direction:column;gap:7px;margin-bottom:12px}
+.analysis-opt{padding:10px 13px;border:1px solid #e2e8f0;border-radius:8px;cursor:pointer;font-size:13px;color:#0f172a;background:#fff;text-align:left;font-family:inherit;transition:.15s;line-height:1.5}
+.analysis-opt:hover{border-color:#818cf8}
+.analysis-opt.correct{border-color:#16a34a;background:#f0fdf4;color:#166534;cursor:default}
+.analysis-opt.wrong{border-color:#dc2626;background:#fef2f2;color:#991b1b;cursor:default}
+.analysis-opt.dim{opacity:.45;cursor:default}
+.finding-card{border:1px solid #c4b5fd;background:#fafafe;border-radius:8px;padding:12px 14px;margin-bottom:8px}
+.finding-label{font-size:10px;font-weight:700;color:#818cf8;text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px}
+.finding-text{font-size:13px;color:#0f172a;line-height:1.5}
+.highlight-row{background:#fef9e7!important}
+</style>
+</head>
+<body>
+
+<!-- ── MENU ── -->
+<div class="screen active" id="s-menu">
+  <div class="menu-top">
+    <div class="menu-logo">HR<span>Advanced</span></div>
+    <div style="color:#94a3b8;font-size:13px;margin-top:6px">Advanced Series · Strategic HR Thinking</div>
+  </div>
+  <div style="padding:28px 40px;flex:1">
+    <div style="font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px">Theme: Analysis + Strategy</div>
+    <div style="font-size:13px;color:#475569;background:#f1f5f9;border-radius:8px;padding:10px 14px;margin-bottom:22px;border-left:3px solid #818cf8">Three advanced simulations for strategic HR thinking — designing engagement systems, navigating AI governance decisions, and interpreting real workforce data.</div>
+    <div class="game-grid">
+      <div class="game-card" onclick="launch('g1')">
+        <div class="game-badge">🧪</div>
+        <div class="game-num">Game 01</div>
+        <div class="game-title">Engagement Strategy Lab</div>
+        <div class="game-desc">Design a complete engagement strategy — choose AI tools, leadership models, and reward systems. See the simulated impact on productivity and retention.</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px"><span class="tag tag-purple">Strategy</span><span class="tag tag-blue">AI Tools</span><span class="tag tag-amber">Leadership</span></div>
+        <button class="start-btn" onclick="launch('g1')">Design strategy →</button>
+      </div>
+      <div class="game-card" onclick="launch('g2')">
+        <div class="game-badge">🤖</div>
+        <div class="game-num">Game 02</div>
+        <div class="game-title">AI vs Human Decision</div>
+        <div class="game-desc">Decide when AI should drive HR decisions and when human judgement is non-negotiable. Navigate real scenarios grounded in AI governance frameworks.</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px"><span class="tag tag-red">AI Ethics</span><span class="tag tag-blue">Governance</span><span class="tag tag-purple">Decision-making</span></div>
+        <button class="start-btn" onclick="launch('g2')">Make decisions →</button>
+      </div>
+      <div class="game-card" onclick="launch('g3')">
+        <div class="game-badge">📊</div>
+        <div class="game-num">Game 03</div>
+        <div class="game-title">Data Insight Challenge</div>
+        <div class="game-desc">Analyse a simplified HR dataset. Identify low engagement units, performance gaps, and flight risks. Earn the HR Analyst Badge.</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px"><span class="tag tag-green">Analytics</span><span class="tag tag-blue">Data</span><span class="tag tag-purple">Insight</span></div>
+        <button class="start-btn" onclick="launch('g3')">Analyse data →</button>
+      </div>
+    </div>
+    <div style="font-size:12px;color:#94a3b8">HR Advanced Series · Part of HRLab ⚗️ · For HR professionals and senior undergraduates</div>
+  </div>
+</div>
+
+<!-- ── GAME SCREENS ── -->
+<div class="screen" id="s-g1">
+  <div class="app-bar">
+    <div class="app-bar-left"><button class="back-btn" onclick="goMenu()">← Menu</button><span class="app-bar-title">🧪 Engagement Strategy Lab</span></div>
+    <div class="app-bar-right"><div class="pts-pill">⭐ <span id="g1-pts">0</span></div></div>
+  </div>
+  <div class="game-body" id="g1-body"></div>
+</div>
+
+<div class="screen" id="s-g2">
+  <div class="app-bar">
+    <div class="app-bar-left"><button class="back-btn" onclick="goMenu()">← Menu</button><span class="app-bar-title">🤖 AI vs Human Decision</span></div>
+    <div class="app-bar-right"><div class="pts-pill">⭐ <span id="g2-pts">0</span></div></div>
+  </div>
+  <div class="game-body" id="g2-body"></div>
+</div>
+
+<div class="screen" id="s-g3">
+  <div class="app-bar">
+    <div class="app-bar-left"><button class="back-btn" onclick="goMenu()">← Menu</button><span class="app-bar-title">📊 Data Insight Challenge</span></div>
+    <div class="app-bar-right"><div class="pts-pill">⭐ <span id="g3-pts">0</span></div></div>
+  </div>
+  <div class="game-body" id="g3-body"></div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── UTILS ──────────────────────────────────────────────
+function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo(0,0);}
+function goMenu(){show('s-menu');}
+window.launch=function(g){
+  if(g==='g1')initG1(); else if(g==='g2')initG2(); else if(g==='g3')initG3();
+  show('s-'+g);
+};
+let _tt;
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(_tt);_tt=setTimeout(()=>t.classList.remove('show'),3000);}
+
+// ════════════════════════════════════════════════════════
+// GAME 1 — ENGAGEMENT STRATEGY LAB
+// ════════════════════════════════════════════════════════
+const G1_PHASES=[
+  {
+    id:'context', label:'Context',
+    title:'Company Context',
+    sub:'TechGrow Ltd — 650 employees, SaaS product company, 3-year hyper-growth phase. Current engagement: 54%. Turnover: 22%. The new CPO has asked you to design a 12-month engagement strategy.',
+    isContext:true,
+  },
+  {
+    id:'leadership', label:'Leadership Style',
+    title:'Choose your leadership model',
+    sub:'The leadership approach shapes how managers interact with teams day-to-day. This is the highest-impact lever in any engagement strategy.',
+    options:[
+      {title:'Transformational',desc:'Inspire through vision and purpose. Managers act as coaches, encourage autonomy, connect work to meaning.',productivity:+18,retention:+15,cost:'Medium',tag:['✅ High engagement driver','📈 Strong evidence base'],statLabel:'+18%',statCls:'stat-pos'},
+      {title:'Transactional',desc:'Clear targets, rewards for achievement, consequences for underperformance. Predictable and efficient.',productivity:+8,retention:+2,cost:'Low',tag:['⚡ Predictable','⚠️ Low intrinsic motivation'],statLabel:'+8%',statCls:'stat-neu'},
+      {title:'Laissez-faire',desc:'High autonomy, minimal direction. Works for expert self-directed teams. Risky with newer employees.',productivity:+4,retention:+5,cost:'Very Low',tag:['🔓 Autonomy-driven','❌ Weak with junior staff'],statLabel:'+4%',statCls:'stat-neg'},
+      {title:'Servant Leadership',desc:'Manager removes obstacles, prioritises team wellbeing and development above personal output.',productivity:+16,retention:+18,cost:'Medium',tag:['💚 Retention powerhouse','🌱 Develops talent'],statLabel:'+16%',statCls:'stat-pos'},
+    ]
+  },
+  {
+    id:'ai', label:'AI Tools',
+    title:'Select AI-powered HR tools',
+    sub:'Choose up to 2 AI tools to integrate into your engagement strategy. Each carries benefits, risks, and costs.',
+    multi:2,
+    options:[
+      {title:'Pulse survey AI',desc:'Weekly micro-surveys with NLP sentiment analysis. Flags team-level risk automatically.',productivity:+7,retention:+8,cost:'£18k/yr',tag:['📊 Early warning system','✅ Low ethics risk'],statLabel:'+7%',statCls:'stat-pos'},
+      {title:'Predictive attrition model',desc:'Scores employees by flight risk using performance, engagement, and tenure data.',productivity:+4,retention:+12,cost:'£35k/yr',tag:['🔮 Powerful','⚠️ Privacy/bias risk'],statLabel:'+4%',statCls:'stat-pos'},
+      {title:'AI career pathing',desc:'Recommends personalised development paths and internal roles based on skills data.',productivity:+9,retention:+11,cost:'£28k/yr',tag:['🎓 Development-focused','✅ Well-received by employees'],statLabel:'+9%',statCls:'stat-pos'},
+      {title:'Automated 360 feedback',desc:'AI-generated performance summaries from peer reviews. Reduces manager workload.',productivity:+5,retention:-3,cost:'£12k/yr',tag:['⏱️ Efficient','❌ Employees distrust AI feedback'],statLabel:'+5%',statCls:'stat-neu'},
+    ]
+  },
+  {
+    id:'rewards', label:'Reward System',
+    title:'Design your reward system',
+    sub:'Total rewards is more than pay. Choose the approach that best fits TechGrow\'s workforce profile (high-growth SaaS, 60% millennial/Gen Z employees).',
+    options:[
+      {title:'Performance-linked bonuses',desc:'Quarterly cash bonuses tied to individual OKRs. High transparency on metrics.',productivity:+10,retention:+6,cost:'£180k/yr',tag:['💰 Motivating for top performers','⚠️ Can create competition vs collaboration'],statLabel:'+10%',statCls:'stat-neu'},
+      {title:'Total rewards & flexibility',desc:'Flexible working, wellness stipend, L&D budget, and personalised benefits platform.',productivity:+14,retention:+16,cost:'£140k/yr',tag:['💚 Strong Gen Z/Millennial fit','🌟 Holistic and inclusive'],statLabel:'+14%',statCls:'stat-pos'},
+      {title:'Recognition & belonging programme',desc:'Peer-to-peer recognition platform, team celebration budget, ERG funding.',productivity:+8,retention:+12,cost:'£55k/yr',tag:['🤝 Builds community','📈 Strong retention ROI'],statLabel:'+8%',statCls:'stat-pos'},
+      {title:'Equity & profit sharing',desc:'Stock option plan and annual profit share. Long-term ownership mindset.',productivity:+6,retention:+20,cost:'£250k/yr',tag:['🏆 Highest retention tool','💰 Expensive, complex to administer'],statLabel:'+6%',statCls:'stat-pos'},
+    ]
+  },
+  {
+    id:'review', label:'Review & Simulate',
+    title:'Review your strategy',
+    isReview:true,
+  }
+];
+
+let g1selections={}, g1pts=0, g1phase=0;
+
+function initG1(){g1selections={};g1pts=0;g1phase=0;document.getElementById('g1-pts').textContent=0;renderG1();}
+
+function renderG1(){
+  const el=document.getElementById('g1-body');
+  const phase=G1_PHASES[g1phase];
+  const pct=Math.round((g1phase/G1_PHASES.length)*100);
+  const phasePills=G1_PHASES.map((p,i)=>`<div class="phase-pill ${i===g1phase?'active':i<g1phase?'done':''}">${p.label}</div>`).join('');
+  if(phase.isContext){
+    el.innerHTML=`
+      <div class="progress-wrap"><div class="progress-fill" style="width:${pct}%;background:#6366f1"></div></div>
+      <div class="phase-strip">${phasePills}</div>
+      <div class="card">
+        <div class="card-title" style="font-size:18px;margin-bottom:8px">📋 Your Assignment</div>
+        <div style="background:#f8fafc;border-radius:8px;padding:14px 16px;margin-bottom:14px;font-size:13px;color:#0f172a;line-height:1.7">
+          <strong>Company:</strong> TechGrow Ltd — 650 employees, B2B SaaS<br>
+          <strong>Situation:</strong> 3-year hyper-growth phase post Series B. Headcount tripled. Culture has diluted.<br>
+          <strong>Current metrics:</strong> Engagement 54% · Turnover 22% · Absenteeism 2.8%<br>
+          <strong>CEO target:</strong> Engagement to 70%+ and turnover below 12% within 12 months<br>
+          <strong>Your role:</strong> Chief People Officer — design the engagement strategy
+        </div>
+        <div class="insight-chip" style="margin-bottom:14px">💡 Context matters in HR strategy. A startup with 30% Gen Z employees and hyper-growth culture needs different levers than a legacy financial services firm. Your choices should reflect TechGrow's specific profile.</div>
+        <button class="btn btn-dark" onclick="nextG1Phase()">Begin designing →</button>
+      </div>`;
+    return;
+  }
+  if(phase.isReview){renderG1Review(el,phasePills,pct);return;}
+  const isMulti=phase.multi>1;
+  const selected=g1selections[phase.id]||[];
+  const opts=phase.options.map((o,i)=>{
+    const isSel=isMulti?selected.includes(i):selected===i;
+    return`<div class="opt-card ${isSel?'selected':''}" id="opt-${phase.id}-${i}" onclick="selectG1Option('${phase.id}',${i},${isMulti})">
+      <div class="opt-card-stat ${o.statCls}">${o.statLabel} productivity</div>
+      <div class="opt-card-title">${o.title}</div>
+      <div class="opt-card-desc">${o.desc}</div>
+      <div style="margin-top:6px;display:flex;gap:4px;flex-wrap:wrap">${o.tag.map(t=>`<span style="font-size:10px;color:#64748b">${t}</span>`).join('')}</div>
+      <div style="margin-top:5px;font-size:11px;color:#94a3b8">Cost: ${o.cost}</div>
+    </div>`;
+  }).join('');
+  const canContinue=isMulti?selected.length>0:selected!==undefined&&selected!==null&&selected!=='';
+  el.innerHTML=`
+    <div class="progress-wrap"><div class="progress-fill" style="width:${pct}%;background:#6366f1"></div></div>
+    <div class="phase-strip">${phasePills}</div>
+    <div class="card">
+      <div class="card-title">${phase.title}</div>
+      <div class="card-sub">${phase.sub}${isMulti?` <strong>Choose up to ${phase.multi}.</strong>`:''}</div>
+      <div class="option-grid">${opts}</div>
+      <button class="btn btn-dark" id="g1-continue" onclick="nextG1Phase()" ${canContinue?'':'disabled'} style="${canContinue?'':'opacity:.4;cursor:not-allowed'}">Continue →</button>
+    </div>`;
+}
+
+window.selectG1Option=function(phaseId,idx,multi){
+  if(multi){
+    const phase=G1_PHASES.find(p=>p.id===phaseId);
+    const max=phase.multi;
+    let sel=g1selections[phaseId]||[];
+    if(sel.includes(idx)){sel=sel.filter(x=>x!==idx);}
+    else if(sel.length<max){sel=[...sel,idx];}
+    g1selections[phaseId]=sel;
+  } else {
+    g1selections[phaseId]=idx;
+  }
+  renderG1();
+};
+
+window.nextG1Phase=function(){
+  const phase=G1_PHASES[g1phase];
+  if(!phase.isContext&&!phase.isReview){
+    const sel=g1selections[phase.id];
+    const isMulti=phase.multi>1;
+    if((!isMulti&&(sel===undefined||sel===null||sel===''))||(isMulti&&(!sel||sel.length===0))){
+      toast('Make a selection first');return;
+    }
+  }
+  g1phase++;
+  renderG1();
+};
+
+function renderG1Review(el,phasePills,pct){
+  // calculate scores
+  let prodScore=54, retScore=78, costTotal=0;
+  const log=[];
+  ['leadership','ai','rewards'].forEach(pid=>{
+    const phase=G1_PHASES.find(p=>p.id===pid);
+    const sel=g1selections[pid];
+    if(sel===undefined)return;
+    const isMulti=phase.multi>1;
+    const idxs=isMulti?sel:[sel];
+    idxs.forEach(i=>{
+      const o=phase.options[i];
+      prodScore+=o.productivity;retScore+=o.retention;
+      log.push({label:`${phase.label}: ${o.title}`,prod:o.productivity,ret:o.retention,cost:o.cost});
+    });
+  });
+  prodScore=Math.min(100,Math.max(0,prodScore));
+  retScore=Math.min(100,Math.max(0,retScore));
+  const engProjected=Math.min(100,Math.round(prodScore*0.8+retScore*0.2));
+  const turnoverProjected=Math.max(4,22-Math.round((retScore-78)*0.3));
+  const ceoEngTarget=70;const ceoTurnTarget=12;
+  const engMet=engProjected>=ceoEngTarget;
+  const turnMet=turnoverProjected<=ceoTurnTarget;
+  const pts=(engMet?30:15)+(turnMet?30:10);
+  g1pts=pts;document.getElementById('g1-pts').textContent=pts;
+  const logHtml=log.map(l=>`<div class="log-item"><div class="log-dot" style="background:${l.prod>=10?'#16a34a':'#d97706'}"></div>${l.label} <span style="margin-left:auto;color:${l.prod>=10?'#16a34a':'#d97706'};font-weight:600">+${l.prod}% prod</span></div>`).join('');
+  el.innerHTML=`
+    <div class="progress-wrap"><div class="progress-fill" style="width:95%;background:#6366f1"></div></div>
+    <div class="phase-strip">${phasePills}</div>
+    <div class="card">
+      <div class="card-title">Strategy simulation results</div>
+      <div class="card-sub">Based on your choices, here is the projected impact over 12 months for TechGrow Ltd.</div>
+      <div class="two-col" style="margin-bottom:14px">
+        <div>
+          <div class="gauge-label"><span>Projected engagement</span><span style="font-weight:700;color:#6366f1">${engProjected}% <span style="font-size:11px">(target: ${ceoEngTarget}%)</span></span></div>
+          <div class="gauge-track"><div class="gauge-fill" style="width:${engProjected}%;background:${engProjected>=ceoEngTarget?'#16a34a':'#d97706'}"></div></div>
+          <div style="font-size:11px;margin-top:4px;color:${engMet?'#16a34a':'#dc2626'}">${engMet?'✅ CEO target met':'❌ Below CEO target of '+ceoEngTarget+'%'}</div>
+        </div>
+        <div>
+          <div class="gauge-label"><span>Projected turnover</span><span style="font-weight:700;color:#6366f1">${turnoverProjected}% <span style="font-size:11px">(target: ≤${ceoTurnTarget}%)</span></span></div>
+          <div class="gauge-track"><div class="gauge-fill" style="width:${Math.min(100,turnoverProjected/30*100)}%;background:${turnoverProjected<=ceoTurnTarget?'#16a34a':'#d97706'}"></div></div>
+          <div style="font-size:11px;margin-top:4px;color:${turnMet?'#16a34a':'#dc2626'}">${turnMet?'✅ CEO target met':'❌ Above CEO target of '+ceoTurnTarget+'%'}</div>
+        </div>
+      </div>
+      <div class="sec-label">Your choices</div>
+      <div class="choice-log">${logHtml}</div>
+      <div class="insight-chip" style="margin-top:12px">💡 The strongest engagement strategies combine transformational or servant leadership (the foundational lever) with a total rewards model aligned to workforce demographics and an AI tool that provides early warning signals. Equity and retention tools work best when trust is already high — they are retention tools, not engagement tools.</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
+        <button class="btn btn-dark" onclick="show('s-g1-result')">See full results →</button>
+      </div>
+    </div>`;
+  setTimeout(()=>{
+    const rb=document.getElementById('g1-result-body');
+    if(rb)renderG1FinalResult(rb,engProjected,turnoverProjected,engMet,turnMet,pts,log);
+  },100);
+  show('s-g1');
+  renderG1FinalInline(el,engProjected,turnoverProjected,engMet,turnMet,pts,log);
+}
+
+function renderG1FinalInline(el,eng,turn,engMet,turnMet,pts,log){
+  const grade=engMet&&turnMet?'Excellent — both CEO targets met!':engMet||turnMet?'Good — one target met':'Below targets — revisit your strategy';
+  const icon=engMet&&turnMet?'🏆':engMet||turnMet?'⭐':'📋';
+  const extra=document.createElement('div');
+  extra.innerHTML=`
+    <div class="result-wrap" style="padding-top:0">
+      <div class="result-icon">${icon}</div>
+      <div class="result-title">${grade}</div>
+      <div class="stat-row">
+        <div class="stat-box"><div class="stat-val">${eng}%</div><div class="stat-lbl">Engagement</div></div>
+        <div class="stat-box"><div class="stat-val">${turn}%</div><div class="stat-lbl">Turnover</div></div>
+        <div class="stat-box"><div class="stat-val">${pts}</div><div class="stat-lbl">Points</div></div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+        <button class="btn btn-indigo" onclick="launch('g2')">Next: AI vs Human →</button>
+        <button class="btn btn-dark" onclick="initG1();show('s-g1')">Redesign</button>
+        <button class="btn" onclick="goMenu()">Menu</button>
+      </div>
+    </div>`;
+  el.appendChild(extra);
+}
+
+// ════════════════════════════════════════════════════════
+// GAME 2 — AI VS HUMAN DECISION GAME
+// ════════════════════════════════════════════════════════
+const G2_SCENARIOS=[
+  {
+    context:'Your HRIS flags that 23 employees have characteristics statistically associated with leaving within 90 days (tenure 18–24 months, engagement below 55%, no promotion in 12 months). The predictive attrition model has an 82% accuracy rate.',
+    q:'How should HR use this data?',
+    efficiency:85,ethics:45,
+    options:[
+      {label:'AI — automated action',desc:'Automatically trigger retention packages (pay review + development offer) for all 23 flagged employees.',icon:'🤖',
+       quality:'bad',explain:'Acting on algorithmic output without human review violates both fairness and GDPR principles. Employees have a right not to be subject to solely automated decisions that significantly affect them (GDPR Article 22). Some flags will be false positives — and unsolicited retention packages can feel surveillance-like and damage trust.',governance:'GDPR Art. 22 · EU AI Act High Risk'},
+      {label:'Human + AI hybrid',desc:'HR reviews the flagged list, removes false positives, and asks managers to have confidential development conversations with at-risk employees.',icon:'🤝',
+       quality:'good',explain:'This is best practice. AI surfaces the pattern; humans apply judgment, context, and empathy. The intervention is development-focused (not surveillance), and managers can address root causes that the model cannot detect (e.g., personal circumstances, team dynamics).'},
+      {label:'Human only',desc:'Ignore the model output entirely and rely on manager instinct to identify at-risk employees.',icon:'👤',
+       quality:'ok',explain:'Ignoring a validated model wastes its value. 82% accuracy means it outperforms unaided human intuition for pattern detection. The solution is to use AI as a tool for human decision-making, not to abandon it.'},
+    ]
+  },
+  {
+    context:'Your organisation is screening 800 CVs for a graduate programme. An AI screening tool has been proposed that analyses CVs and ranks candidates. The vendor claims it removes human bias.',
+    q:'What is the appropriate HR response?',
+    efficiency:90,ethics:35,
+    options:[
+      {label:'AI screens fully, HR reviews top 20%',desc:'Use AI to screen all 800 CVs and only review the top 160 that the algorithm ranks highest.',icon:'🤖',
+       quality:'bad',explain:'AI hiring tools trained on historical data inherit historical bias. Amazon\'s widely-cited case demonstrated that its screening AI penalised CVs containing the word "women\'s" (as in "women\'s chess club"). The claim that AI "removes bias" is not evidence — it may systematically exclude protected groups at scale without anyone noticing.'},
+      {label:'AI shortlists, diverse human panel reviews',desc:'AI provides an initial ranking, but a diverse human panel independently reviews shortlisted candidates — and audits the model\'s outputs for demographic bias quarterly.',icon:'🤝',
+       quality:'good',explain:'This is the responsible AI in recruitment framework recommended by the EHRC and the EU AI Act (which classifies AI recruitment tools as high-risk). Human oversight, diverse review panels, and regular bias audits are the minimum standard. Efficiency gains are real — but not at the cost of discriminatory outcomes.'},
+      {label:'Human-only screening',desc:'Have three HR team members manually screen all 800 CVs, using a structured scoring rubric.',icon:'👤',
+       quality:'ok',explain:'A structured rubric improves human screening considerably. It\'s fair, transparent, and legally defensible. The limitation is time — at scale, it\'s slow and resource-intensive. A well-governed hybrid approach is better than neither AI nor structure.'},
+    ]
+  },
+  {
+    context:'A manager wants to use an AI sentiment analysis tool that reads employee Slack and email messages to flag disengagement and conflict before they escalate.',
+    q:'Should HR support the deployment of this tool?',
+    efficiency:72,ethics:15,
+    options:[
+      {label:'Deploy it — valuable early warning',desc:'Implement the tool company-wide to help managers spot issues proactively.',icon:'🤖',
+       quality:'bad',explain:'This is surveillance of private communications without employee consent — likely unlawful under GDPR and the Human Rights Act (Article 8: right to privacy). Even with consent, covert sentiment monitoring fundamentally erodes psychological safety — the very thing that drives engagement. Employees who know they are monitored self-censor, reducing authentic communication.'},
+      {label:'Reject it — privacy violation',desc:'Decline the tool. Use transparent, consent-based pulse surveys instead for sentiment data.',icon:'👤',
+       quality:'good',explain:'HR\'s role is to protect as well as enable. Transparent, anonymised, and consent-based tools achieve similar sentiment insights without the surveillance dynamic. The tool violates the fundamental principle that employees should know what data is collected about them and why (GDPR transparency principle).'},
+      {label:'Implement with employee consent',desc:'Roll out the tool only after company-wide consultation and explicit opt-in consent.',icon:'🤝',
+       quality:'ok',explain:'Consent is better than no consent, but there are still concerns. Power imbalance in an employment relationship means consent may not be truly voluntary — employees may fear professional consequences for opting out. This is called "contextual integrity" — some data uses are inappropriate regardless of consent.'},
+    ]
+  },
+  {
+    context:'Performance review season. Your manager proposes using AI to generate performance summaries automatically by analysing output data, code commits, and email responsiveness. This would save 400 hours of manager time.',
+    q:'Is this an appropriate use of AI in performance management?',
+    efficiency:80,ethics:42,
+    options:[
+      {label:'AI generates full reviews, managers sign off',desc:'AI writes each employee\'s full performance review. Managers review and approve in under 5 minutes each.',icon:'🤖',
+       quality:'bad',explain:'Performance reviews materially affect pay, promotion, and employment status — falling under GDPR Article 22\'s prohibition on solely automated significant decisions. Metric-based AI (code commits, email response time) measures activity proxies, not performance or impact. Employees have the right to a meaningful human review of their work, especially when it affects their career.'},
+      {label:'AI provides data summary, manager writes the review',desc:'AI compiles quantitative output metrics into a structured data summary for the manager. The manager writes the assessment using this data plus their qualitative knowledge.',icon:'🤝',
+       quality:'good',explain:'AI excels at aggregating and presenting data. Humans excel at interpretation, context, and judgment. This split is exactly right: use AI for the parts it does well (data synthesis) and keep humans accountable for the parts that matter most (assessment, feedback, and development conversation).'},
+      {label:'Discard AI entirely, return to manual reviews',desc:'Managers complete reviews from scratch without any AI support.',icon:'👤',
+       quality:'ok',explain:'Manual reviews with no data support are prone to recency bias, halo effects, and inconsistency. Some AI support improves quality. The goal isn\'t to reject AI — it\'s to place humans in the accountability role for decisions that affect people\'s careers.'},
+    ]
+  },
+  {
+    context:'Your organisation is considering an AI tool that predicts which employees are likely to make formal grievance or whistleblower complaints based on their HR interaction history and communication patterns.',
+    q:'What is HR\'s position on this tool?',
+    efficiency:60,ethics:5,
+    options:[
+      {label:'Deploy it to get ahead of problems',desc:'Use the tool to identify likely complainants and proactively resolve their issues before they escalate.',icon:'🤖',
+       quality:'bad',explain:'This is one of the most ethically dangerous AI use cases in HR. Identifying potential complainants algorithmically — and acting on that prediction — could constitute victimisation or chilling of protected whistleblower rights. In the UK, employees are legally protected from detriment as a result of raising a concern. Acting on AI predictions of future complaints could expose the organisation to serious legal liability and would represent a fundamental breach of employee rights.'},
+      {label:'Reject it entirely — this crosses a clear ethical line',desc:'Do not deploy this tool. Address underlying issues through a culture of psychological safety and accessible grievance channels.',icon:'👤',
+       quality:'good',explain:'HR has a non-negotiable duty to uphold employee rights — including the right to raise grievances and whistleblower protections without fear of retaliation. No efficiency gain justifies predicting and pre-empting protected employee behaviours. This is the category of AI use cases that HR must actively block, not just govern carefully. The appropriate response to likely grievances is to fix the underlying conditions, not to suppress the symptoms.'},
+      {label:'Use it only for aggregate trend analysis, not individual flagging',desc:'Use the tool to identify systemic issues (e.g., departments with high complaint-related signals) but never flag individual employees.',icon:'🤝',
+       quality:'ok',explain:'Aggregate analysis for systemic improvement is significantly less ethically problematic than individual flagging. However, the tool\'s design (trained on individual behaviour) may make truly non-individual use impossible in practice. HR should demand technical evidence of this separation before approving any use, and governance should be extremely tight.'},
+    ]
+  },
+];
+
+let g2q=0, g2pts=0, g2log=[];
+
+function initG2(){g2q=0;g2pts=0;g2log=[];document.getElementById('g2-pts').textContent=0;renderG2();}
+
+function renderG2(){
+  const el=document.getElementById('g2-body');
+  if(g2q>=G2_SCENARIOS.length){renderG2Result(el);return;}
+  const sc=G2_SCENARIOS[g2q];
+  const pct=Math.round((g2q/G2_SCENARIOS.length)*100);
+  const aiCount=g2log.filter(l=>l.choice==='AI — automated action'||l.choice==='Deploy it — valuable early warning'||l.choice==='Deploy it to get ahead of problems').length;
+  const humanCount=g2log.filter(l=>l.quality==='good').length;
+  const opts=sc.options.map((o,i)=>`
+    <div class="decision-btn" id="db-${i}" onclick="answerG2(${i})">
+      <div class="db-icon">${o.icon}</div>
+      <div class="db-title">${o.label}</div>
+      <div class="db-sub">${o.desc}</div>
+    </div>`).join('');
+  el.innerHTML=`
+    <div class="progress-wrap"><div class="progress-fill" style="width:${pct}%;background:#6366f1"></div></div>
+    <div class="score-counter">
+      <div style="font-size:12px;color:#64748b">Scenario ${g2q+1} of ${G2_SCENARIOS.length}</div>
+      <span class="score-chip chip-pts">⭐ ${g2pts} pts</span>
+    </div>
+    <div class="scenario-panel">
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <div class="ethics-tag ${sc.ethics<30?'ethics-high':sc.ethics<60?'ethics-med':'ethics-low'}">⚖️ Ethics risk: ${sc.ethics<30?'High':sc.ethics<60?'Medium':'Low'}</div>
+        <div class="ethics-tag" style="background:#dbeafe;color:#1e40af">⚡ Efficiency: ${sc.efficiency}%</div>
+      </div>
+      <div class="scenario-context">${sc.context}</div>
+      <div class="scenario-q">${sc.q}</div>
+      <div class="decision-row" id="decision-opts">${opts}</div>
+      <div id="g2-feedback"></div>
+      <div id="g2-next" style="display:none;margin-top:10px">
+        <button class="btn btn-dark" onclick="nextG2()">${g2q<G2_SCENARIOS.length-1?'Next scenario →':'See results'}</button>
+      </div>
+    </div>`;
+}
+
+window.answerG2=function(i){
+  const sc=G2_SCENARIOS[g2q];
+  const o=sc.options[i];
+  document.querySelectorAll('.decision-btn').forEach((btn,j)=>{
+    btn.style.cursor='default';btn.onclick=null;
+    if(j===i)btn.classList.add(o.quality==='good'?'chosen-good':'chosen-bad');
+    else btn.classList.add('neutral');
+  });
+  const pts=o.quality==='good'?30:o.quality==='ok'?10:0;
+  g2pts+=pts;document.getElementById('g2-pts').textContent=g2pts;
+  g2log.push({choice:o.label,quality:o.quality});
+  const cls=o.quality==='good'?'fb-good':o.quality==='ok'?'fb-ok':'fb-bad';
+  const icon=o.quality==='good'?'✅':o.quality==='ok'?'⚠️':'❌';
+  if(o.governance){
+    document.getElementById('g2-feedback').innerHTML=`<div class="${cls}">${icon} ${o.explain}<div style="margin-top:6px;font-size:11px;font-weight:600;opacity:.8">📜 Framework: ${o.governance}</div></div>`;
+  } else {
+    document.getElementById('g2-feedback').innerHTML=`<div class="${cls}">${icon} ${o.explain}</div>`;
+  }
+  document.getElementById('g2-next').style.display='block';
+  if(pts>0)toast('+'+pts+' pts');
+};
+
+window.nextG2=function(){g2q++;renderG2();};
+
+function renderG2Result(el){
+  const correct=g2log.filter(l=>l.quality==='good').length;
+  const pct=Math.round((correct/G2_SCENARIOS.length)*100);
+  const grade=pct>=80?'AI Governance Expert':pct>=60?'Responsible Practitioner':pct>=40?'Developing Awareness':'Review recommended';
+  const icon=pct>=80?'🏆':pct>=60?'⭐':pct>=40?'📚':'💪';
+  const aiChoices=g2log.filter(l=>l.quality==='bad').length;
+  el.innerHTML=`
+    <div class="result-wrap">
+      <div class="result-icon">${icon}</div>
+      <div class="result-title">${grade}</div>
+      <div class="result-sub">You correctly navigated ${correct} of ${G2_SCENARIOS.length} AI governance scenarios.</div>
+      <div class="stat-row">
+        <div class="stat-box"><div class="stat-val">${correct}/${G2_SCENARIOS.length}</div><div class="stat-lbl">Correct</div></div>
+        <div class="stat-box"><div class="stat-val">${g2pts}</div><div class="stat-lbl">Points</div></div>
+        <div class="stat-box"><div class="stat-val">${aiChoices}</div><div class="stat-lbl">High-risk choices</div></div>
+      </div>
+      <div class="insight-chip" style="max-width:540px;margin:0 auto 20px;text-align:left">
+        <strong>💡 AI governance framework summary:</strong><br><br>
+        The EU AI Act (2024) classifies several HR AI applications as <strong>high risk</strong>: recruitment screening, performance management, promotion, and termination decisions. High-risk AI requires human oversight, transparency, bias auditing, and employee notification. GDPR Article 22 prohibits solely automated decisions that significantly affect individuals. The correct posture for HR is: <em>AI augments human judgment; humans remain accountable for decisions that affect people's lives.</em>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+        <button class="btn btn-indigo" onclick="launch('g3')">Next: Data Insight →</button>
+        <button class="btn btn-dark" onclick="initG2();show('s-g2')">Retry</button>
+        <button class="btn" onclick="goMenu()">Menu</button>
+      </div>
+    </div>`;
+}
+
+// ════════════════════════════════════════════════════════
+// GAME 3 — DATA INSIGHT CHALLENGE
+// ════════════════════════════════════════════════════════
+const DATASET=[
+  {dept:'Engineering',headcount:82,engagement:48,perf:72,absenteeism:2.1,turnover:26,budget:94,highlight:true},
+  {dept:'Product',headcount:34,engagement:71,perf:80,absenteeism:1.3,turnover:11,budget:88,highlight:false},
+  {dept:'Sales',headcount:67,engagement:59,perf:65,absenteeism:2.8,turnover:31,budget:76,highlight:true},
+  {dept:'Finance',headcount:28,engagement:74,perf:82,absenteeism:1.1,turnover:9,budget:91,highlight:false},
+  {dept:'People & Culture',headcount:18,engagement:66,perf:77,absenteeism:1.6,turnover:14,budget:83,highlight:false},
+  {dept:'Customer Success',headcount:55,engagement:52,perf:68,absenteeism:3.2,turnover:28,budget:79,highlight:true},
+  {dept:'Marketing',headcount:31,engagement:69,perf:74,absenteeism:1.4,turnover:13,budget:87,highlight:false},
+  {dept:'Legal & Compliance',headcount:12,engagement:78,perf:85,absenteeism:0.9,turnover:7,budget:95,highlight:false},
+];
+
+const G3_QUESTIONS=[
+  {
+    q:'Which THREE departments show critically low engagement scores (below 60%)?',
+    opts:['Engineering (48%), Sales (59%), Customer Success (52%)','Product (71%), Finance (74%), Legal (78%)','Marketing (69%), People & Culture (66%), Product (71%)','Sales (59%), Finance (74%), Marketing (69%)'],
+    correct:0,
+    explain:'Engineering (48%), Sales (59%), and Customer Success (52%) all score below the 60% concern threshold. Engineering is the most critical at 48% — below the 50% at-risk line. Combined, these three departments represent 204 employees — nearly a third of the workforce.',
+    finding:'Low engagement identified in Engineering (48%), Sales (59%), and Customer Success (52%). Urgent investigation recommended.',
+  },
+  {
+    q:'Sales has a 31% turnover rate AND a 65% performance score. What does this combination most likely indicate?',
+    opts:['The team is high-performing and staff leave due to external promotions','Performance is suffering due to talent loss — high turnover is eroding institutional knowledge and team stability','Sales performance is unrelated to turnover in this industry','The data is inconsistent and should be discarded'],
+    correct:1,
+    explain:'31% turnover in Sales means roughly 1 in 3 team members leaves each year. This directly impacts performance through constant knowledge loss, disrupted customer relationships, and the time cost of onboarding replacements. The 65% performance score (below the 72–82% range seen in low-turnover departments) is consistent with this interpretation.',
+    finding:'Sales: turnover-performance correlation suggests talent instability is eroding team effectiveness.',
+  },
+  {
+    q:'Customer Success has the highest absenteeism rate (3.2%) and 28% turnover. What HR intervention does this pattern most strongly suggest?',
+    opts:['A pay benchmarking exercise to compete with market rates','A structural workload and wellbeing assessment — the combination suggests potential burnout','A recruitment drive to fill vacancies faster','A mandatory return-to-office policy to improve team cohesion'],
+    correct:1,
+    explain:'High absenteeism + high turnover is a classic burnout signature. Customer Success teams carry direct customer pressure, often have high KPI intensity, and may have less autonomy than product or engineering roles. A workload assessment, manager quality review, and wellbeing intervention are the evidence-based first steps before any recruitment drive.',
+    finding:'Customer Success: absenteeism 3.2% + turnover 28% — probable burnout pattern. Wellbeing assessment priority.',
+  },
+  {
+    q:'Engineering has the lowest engagement (48%) but maintains 72% performance. What strategic risk does this create for the organisation?',
+    opts:['None — if performance is still high, engagement is irrelevant','Short-term performance may be sustained by effort, but disengaged employees leave. With 26% turnover already, Engineering is at high flight risk for senior talent — the most expensive employees to replace','Engineering should be deprioritised in favour of Sales where the performance gap is more immediate','High performers in Engineering should be identified and given immediate pay rises'],
+    correct:1,
+    explain:'Disengaged high performers are the most dangerous talent segment. They can sustain output for a period while actively job-searching. Engineering at 48% engagement and 26% turnover is a ticking clock. The CIPD\'s 2023 report found that the cost of losing a senior engineer averages 1.5× their salary in recruitment, onboarding, and lost productivity. This is a strategic retention crisis, not just an engagement metric.',
+    finding:'Engineering: disengaged high performers (48% eng, 72% perf) present critical flight risk — highest-cost attrition scenario.',
+  },
+  {
+    q:'Finance and Legal both have high engagement (74%, 78%), low absenteeism (1.1%, 0.9%), and low turnover (9%, 7%). What HR action is appropriate for these departments?',
+    opts:['Reduce their HR budget — they\'re managing themselves','Study what\'s working in Finance and Legal. Extract the conditions and behaviours driving these metrics and apply them to Engineering, Sales, and Customer Success','Move their managers into Engineering and Sales to fix those departments','No action needed — focus all resources on problem areas'],
+    correct:1,
+    explain:'High-performing departments are a learning asset, not just a success story. HR should conduct structured interviews with managers and employees in Finance and Legal to identify the leadership practices, team structures, and working conditions that drive these outcomes — then apply those insights as an intervention design framework for the struggling departments. This is called positive deviance analysis.',
+    finding:'Finance & Legal: model departments — conduct positive deviance analysis to identify transferable practices.',
+  },
+  {
+    q:'Looking at all eight departments together, what is the most accurate executive summary for the People Board?',
+    opts:['The organisation is performing well overall — no urgent HR action required','Three departments (Engineering, Sales, Customer Success) — representing 204 employees and 49% of headcount — show a cluster of critical signals: low engagement, above-benchmark turnover, and elevated absenteeism. This represents a systemic people risk requiring a targeted 90-day intervention plan','HR data is inconsistent and the dataset is too small to draw conclusions','The primary issue is pay — all three struggling departments need a salary increase'],
+    correct:1,
+    explain:'This is the strategic synthesis a CPO presents to the board. It names the problem precisely (three departments, 49% of headcount), quantifies the risk (cluster of three metrics, not just one), and frames it as requiring a targeted intervention — not generic company-wide action. Pay may be a factor, but the data does not support that as the primary or sole driver without further analysis.',
+    finding:'Executive summary: systemic people risk in 49% of headcount. 90-day targeted intervention plan recommended.',
+  },
+];
+
+let g3q=0, g3pts=0, g3findings=[];
+
+function initG3(){g3q=0;g3pts=0;g3findings=[];document.getElementById('g3-pts').textContent=0;renderG3();}
+
+function renderG3(){
+  const el=document.getElementById('g3-body');
+  if(g3q>=G3_QUESTIONS.length){renderG3Result(el);return;}
+  const q=G3_QUESTIONS[g3q];
+  const pct=Math.round((g3q/G3_QUESTIONS.length)*100);
+  // build table
+  const tableRows=DATASET.map(d=>{
+    const engColor=d.engagement<50?'flag-red':d.engagement<60?'flag-amber':'flag-green';
+    const turnColor=d.turnover>25?'flag-red':d.turnover>15?'flag-amber':'flag-green';
+    const absColor=d.absenteeism>2.5?'flag-red':d.absenteeism>1.5?'flag-amber':'flag-green';
+    const engPct=d.engagement;const turnPct=Math.min(100,d.turnover*2.5);const absPct=Math.min(100,d.absenteeism/4*100);
+    return`<tr class="${d.highlight?'highlight-row':''}">
+      <td style="font-weight:600">${d.dept}</td>
+      <td>${d.headcount}</td>
+      <td class="${engColor}">${d.engagement}%<span class="cell-bar-wrap"><span class="cell-bar" style="width:${engPct}%;background:${d.engagement<50?'#dc2626':d.engagement<60?'#d97706':'#16a34a'}"></span></span></td>
+      <td>${d.perf}%</td>
+      <td class="${absColor}">${d.absenteeism}%</td>
+      <td class="${turnColor}">${d.turnover}%</td>
+    </tr>`;
+  }).join('');
+  const opts=q.opts.map((o,i)=>`<button class="analysis-opt" id="ao-${i}" onclick="answerG3(${i})">${o}</button>`).join('');
+  el.innerHTML=`
+    <div class="progress-wrap"><div class="progress-fill" style="width:${pct}%;background:#818cf8"></div></div>
+    <div style="font-size:12px;color:#64748b;margin-bottom:12px">Analysis question ${g3q+1} of ${G3_QUESTIONS.length}</div>
+    <div class="card" style="overflow-x:auto">
+      <div class="card-title" style="margin-bottom:8px">📊 TechGrow Ltd — Workforce Data Dashboard</div>
+      <div style="font-size:11px;color:#94a3b8;margin-bottom:8px">Benchmarks: Engagement &gt;70% healthy · Turnover &lt;10% healthy · Absenteeism &lt;1.5% healthy | 🟡 Highlighted rows = concern areas</div>
+      <table class="dataset-table">
+        <thead><tr><th>Department</th><th>HC</th><th>Engagement</th><th>Perf</th><th>Absenteeism</th><th>Turnover</th></tr></thead>
+        <tbody>${tableRows}</tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-title">${q.q}</div>
+      <div class="analysis-opts">${opts}</div>
+      <div id="g3-feedback"></div>
+      <div id="g3-next" style="display:none;margin-top:10px">
+        <button class="btn btn-dark" onclick="nextG3()">${g3q<G3_QUESTIONS.length-1?'Next question →':'See final report'}</button>
+      </div>
+    </div>
+    ${g3findings.length?`<div class="card"><div class="card-title" style="margin-bottom:8px">📋 Your findings so far</div>${g3findings.map(f=>`<div class="finding-card"><div class="finding-label">Finding ${g3findings.indexOf(f)+1}</div><div class="finding-text">${f}</div></div>`).join('')}</div>`:''}
+  `;
+}
+
+window.answerG3=function(i){
+  const q=G3_QUESTIONS[g3q];
+  const correct=i===q.correct;
+  document.querySelectorAll('.analysis-opt').forEach((btn,j)=>{
+    btn.disabled=true;
+    if(j===q.correct)btn.classList.add('correct');
+    else if(j===i&&!correct)btn.classList.add('wrong');
+    else btn.classList.add('dim');
+  });
+  const pts=correct?25:0;
+  g3pts+=pts;document.getElementById('g3-pts').textContent=g3pts;
+  if(correct){g3findings.push(q.finding);toast('+'+pts+' pts — finding logged!');}
+  else{toast('Incorrect — read the explanation');}
+  const cls=correct?'fb-good':'fb-bad';
+  document.getElementById('g3-feedback').innerHTML=`<div class="${cls}">${correct?'✅':'❌'} ${q.explain}</div>`;
+  document.getElementById('g3-next').style.display='block';
+};
+
+window.nextG3=function(){g3q++;renderG3();};
+
+function renderG3Result(el){
+  const correct=g3findings.length;
+  const pct=Math.round((correct/G3_QUESTIONS.length)*100);
+  const badge=pct>=80;
+  const grade=pct>=80?'HR Analyst Badge Earned!':pct>=60?'Strong Analyst':pct>=40?'Developing Analyst':'Keep practising';
+  const icon=pct>=80?'🏅':pct>=60?'📊':'📋';
+  const findingsHtml=g3findings.map((f,i)=>`<div class="finding-card"><div class="finding-label">Finding ${i+1}</div><div class="finding-text">${f}</div></div>`).join('');
+  el.innerHTML=`
+    <div class="result-wrap">
+      ${badge?`<div style="font-size:52px;margin-bottom:6px">🏅</div>`:`<div class="result-icon">${icon}</div>`}
+      <div class="result-title">${grade}</div>
+      <div class="result-sub">You correctly identified ${correct} of ${G3_QUESTIONS.length} data insights.</div>
+      <div class="stat-row">
+        <div class="stat-box"><div class="stat-val">${correct}/${G3_QUESTIONS.length}</div><div class="stat-lbl">Correct</div></div>
+        <div class="stat-box"><div class="stat-val">${g3pts}</div><div class="stat-lbl">Points</div></div>
+        <div class="stat-box"><div class="stat-val">${pct}%</div><div class="stat-lbl">Accuracy</div></div>
+      </div>
+      ${findingsHtml?`<div style="text-align:left;max-width:560px;margin:0 auto 16px"><div style="font-size:13px;font-weight:600;color:#0f172a;margin-bottom:8px">📋 Your HR analyst report</div>${findingsHtml}</div>`:''}
+      <div class="insight-chip" style="max-width:540px;margin:0 auto 20px;text-align:left">
+        <strong>💡 Data insight principle:</strong><br><br>
+        Effective HR analytics is not about finding one bad number — it's about identifying <em>clusters of connected signals</em>. Engineering, Sales, and Customer Success each show low engagement, high turnover, and elevated absenteeism together. A single metric can be noise; three correlated metrics across three departments is a systemic pattern requiring strategic intervention. This is the difference between HR reporting and HR analysis.
+      </div>
+      <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+        <button class="btn btn-dark" onclick="initG3();show('s-g3')">Retry analysis</button>
+        <button class="btn btn-indigo" onclick="goMenu()">Back to menu</button>
+      </div>
+    </div>`;
+}
+</script>
+</body>
+</html>

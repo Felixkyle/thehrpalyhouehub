@@ -1,17 +1,16 @@
-import "dotenv/config";
-import express from "express";
-import cors from "cors";
+import { env } from "./config/env.js";
+import { connectDb } from "./db/connect.js";
+import { createApp } from "./app.js";
 
-const app = express();
-const PORT = process.env.PORT ?? 4000;
+async function main() {
+  await connectDb();
+  const app = createApp();
+  app.listen(env.port, () => {
+    console.log(`Backend running on http://localhost:${env.port}`);
+  });
+}
 
-app.use(cors({ origin: process.env.FRONTEND_URL ?? "http://localhost:3000" }));
-app.use(express.json());
-
-app.get("/api/health", (_req, res) => {
-  res.json({ status: "ok", timestamp: new Date().toISOString() });
-});
-
-app.listen(PORT, () => {
-  console.log(`Backend running on http://localhost:${PORT}`);
+main().catch((err) => {
+  console.error("Failed to start:", err);
+  process.exit(1);
 });

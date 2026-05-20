@@ -67,6 +67,24 @@ function generateOne({ html, route }) {
     console.warn(`  ! skip (missing): ${html}`);
     return null;
   }
+
+  const isHomeCheck = route === "";
+  const isNotFoundCheck = route === "__not_found__";
+  const outDirCheck = isHomeCheck
+    ? APP_DIR
+    : isNotFoundCheck
+      ? APP_DIR
+      : join(APP_DIR, route);
+  const slugCheck = isHomeCheck ? "home" : isNotFoundCheck ? "not-found" : route;
+  const contentFileCheck = `${slugCheck}-content.tsx`;
+  const contentPath = join(outDirCheck, contentFileCheck);
+  if (existsSync(contentPath)) {
+    const firstLine = readFileSync(contentPath, "utf8").split("\n")[0] ?? "";
+    if (!firstLine.startsWith(GEN_MARKER)) {
+      console.warn(`  ! skip (hand-edited, marker missing): ${html} -> /${route}`);
+      return { route: isHomeCheck ? "/" : isNotFoundCheck ? "(404)" : `/${route}`, outDir: outDirCheck, skipped: true };
+    }
+  }
   const raw = readFileSync(srcPath, "utf8");
   const doc = parse(raw, {
     comment: true,

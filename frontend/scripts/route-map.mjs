@@ -25,6 +25,7 @@ export const ROUTE_MAP = [
   { html: "innovation-lab.html", route: "innovation-lab" },
   { html: "case_study_vault_v2.html", route: "case-study-vault" },
   { html: "everyday_hr_playbook_v3.html", route: "playbook" }, // /playbook
+  { html: "learning_module_v2.html", route: "learning-module" }, // /learning-module
   { html: "hrph-email-sender.html", route: "email-sender" },
   { html: "404.html", route: "__not_found__" }, // app/not-found.tsx
 ];

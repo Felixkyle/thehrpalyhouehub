@@ -7,8 +7,13 @@ A web app with a separate frontend and backend.
 ```
 thehrplayhouseplay/
 ├── frontend/   # Next.js + TypeScript + Tailwind CSS
-└── backend/    # Node.js + Express + TypeScript
+├── backend/    # Node.js + Express + TypeScript
+└── api-spec/   # API contract between frontend and backend (read before building endpoints)
 ```
+
+## API contract
+
+The [`api-spec/`](./api-spec/README.md) folder defines every endpoint the frontend expects from the backend — one markdown file per page, plus shared conventions and data models. **Backend work should start here.**
 
 ## Getting started
 
