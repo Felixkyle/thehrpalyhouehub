@@ -15,10 +15,21 @@ services:
     ports:
       - "127.0.0.1:27017:27017"
     healthcheck:
-      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      # Authenticate — root creds are set above, so an unauthenticated ping is rejected.
+      test:
+        [
+          "CMD",
+          "mongosh",
+          "--quiet",
+          "-u", "${MONGO_INITDB_ROOT_USERNAME}",
+          "-p", "${MONGO_INITDB_ROOT_PASSWORD}",
+          "--authenticationDatabase", "admin",
+          "--eval", "db.adminCommand('ping')",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 30s
 
   backend:
     build:
