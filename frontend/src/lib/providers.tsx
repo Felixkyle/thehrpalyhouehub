@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { configureClient } from "./api/client";
-import { useAuth } from "./stores/auth";
+import { useAuth, hydrateAuth } from "./stores/auth";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [qc] = useState(
@@ -19,6 +19,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
       getToken: () => useAuth.getState().token,
       onUnauthenticated: () => useAuth.getState().clear(),
     });
+    // Load the persisted session from localStorage and mark hydration done.
+    void hydrateAuth();
   }, []);
 
   return <QueryClientProvider client={qc}>{children}</QueryClientProvider>;

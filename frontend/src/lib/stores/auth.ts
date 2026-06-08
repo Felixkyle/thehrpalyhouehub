@@ -31,9 +31,20 @@ export const useAuth = create<AuthState>()(
       name: "hrph_auth",
       // Only persist the session fields, not the transient hydration flag.
       partialize: (s) => ({ token: s.token, user: s.user, expiresAt: s.expiresAt }),
-      onRehydrateStorage: () => () => {
-        useAuth.setState({ hasHydrated: true });
-      },
     },
   ),
 );
+
+/**
+ * Explicitly rehydrate the persisted store on the client and flip hasHydrated.
+ * Called once from <Providers> on mount. Relying on onRehydrateStorage alone
+ * proved flaky (the callback could miss), so we drive it deterministically and
+ * always set the flag — even if there's nothing stored or rehydration throws.
+ */
+export async function hydrateAuth() {
+  try {
+    await useAuth.persist.rehydrate();
+  } finally {
+    useAuth.setState({ hasHydrated: true });
+  }
+}
