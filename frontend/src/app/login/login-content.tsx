@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/lib/api/endpoints";
 import { ApiError } from "@/lib/api/client";
@@ -10,8 +10,16 @@ import "./login.css";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// Only allow same-app relative redirects (prevent open-redirect to ext URLs).
+function safeNext(raw: string | null): string {
+  if (raw && raw.startsWith("/") && !raw.startsWith("//")) return raw;
+  return "/learn/dashboard";
+}
+
 export default function LoginContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const next = safeNext(searchParams.get("next"));
   const setSession = useAuth((s) => s.setSession);
 
   const [email, setEmail] = useState("");
@@ -38,7 +46,7 @@ export default function LoginContent() {
     try {
       const res = await auth.login({ email: em, password });
       setSession({ token: res.token, user: res.user, expires_at: res.expires_at });
-      router.push("/learn/dashboard");
+      router.push(next);
     } catch (err) {
       if (err instanceof ApiError) {
         setBanner(err.message || "Invalid email or password.");
