@@ -3,6 +3,8 @@
 import { useState } from "react";
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
+import { useCpdEnquiry } from "@/lib/hooks";
+import { ApiError } from "@/lib/api/client";
 import "./cpd-recognition.css";
 
 /**
@@ -11,9 +13,9 @@ import "./cpd-recognition.css";
  * Faithful port of cpd-recognition.html. The original collected four inputs
  * by id in a `submitCPD()` function, validated name/org/email, opened a
  * prefilled mailto, then revealed a hidden success banner via `style.display`.
- * That imperative code is now controlled inputs plus a `submitted` flag that
- * conditionally renders the banner. Validation text, mailto subject/body and
- * the redirect behaviour are unchanged.
+ * The enquiry now POSTs to the real backend via `useCpdEnquiry()`; on success
+ * the same banner is revealed, and failures surface an inline error message.
+ * Client-side name/org/email validation is unchanged.
  *
  * Standard marketing nav/footer are rendered via the shared components.
  */
@@ -23,31 +25,35 @@ export default function CpdRecognitionContent() {
   const [email, setEmail] = useState("");
   const [msg, setMsg] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
 
-  function submitCPD() {
+  const cpdEnquiry = useCpdEnquiry();
+
+  async function submitCPD() {
     const n = name.trim();
     const o = org.trim();
     const e = email.trim();
     const m = msg.trim();
     if (!n || !o || !e) {
-      alert("Please fill in your name, organisation and email.");
+      setErrorMsg("Please fill in your name, organisation and email.");
       return;
     }
-    const body =
-      "CPD Partnership Enquiry\n\nName: " +
-      n +
-      "\nOrganisation: " +
-      o +
-      "\nEmail: " +
-      e +
-      (m ? "\n\nMessage: " + m : "");
-    window.location.href =
-      "mailto:contact@thehrplayhousehub.org" +
-      "?subject=" +
-      encodeURIComponent("CPD Partnership Enquiry — " + o) +
-      "&body=" +
-      encodeURIComponent(body);
-    setSubmitted(true);
+    setErrorMsg("");
+    try {
+      await cpdEnquiry.mutateAsync({
+        name: n,
+        organisation: o,
+        email: e,
+        message: m || undefined,
+      });
+      setSubmitted(true);
+    } catch (err) {
+      setErrorMsg(
+        err instanceof ApiError
+          ? err.message
+          : "Something went wrong. Please try again or email contact@thehrplayhousehub.org.",
+      );
+    }
   }
 
   return (
@@ -369,10 +375,25 @@ export default function CpdRecognitionContent() {
                 className="btn btn-accent btn-lg"
                 style={{ width: "100%" }}
                 onClick={submitCPD}
+                disabled={cpdEnquiry.isPending}
               >
-                Send enquiry →
+                {cpdEnquiry.isPending ? "Sending…" : "Send enquiry →"}
               </button>
             </div>
+            {errorMsg && !submitted && (
+              <div
+                style={{
+                  marginTop: 20,
+                  background: "rgba(201,53,30,.2)",
+                  borderRadius: 12,
+                  padding: 16,
+                  fontSize: 14,
+                  color: "#f3a39a",
+                }}
+              >
+                ⚠ {errorMsg}
+              </div>
+            )}
             {submitted && (
               <div
                 style={{

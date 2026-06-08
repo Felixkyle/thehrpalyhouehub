@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { usePartnershipEnquiry } from "@/lib/hooks";
+import { ApiError } from "@/lib/api/client";
 import "./partner-register.css";
 
 /**
@@ -19,8 +21,9 @@ import "./partner-register.css";
  *  - file upload: 5MB size guard (same alert text), filename preview, remove,
  *    and drag-and-drop onto the upload zone.
  *  - handleSubmit(): disables the button + swaps to a "Sending..." label, then
- *    tries a global `emailjs` send (never present in the original markup, so it
- *    always falls back) to a prefilled mailto, then reveals the success state.
+ *    submits the enquiry to the real backend via usePartnershipEnquiry()
+ *    (POST /api/enquiries/partnership) with a FormData payload that includes
+ *    the optional attachment file, then reveals the success state.
  *  - URL ?track= param pre-selection on load (useEffect).
  *
  * The "/" links are kept as in the original; "/" maps to the local home route.
@@ -36,26 +39,14 @@ const TRACK_VALUES = [
 
 type TrackValue = (typeof TRACK_VALUES)[number];
 
-interface PartnerEmailJs {
-  send: (
-    serviceId: string,
-    templateId: string,
-    params: Record<string, unknown>,
-  ) => Promise<unknown>;
-}
-
-/** Access a (potentially) globally-present EmailJS without a global Window
- * augmentation (other pages augment Window.emailjs with a different shape). */
-function getEmailJs(): PartnerEmailJs | undefined {
-  return (window as unknown as { emailjs?: PartnerEmailJs }).emailjs;
-}
-
 export default function PartnerRegisterContent() {
+  const partnershipEnquiry = usePartnershipEnquiry();
+
   const [track, setTrack] = useState<TrackValue>("cpd");
-  const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -99,66 +90,40 @@ export default function PartnerRegisterContent() {
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setSubmitting(true);
+    setErrorMessage(null);
 
     const form = e.currentTarget;
     const get = (id: string) =>
       (form.elements.namedItem(id) as HTMLInputElement | null)?.value ?? "";
 
-    const data = {
-      firstName: get("f-first").trim(),
-      lastName: get("f-last").trim(),
-      title: get("f-title").trim(),
-      org: get("f-org").trim(),
-      orgType: get("f-orgtype"),
-      email: get("f-email").trim(),
-      phone: get("f-phone").trim(),
-      country: get("f-country"),
-      track: get("f-track"),
-      message: get("f-message").trim(),
-      date: new Date().toLocaleDateString("en-GB", {
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-      }),
-    };
+    const fd = new FormData();
+    fd.append("first_name", get("f-first").trim());
+    fd.append("last_name", get("f-last").trim());
+    fd.append("job_title", get("f-title").trim());
+    fd.append("organisation", get("f-org").trim());
+    fd.append("org_type", get("f-orgtype"));
+    fd.append("email", get("f-email").trim());
+    fd.append("track", get("f-track"));
+    fd.append("message", get("f-message").trim());
 
-    // EmailJS integration (same service as main site)
-    // Replace YOUR_SERVICE_ID and YOUR_TEMPLATE_ID with actual values
+    const phone = get("f-phone").trim();
+    if (phone) fd.append("phone", phone);
+    const country = get("f-country");
+    if (country) fd.append("country", country);
+
+    const file = fileInputRef.current?.files?.[0];
+    if (file) fd.append("attachment", file);
+
     try {
-      const emailjs = getEmailJs();
-      if (typeof emailjs !== "undefined") {
-        await emailjs.send("YOUR_SERVICE_ID", "YOUR_PARTNER_TEMPLATE_ID", {
-          to_email: "contact@thehrplayhousehub.org",
-          reply_to: data.email,
-          ...data,
-        });
-      } else {
-        // Fallback: open mailto
-        const body = Object.entries(data)
-          .map(([k, v]) => k + ": " + v)
-          .join("%0A");
-        window.open(
-          "mailto:contact@thehrplayhousehub.org?subject=Partnership Enquiry — " +
-            encodeURIComponent(data.org) +
-            "&body=" +
-            body,
-        );
-      }
+      await partnershipEnquiry.mutateAsync(fd);
+      setSubmitted(true);
     } catch (err) {
-      console.error(err);
-      const body = Object.entries(data)
-        .map(([k, v]) => k + ": " + v)
-        .join("%0A");
-      window.open(
-        "mailto:contact@thehrplayhousehub.org?subject=Partnership Enquiry — " +
-          encodeURIComponent(data.org) +
-          "&body=" +
-          body,
+      setErrorMessage(
+        err instanceof ApiError
+          ? err.message
+          : "Something went wrong. Please try again.",
       );
     }
-
-    setSubmitted(true);
   }
 
   return (
@@ -585,12 +550,22 @@ export default function PartnerRegisterContent() {
                     </div>
                   </div>
 
+                  {errorMessage && (
+                    <div
+                      className="form-note"
+                      role="alert"
+                      style={{ color: "#c9351e", fontWeight: 600 }}
+                    >
+                      ⚠ {errorMessage}
+                    </div>
+                  )}
+
                   <button
                     type="submit"
                     className="submit-btn"
-                    disabled={submitting}
+                    disabled={partnershipEnquiry.isPending}
                   >
-                    {submitting ? (
+                    {partnershipEnquiry.isPending ? (
                       <span>Sending...</span>
                     ) : (
                       <span>Submit partnership enquiry →</span>

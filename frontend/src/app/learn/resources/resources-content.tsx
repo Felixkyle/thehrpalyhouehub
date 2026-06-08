@@ -2,344 +2,24 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useResources, useSubmitResource } from "@/lib/hooks";
+import { ApiError } from "@/lib/api/client";
+import type { Resource } from "@/lib/api/types";
 import "./resources.css";
 
 /**
  * Resources Library.
  *
- * Faithful port of 08_resources_library.html. The original rendered the grid
- * and modal imperatively from a `RESOURCES` array via `innerHTML`, with global
- * `setFilter` / `filterResources` / `openModal` / `closeModal` functions and a
- * `currentFilter` variable. That is now React state: `filter` + `query` drive a
- * derived `filtered` list, and `modalId` controls the detail modal.
+ * Faithful port of 08_resources_library.html, now wired to the real backend.
+ * The category filter + search box drive `useResources({ category, q })`; the
+ * server returns the matching `Resource[]`. The "submit a resource" strip is a
+ * real form posting through `useSubmitResource()`.
  *
- * This page uses its own platform-style top nav (not the shared marketing
- * `.nav`), so that chrome is ported inline. Internal links that have a local
- * route use Next `<Link>`; the LMS course / sign-in links stay plain anchors,
- * matching the original generator's link-rewrite rules.
+ * The API `Resource` shape differs slightly from the old mock (snake_case
+ * fields, numeric `year`/`pages`, `download_url`/`open_url` instead of `file`).
+ * Per-category presentation tokens (icon background / tag colours) are derived
+ * locally from `category` so the existing CSS look is preserved.
  */
-
-type Resource = {
-  id: string;
-  category: "policy" | "research" | "workshop" | "template";
-  icon: string;
-  iconBg: string;
-  typeTag: string;
-  typeColor: string;
-  typeBg: string;
-  title: string;
-  desc: string;
-  year: string;
-  pages: string;
-  format: string;
-  jurisdictions: string[];
-  tags: string[];
-  isNew: boolean;
-  isFeatured: boolean;
-  file: string;
-  contents: string[];
-  longDesc: string;
-};
-
-const RESOURCES: Resource[] = [
-  {
-    id: "toolkit",
-    category: "policy",
-    icon: "📋",
-    iconBg: "#E8F7EE",
-    typeTag: "Policy & Toolkit",
-    typeColor: "#1a5e35",
-    typeBg: "#E8F7EE",
-    title: "HR Policy & Toolkit Development for Higher Education Institutions",
-    desc: "Comprehensive HR policy framework covering 10 policy areas with step-by-step procedures, template letters and compliance checklists. Includes jurisdiction guidance for UK, Nigeria, South Africa, India, Singapore and the Caribbean.",
-    year: "2026",
-    pages: "~45 pages",
-    format: "Word Document (.docx)",
-    jurisdictions: ["UK", "NG", "ZA", "IN", "SG", "JM"],
-    tags: [
-      "Recruitment",
-      "Disciplinary",
-      "Grievance",
-      "Wellbeing",
-      "Performance",
-      "Absence",
-      "L&D",
-      "EDI",
-      "Flexible Working",
-      "Redundancy",
-    ],
-    isNew: true,
-    isFeatured: true,
-    file: "HR_Policy_Toolkit_ACU_Deliverable.docx",
-    contents: [
-      "10 fully developed HR policies with policy statements, scope, principles and procedures",
-      "Step-by-step procedural guides for all 10 policy areas",
-      "Template letters — offer, probation, disciplinary hearing, written warning, grievance outcome",
-      "Compliance checklists at end of each policy section",
-      "Jurisdiction compliance matrix — key legislation for 6 Commonwealth regions",
-      "3-phase implementation checklist for HR departments adopting the toolkit",
-      "Designed for adaptation — add your institutional name and logo",
-    ],
-    longDesc:
-      "This toolkit was produced as a core deliverable of the HR Playhouse Hub project, funded by the Association of Commonwealth Universities (ACU) HR in HE Community Grant 2025–2026. It is designed to be a practical, ready-to-adapt resource for HR teams in higher education institutions across the Commonwealth, regardless of their size or existing HR infrastructure.",
-  },
-  {
-    id: "benchmarking",
-    category: "research",
-    icon: "📊",
-    iconBg: "#E8ECF2",
-    typeTag: "Research Report",
-    typeColor: "#0D1F3C",
-    typeBg: "#E8ECF2",
-    title:
-      "HR Strategies in Commonwealth Universities: Literature Review & Benchmarking Report 2026",
-    desc: "Evidence-based analysis drawing on 47 peer-reviewed sources to benchmark HR practice across 6 Commonwealth regions in 5 strategic HR domains. Includes maturity framework and 12 actionable recommendations.",
-    year: "2026",
-    pages: "~25 pages",
-    format: "Word Document (.docx)",
-    jurisdictions: ["UK", "NG", "ZA", "IN", "SG", "JM"],
-    tags: [
-      "Research",
-      "Benchmarking",
-      "Digital HR",
-      "Wellbeing",
-      "Recruitment",
-      "Retention",
-      "Workforce Planning",
-    ],
-    isNew: true,
-    isFeatured: true,
-    file: "HRPH_Literature_Review_Benchmarking_Report.docx",
-    contents: [
-      "Structured narrative literature review methodology covering 2015–2025 publications",
-      "5 thematic HR reviews: Recruitment, Workforce Planning, Wellbeing, Digital Transformation, Retention & CPD",
-      "Comparative benchmarking framework mapping 6 regions against 4-level maturity model",
-      "5 highlighted Key Findings with evidence-based conclusions",
-      "Section mapping HR Playhouse Hub features to their evidence base",
-      "12 strategic recommendations for HR leaders, ACU members, and policy-makers",
-      "47 fully formatted academic references",
-    ],
-    longDesc:
-      "This report provides the evidence base for HR capacity building in Commonwealth higher education. It synthesises published literature, sector surveys and institutional reports to identify where HR practice stands today — and what investment in platforms like the HR Playhouse Hub can achieve.",
-  },
-  {
-    id: "workshop",
-    category: "workshop",
-    icon: "🎮",
-    iconBg: "#FFF8F5",
-    typeTag: "Workshop Materials",
-    typeColor: "#C9501E",
-    typeBg: "#FFF8F5",
-    title: "HR Challenge Sprint — Complete Workshop Pack",
-    desc: "Everything you need to run a 90-minute gamified HR workshop. Includes facilitator slide deck, program brochure, 3 scenario cards, expert scorecard, and 6 achievement badges.",
-    year: "2026",
-    pages: "12-slide deck + 5 print pages",
-    format: "PPTX + HTML (printable)",
-    jurisdictions: ["All"],
-    tags: ["Workshop", "Gamification", "Facilitation", "Training", "CPD"],
-    isNew: true,
-    isFeatured: false,
-    file: "#",
-    contents: [
-      "Facilitator slide deck — 12 slides, full speaker notes, navy/terracotta brand",
-      "Program brochure — A4, print-ready, full session flow and team roles",
-      "Scenario Card A — The Invisible Shortlist (Inclusive Recruitment)",
-      "Scenario Card B — The Burnout Threshold (Mental Health & Wellbeing)",
-      "Scenario Card C — The Retention Crisis (Workforce Planning)",
-      "Expert scorecard — points system for all 5 teams, bonus challenge rows",
-      "6 achievement badges — HR Champion, Strategic Thinker, People First, Sprint MVP, Bold Innovator, Rising Star",
-    ],
-    longDesc:
-      "The HR Challenge Sprint is a 90-minute experiential learning workshop designed for HR and administrative staff in higher education. Teams compete to solve real HR scenarios in a timed, scored format — guided by industry experts and academic contributors.",
-  },
-  {
-    id: "playbook",
-    category: "policy",
-    icon: "📖",
-    iconBg: "#E8F7EE",
-    typeTag: "Policy & Toolkit",
-    typeColor: "#1a5e35",
-    typeBg: "#E8F7EE",
-    title: "Everyday HR Playbook — 10 Situations, 6 Jurisdictions",
-    desc: "Step-by-step guides for 10 common HR situations faced by university HR teams. Each situation includes actions, do/don't lists, legal checklist, and downloadable template — across 6 jurisdictions.",
-    year: "2025–2026",
-    pages: "Interactive web format",
-    format: "HTML (platform page)",
-    jurisdictions: ["UK", "NG", "ZA", "IN", "SG", "HK"],
-    tags: [
-      "Disciplinary",
-      "Grievance",
-      "Mental Health",
-      "Absence",
-      "Redundancy",
-      "Onboarding",
-      "Performance",
-      "DEIB",
-      "Conflict",
-      "Flexible Working",
-    ],
-    isNew: false,
-    isFeatured: false,
-    file: "/playbook/",
-    contents: [
-      "Disciplinary procedures — step-by-step with template letters",
-      "Grievance handling — formal and informal routes",
-      "Managing mental health concerns — line manager guidance",
-      "Absence management — short and long-term",
-      "Redundancy process — collective and individual",
-      "Onboarding best practice — first 90 days",
-      "Performance management — conversations and PIPs",
-      "DEIB in practice — inclusive culture actions",
-      "Conflict resolution — early intervention and formal routes",
-      "Flexible working requests — handling and deciding",
-    ],
-    longDesc:
-      "The HR Playbook is an interactive platform resource giving HR practitioners immediate, practical guidance for the situations they encounter most often.",
-  },
-  {
-    id: "casestudies",
-    category: "research",
-    icon: "📚",
-    iconBg: "#E8ECF2",
-    typeTag: "Case Studies",
-    typeColor: "#0D1F3C",
-    typeBg: "#E8ECF2",
-    title: "HR Case Study Vault — 32 Evidence-Based Scenarios",
-    desc: "32 original case studies covering 8 HR topic areas. Each includes scenario, decision points, pause & reflect sections, outcomes, lessons learned and application questions.",
-    year: "2025–2026",
-    pages: "32 case studies",
-    format: "HTML (platform page)",
-    jurisdictions: ["UK", "NG", "ZA", "IN", "SG", "HK"],
-    tags: [
-      "Recruitment",
-      "Performance",
-      "DEIB",
-      "Retention",
-      "Strategy",
-      "Employee Relations",
-      "Wellbeing",
-      "Future of Work",
-    ],
-    isNew: false,
-    isFeatured: false,
-    file: "/case-study-vault/",
-    contents: [
-      "8 topic areas: Recruitment, Performance, DEIB, Retention, Strategy, Employee Relations, Wellbeing, Future of Work",
-      "Each case study has: scenario, 3 decision points, pause & reflect, outcome, lessons, application questions",
-      "Search and filter by topic, complexity, and institution type",
-      "Download individual case study PDFs",
-      "New cases added each quarter",
-    ],
-    longDesc:
-      "The Case Study Vault provides HR professionals with real-world scenarios drawn from higher education practice, designed to develop analytical and decision-making skills.",
-  },
-  {
-    id: "comms",
-    category: "template",
-    icon: "✉️",
-    iconBg: "#FFF8F5",
-    typeTag: "Templates",
-    typeColor: "#C9501E",
-    typeBg: "#FFF8F5",
-    title: "HR Communications Pack — Emails, Invitations & Social Media",
-    desc: "Complete communications package including platform launch email, onboarding email, professor invitation, industry expert invitation, benchmarking survey email, and 5 LinkedIn posts.",
-    year: "2026",
-    pages: "6 templates + 5 social posts",
-    format: "Word Document (.docx)",
-    jurisdictions: ["All"],
-    tags: [
-      "Communications",
-      "Email",
-      "Social Media",
-      "LinkedIn",
-      "Onboarding",
-      "Workshop",
-    ],
-    isNew: true,
-    isFeatured: false,
-    file: "HRPH_Communications_Pack.docx",
-    contents: [
-      "Platform launch announcement email — for all stakeholders",
-      "Staff onboarding email — Covenant University HR staff",
-      "Professor invitation — academic contributors for workshop",
-      "Industry expert invitation — speaking and mentoring role",
-      "Benchmarking survey invitation — ACU network contacts",
-      "5 LinkedIn posts — launch, workshop announcement, post-workshop, benchmarking, project completion",
-    ],
-    longDesc:
-      "Ready-to-adapt communications for every stage of the HR Playhouse Hub project cycle — from launch to final report. Each template includes usage notes and bracketed fields to personalise.",
-  },
-  {
-    id: "lit-review",
-    category: "research",
-    icon: "🔬",
-    iconBg: "#E8ECF2",
-    typeTag: "Research Report",
-    typeColor: "#0D1F3C",
-    typeBg: "#E8ECF2",
-    title: "HR Playhouse Hub — Project Research & Evidence Base",
-    desc: "The academic evidence base underpinning every design decision of the HR Playhouse Hub — from gamification science to Commonwealth HR capacity gaps. 47 peer-reviewed references.",
-    year: "2026",
-    pages: "Included in Benchmarking Report",
-    format: "Word Document (.docx)",
-    jurisdictions: ["All"],
-    tags: [
-      "Research",
-      "Evidence Base",
-      "Gamification",
-      "HR Capacity",
-      "Literature Review",
-    ],
-    isNew: true,
-    isFeatured: false,
-    file: "HRPH_Literature_Review_Benchmarking_Report.docx",
-    contents: [
-      "Gamification evidence — Hamari et al. 2014; Armstrong & Landers 2017",
-      "Digital HR transformation — CIPD 2022; Dodd 2022; Bersin 2021",
-      "Staff wellbeing in HE — Wray & Kinman 2021; Guthrie et al. 2018",
-      "Inclusive recruitment — Bhopal 2020; Universities UK 2020",
-      "Commonwealth HR capacity — ACU 2022; Teferra & Altbach 2019",
-      "People analytics — Marler & Boudreau 2017; Tursunbayeva et al. 2022",
-    ],
-    longDesc:
-      "Every feature of the HR Playhouse Hub was designed in response to documented evidence. This section of the benchmarking report maps each platform feature to its academic and practice evidence base.",
-  },
-  {
-    id: "univ-list",
-    category: "template",
-    icon: "🌍",
-    iconBg: "#FFF8F5",
-    typeTag: "Templates",
-    typeColor: "#C9501E",
-    typeBg: "#FFF8F5",
-    title: "Commonwealth University Outreach List — Benchmarking Survey",
-    desc: "38 target universities across 6 Commonwealth regions with contact details, institution profiles and outreach strategy guidance. For distributing the benchmarking survey.",
-    year: "2026",
-    pages: "6-page landscape document",
-    format: "Word Document (.docx)",
-    jurisdictions: ["UK", "NG", "ZA", "IN", "SG", "JM"],
-    tags: [
-      "Outreach",
-      "Benchmarking",
-      "Commonwealth",
-      "Universities",
-      "Contacts",
-    ],
-    isNew: true,
-    isFeatured: false,
-    file: "HRPH_University_Target_List.docx",
-    contents: [
-      "14 sub-Saharan African universities with HR contact emails",
-      "9 UK universities with HR department contacts",
-      "8 South and Southeast Asian universities",
-      "3 Caribbean universities including UWI campuses",
-      "4 Pacific universities including ANU and University of the South Pacific",
-      "Outreach strategy table — subject lines, follow-up timing, incentive offers",
-    ],
-    longDesc:
-      "A practical outreach tool for distributing the Commonwealth HR Benchmarking Survey. All institutions listed are ACU members or active HR in HE Community participants.",
-  },
-];
 
 const FILTERS: { key: string; label: string }[] = [
   { key: "all", label: "All" },
@@ -349,9 +29,48 @@ const FILTERS: { key: string; label: string }[] = [
   { key: "template", label: "Templates" },
 ];
 
+// Presentation tokens per category — derived locally so the original look is
+// preserved even though the API does not return colours.
+const CATEGORY_STYLE: Record<
+  Resource["category"],
+  { iconBg: string; typeColor: string; typeBg: string; fallbackIcon: string }
+> = {
+  policy: {
+    iconBg: "#E8F7EE",
+    typeColor: "#1a5e35",
+    typeBg: "#E8F7EE",
+    fallbackIcon: "📋",
+  },
+  research: {
+    iconBg: "#E8ECF2",
+    typeColor: "#0D1F3C",
+    typeBg: "#E8ECF2",
+    fallbackIcon: "📊",
+  },
+  workshop: {
+    iconBg: "#FFF8F5",
+    typeColor: "#C9501E",
+    typeBg: "#FFF8F5",
+    fallbackIcon: "🎮",
+  },
+  template: {
+    iconBg: "#FFF8F5",
+    typeColor: "#C9501E",
+    typeBg: "#FFF8F5",
+    fallbackIcon: "✉️",
+  },
+};
+
 function plural(n: number) {
   return n + " resource" + (n !== 1 ? "s" : "");
 }
+
+function formatPages(r: Resource): string {
+  if (r.pages == null) return r.format;
+  return `~${r.pages} pages`;
+}
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function ResourcesContent() {
   const [navOpen, setNavOpen] = useState(false);
@@ -359,18 +78,30 @@ export default function ResourcesContent() {
   const [query, setQuery] = useState("");
   const [modalId, setModalId] = useState<string | null>(null);
 
-  const filtered = useMemo(() => {
-    const q = query.toLowerCase();
-    return RESOURCES.filter((r) => {
-      const matchCat = filter === "all" || r.category === filter;
-      const matchQ =
-        !q ||
-        r.title.toLowerCase().includes(q) ||
-        r.desc.toLowerCase().includes(q) ||
-        r.tags.some((t) => t.toLowerCase().includes(q));
-      return matchCat && matchQ;
-    });
-  }, [filter, query]);
+  // Submit-a-resource form state.
+  const [subName, setSubName] = useState("");
+  const [subEmail, setSubEmail] = useState("");
+  const [subTitle, setSubTitle] = useState("");
+  const [subDesc, setSubDesc] = useState("");
+  const [subUrl, setSubUrl] = useState("");
+  const [subError, setSubError] = useState<string | null>(null);
+  const [showSubmitForm, setShowSubmitForm] = useState(false);
+
+  // Server-side filtering: pass category + search query to the API.
+  const apiFilters = {
+    category: filter === "all" ? undefined : filter,
+    q: query.trim() || undefined,
+  };
+  const {
+    data,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useResources(apiFilters);
+  const submit = useSubmitResource();
+
+  const resources = useMemo(() => data?.resources ?? [], [data]);
 
   // The original showed the featured strip only for the all/policy/research
   // filters.
@@ -378,16 +109,15 @@ export default function ResourcesContent() {
     filter === "all" || filter === "policy" || filter === "research";
 
   const modalResource = modalId
-    ? RESOURCES.find((r) => r.id === modalId)
+    ? resources.find((r) => r.id === modalId) ?? null
     : null;
 
   function renderDownload(r: Resource) {
-    const isExternal = r.file.startsWith("http");
-    if (isExternal) {
+    if (r.open_url) {
       return (
         <a
           className="modal-dl-btn"
-          href={r.file}
+          href={r.open_url}
           target="_blank"
           rel="noreferrer"
         >
@@ -395,25 +125,71 @@ export default function ResourcesContent() {
         </a>
       );
     }
-    if (r.file === "#") {
+    if (r.download_url) {
       return (
         <a
           className="modal-dl-btn"
-          href="#"
-          onClick={(e) => {
-            e.preventDefault();
-            alert("This resource is available via the platform page.");
-          }}
+          href={r.download_url}
+          target="_blank"
+          rel="noreferrer"
         >
           ↓ Download
         </a>
       );
     }
     return (
-      <a className="modal-dl-btn" href="#" download={r.file}>
+      <a
+        className="modal-dl-btn"
+        href="#"
+        onClick={(e) => {
+          e.preventDefault();
+          alert("This resource is available via the platform page.");
+        }}
+      >
         ↓ Download
       </a>
     );
+  }
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setSubError(null);
+
+    const name = subName.trim();
+    const email = subEmail.trim();
+    const title = subTitle.trim();
+    const desc = subDesc.trim();
+    const url = subUrl.trim();
+
+    if (!name || !email || !title || !desc) {
+      setSubError("Please complete all required fields.");
+      return;
+    }
+    if (!EMAIL_RE.test(email)) {
+      setSubError("Please enter a valid email address.");
+      return;
+    }
+
+    try {
+      await submit.mutateAsync({
+        submitter_name: name,
+        submitter_email: email,
+        resource_title: title,
+        resource_description: desc,
+        resource_url: url || undefined,
+      });
+      setSubName("");
+      setSubEmail("");
+      setSubTitle("");
+      setSubDesc("");
+      setSubUrl("");
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setSubError(err.message || "Something went wrong. Please try again.");
+      } else {
+        setSubError("Something went wrong. Please try again.");
+      }
+    }
   }
 
   return (
@@ -515,7 +291,7 @@ export default function ResourcesContent() {
         </p>
         <div className="hero-stats">
           <div className="hero-stat">
-            <div className="hero-stat-n">{RESOURCES.length}</div>
+            <div className="hero-stat-n">{resources.length}</div>
             <div className="hero-stat-l">Resources available</div>
           </div>
           <div className="hero-stat-div" />
@@ -564,7 +340,7 @@ export default function ResourcesContent() {
             </button>
           ))}
         </div>
-        <div className="result-count">{plural(filtered.length)}</div>
+        <div className="result-count">{plural(resources.length)}</div>
       </div>
 
       {/* ── PAGE BODY ──────────────────────────── */}
@@ -645,61 +421,102 @@ export default function ResourcesContent() {
         <div className="sec-head">
           <h2>All Resources</h2>
           <div className="sec-head-line" />
-          <div className="sec-count">{plural(filtered.length)}</div>
+          <div className="sec-count">{plural(resources.length)}</div>
         </div>
 
-        {filtered.length > 0 ? (
+        {isLoading ? (
+          <div className="empty-state">
+            <div
+              className="empty-icon"
+              style={{
+                display: "inline-block",
+                width: 36,
+                height: 36,
+                border: "3px solid rgba(255,255,255,.25)",
+                borderTopColor: "#fff",
+                borderRadius: "50%",
+                animation: "spin 0.8s linear infinite",
+              }}
+            />
+            <div className="empty-title">Loading resources…</div>
+            <div className="empty-text">Fetching the latest library.</div>
+            <style>{"@keyframes spin{to{transform:rotate(360deg)}}"}</style>
+          </div>
+        ) : isError ? (
+          <div className="empty-state">
+            <div className="empty-icon">⚠️</div>
+            <div className="empty-title">Couldn&apos;t load resources</div>
+            <div className="empty-text">
+              {error instanceof ApiError
+                ? error.message
+                : "Something went wrong. Please try again."}
+            </div>
+            <button
+              className="feat-btn"
+              style={{ marginTop: 16 }}
+              onClick={() => refetch()}
+            >
+              ↻ Retry
+            </button>
+          </div>
+        ) : resources.length > 0 ? (
           <div className="resource-grid">
-            {filtered.map((r) => (
-              <div
-                key={r.id}
-                className="res-card"
-                onClick={() => setModalId(r.id)}
-              >
-                <div className="res-card-top">
-                  <div className="res-type-row">
-                    <div
-                      className="res-icon"
-                      style={{ background: r.iconBg }}
-                    >
-                      {r.icon}
-                    </div>
-                    <span
-                      className="res-type-tag"
-                      style={{ background: r.typeBg, color: r.typeColor }}
-                    >
-                      {r.typeTag}
-                    </span>
-                    {r.isNew && <span className="res-new">NEW</span>}
-                  </div>
-                  <div className="res-title">{r.title}</div>
-                  <div className="res-desc">{r.desc}</div>
-                  <div className="res-meta">
-                    <span className="res-meta-item">📅 {r.year}</span>
-                    <span className="res-meta-item">📄 {r.pages}</span>
-                    <span className="res-meta-item">🗂 {r.format}</span>
-                  </div>
-                </div>
-                <div className="res-card-bottom">
-                  <div className="res-jurisdiction">
-                    {r.jurisdictions.map((j) => (
-                      <span key={j} className="jur-pill">
-                        {j}
+            {resources.map((r) => {
+              const style = CATEGORY_STYLE[r.category];
+              return (
+                <div
+                  key={r.id}
+                  className="res-card"
+                  onClick={() => setModalId(r.id)}
+                >
+                  <div className="res-card-top">
+                    <div className="res-type-row">
+                      <div
+                        className="res-icon"
+                        style={{ background: style.iconBg }}
+                      >
+                        {r.icon ?? style.fallbackIcon}
+                      </div>
+                      <span
+                        className="res-type-tag"
+                        style={{
+                          background: style.typeBg,
+                          color: style.typeColor,
+                        }}
+                      >
+                        {r.type_tag}
                       </span>
-                    ))}
+                      {r.is_new && <span className="res-new">NEW</span>}
+                    </div>
+                    <div className="res-title">{r.title}</div>
+                    <div className="res-desc">{r.description}</div>
+                    <div className="res-meta">
+                      <span className="res-meta-item">📅 {r.year}</span>
+                      <span className="res-meta-item">📄 {formatPages(r)}</span>
+                      <span className="res-meta-item">🗂 {r.format}</span>
+                    </div>
                   </div>
-                  <button
-                    className="res-dl-btn"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setModalId(r.id);
-                    }}
-                  >
-                    ↓ Access
-                  </button>
+                  <div className="res-card-bottom">
+                    <div className="res-jurisdiction">
+                      {r.jurisdictions.map((j) => (
+                        <span key={j} className="jur-pill">
+                          {j}
+                        </span>
+                      ))}
+                    </div>
+                    <button
+                      className="res-dl-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setModalId(r.id);
+                      }}
+                    >
+                      ↓ Access
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className="empty-state">
@@ -724,17 +541,134 @@ export default function ResourcesContent() {
             </p>
           </div>
           <div className="submit-btn-row">
-            <a
+            <button
               className="feat-btn"
-              href="mailto:contact@thehrplayhousehub.org?subject=Resource Submission — HR Playhouse Hub"
+              onClick={() => setShowSubmitForm((v) => !v)}
             >
               Submit a Resource →
-            </a>
+            </button>
             <Link className="feat-btn secondary" href="/learn/innovation-lab">
               Visit Innovation Lab
             </Link>
           </div>
         </div>
+
+        {/* SUBMIT FORM */}
+        {showSubmitForm && (
+          <div className="submit-strip" style={{ display: "block" }}>
+            {submit.isSuccess ? (
+              <div style={{ textAlign: "center", padding: "10px 0" }}>
+                <div style={{ fontSize: 32, marginBottom: 8 }}>✓</div>
+                <h3
+                  style={{
+                    fontFamily: "var(--f-display)",
+                    fontSize: 18,
+                    fontWeight: 800,
+                    color: "#fff",
+                    marginBottom: 6,
+                  }}
+                >
+                  Thank you — your submission has been received.
+                </h3>
+                <p
+                  style={{
+                    fontSize: 13,
+                    color: "rgba(255,255,255,.6)",
+                  }}
+                >
+                  Our team reviews all submissions before publication. We&apos;ll
+                  be in touch.
+                </p>
+                <button
+                  className="feat-btn secondary"
+                  style={{ marginTop: 14 }}
+                  onClick={() => {
+                    submit.reset();
+                    setShowSubmitForm(false);
+                  }}
+                >
+                  Close
+                </button>
+              </div>
+            ) : (
+              <form
+                onSubmit={handleSubmit}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 12,
+                }}
+              >
+                <input
+                  className="search-input"
+                  type="text"
+                  placeholder="Your name *"
+                  value={subName}
+                  onChange={(e) => setSubName(e.target.value)}
+                />
+                <input
+                  className="search-input"
+                  type="email"
+                  placeholder="Your email *"
+                  value={subEmail}
+                  onChange={(e) => setSubEmail(e.target.value)}
+                />
+                <input
+                  className="search-input"
+                  type="text"
+                  placeholder="Resource title *"
+                  value={subTitle}
+                  onChange={(e) => setSubTitle(e.target.value)}
+                />
+                <textarea
+                  className="search-input"
+                  placeholder="Resource description *"
+                  rows={3}
+                  value={subDesc}
+                  onChange={(e) => setSubDesc(e.target.value)}
+                  style={{ resize: "vertical", paddingLeft: 14 }}
+                />
+                <input
+                  className="search-input"
+                  type="url"
+                  placeholder="Resource URL (optional)"
+                  value={subUrl}
+                  onChange={(e) => setSubUrl(e.target.value)}
+                />
+                {subError && (
+                  <div
+                    style={{
+                      color: "#ffb4a3",
+                      fontSize: 13,
+                      fontWeight: 600,
+                    }}
+                  >
+                    ⚠ {subError}
+                  </div>
+                )}
+                <div className="submit-btn-row">
+                  <button
+                    className="feat-btn"
+                    type="submit"
+                    disabled={submit.isPending}
+                  >
+                    {submit.isPending ? "Submitting…" : "Submit Resource →"}
+                  </button>
+                  <button
+                    className="feat-btn secondary"
+                    type="button"
+                    onClick={() => {
+                      setShowSubmitForm(false);
+                      setSubError(null);
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ── MODAL ──────────────────────────────── */}
@@ -757,7 +691,7 @@ export default function ResourcesContent() {
               <div className="modal-meta-grid">
                 <div className="modal-meta-item">
                   <div className="mmi-label">Type</div>
-                  <div className="mmi-value">{modalResource.typeTag}</div>
+                  <div className="mmi-value">{modalResource.type_tag}</div>
                 </div>
                 <div className="modal-meta-item">
                   <div className="mmi-label">Year</div>
@@ -769,10 +703,12 @@ export default function ResourcesContent() {
                 </div>
                 <div className="modal-meta-item">
                   <div className="mmi-label">Length</div>
-                  <div className="mmi-value">{modalResource.pages}</div>
+                  <div className="mmi-value">{formatPages(modalResource)}</div>
                 </div>
               </div>
-              <p className="modal-desc">{modalResource.longDesc}</p>
+              <p className="modal-desc">
+                {modalResource.long_description ?? modalResource.description}
+              </p>
               <div className="modal-contents">
                 <h4>What&apos;s included:</h4>
                 <ul>

@@ -1,96 +1,68 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
+import { useCertificateVerify } from "@/lib/hooks";
 import "./certificate-verify.css";
 
 /**
  * Certificate verification tool.
  *
  * Faithful port of certificate-verify.html. The original kept a `DEMO_CERTS`
- * lookup table and a `verifyCert()` function that toggled two result `<div>`s
- * via `style.display` and wrote certificate fields into elements by id. That
- * imperative DOM code is now a `result` state ("none" | "valid" | "invalid")
- * plus a controlled input, with the matched certificate held in state and
- * interpolated into the preview. Behaviour is unchanged: the entered ID is
- * trimmed + uppercased, an empty value alerts, a hit shows the valid preview
- * and smooth-scrolls it into view, a miss shows the not-found card.
+ * lookup table and an imperative `verifyCert()`; the lookup is now wired to the
+ * real backend via `useCertificateVerify(id)`. The query is enabled only when a
+ * submitted id is set, so the controlled input feeds a separate `submittedId`
+ * state that is set on submit (trim + uppercase) to trigger the request. The
+ * response shape is `{ valid, certificate? }`; we render the valid certificate
+ * preview from the returned fields, the not-found card when `valid` is false,
+ * and a lightweight loading / error state in between. On a valid result the
+ * card is smooth-scrolled into view as before.
  *
  * Standard marketing nav/footer are rendered via the shared components.
  */
 
-interface Cert {
-  name: string;
-  level: string;
-  course: string;
-  desc: string;
-  date: string;
+/** Map the API numeric/"full" level to the display label used in the preview. */
+function levelLabel(level: 1 | 2 | 3 | 4 | "full"): string {
+  return level === "full" ? "Full Programme" : `Level ${level}`;
 }
 
-// Stephen: replace DEMO_CERTS with a fetch() call to your certificates database
-// e.g. fetch('/wp-json/hrph/v1/verify?id='+id).then(r=>r.json()).then(showResult)
-const DEMO_CERTS: Record<string, Cert> = {
-  "HRPH-2026-L1-00001": {
-    name: "Ada Okonkwo",
-    level: "Level 1",
-    course: "HR Foundations",
-    desc: "Topics: HR Mindset & Function · Employment Relationships · Culture & Engagement",
-    date: "March 2026",
-  },
-  "HRPH-2026-L2-00001": {
-    name: "Ada Okonkwo",
-    level: "Level 2",
-    course: "Operational HR",
-    desc: "Topics: Recruitment & Selection · Performance Management · Retention & Wellbeing",
-    date: "April 2026",
-  },
-  "HRPH-2026-L1-00142": {
-    name: "Chidera Nwosu",
-    level: "Level 1",
-    course: "HR Foundations",
-    desc: "Topics: HR Mindset & Function · Employment Relationships · Culture & Engagement",
-    date: "February 2026",
-  },
-  "HRPH-2026-PROG-00001": {
-    name: "Ada Okonkwo",
-    level: "Full Programme",
-    course: "HR Playhouse Hub Professional Development Programme",
-    desc: "Levels 1–4 · All topics, case studies, games and final HR Strategy Proposal · ACU Grant Cohort 2026",
-    date: "June 2026",
-  },
-};
+/** Format an ISO issue date as e.g. "March 2026". */
+function formatIssued(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+}
 
 export default function CertificateVerifyContent() {
   const [certId, setCertId] = useState("");
-  const [result, setResult] = useState<"none" | "valid" | "invalid">("none");
-  const [cert, setCert] = useState<Cert | null>(null);
-  const [matchedId, setMatchedId] = useState("");
+  const [submittedId, setSubmittedId] = useState<string | null>(null);
   const validRef = useRef<HTMLDivElement>(null);
+
+  const { data, isLoading, isError } = useCertificateVerify(submittedId);
 
   function verifyCert() {
     const id = certId.trim().toUpperCase();
-    setResult("none");
     if (!id) {
       alert("Please enter a Certificate ID.");
       return;
     }
-    const found = DEMO_CERTS[id];
-    if (found) {
-      setCert(found);
-      setMatchedId(id);
-      setResult("valid");
-      // Defer until the valid card is rendered, then scroll it into view.
+    setSubmittedId(id);
+  }
+
+  const cert = data?.valid ? data.certificate : undefined;
+
+  // Once a valid certificate renders, smooth-scroll it into view.
+  useEffect(() => {
+    if (cert) {
       requestAnimationFrame(() => {
         validRef.current?.scrollIntoView({
           behavior: "smooth",
           block: "start",
         });
       });
-    } else {
-      setResult("invalid");
     }
-  }
+  }, [cert]);
 
   return (
     <>
@@ -169,8 +141,43 @@ export default function CertificateVerifyContent() {
             </div>
           </div>
 
+          {/* LOADING */}
+          {submittedId && isLoading && (
+            <div
+              className="card"
+              style={{
+                marginBottom: 24,
+                textAlign: "center",
+                color: "var(--ink-3)",
+              }}
+            >
+              Verifying certificate…
+            </div>
+          )}
+
+          {/* ERROR (request failed, not a "not found") */}
+          {submittedId && !isLoading && isError && (
+            <div className="v-result invalid" style={{ display: "block" }}>
+              <div className="v-badge">
+                <div className="v-badge-icon">⚠️</div>
+                <div>
+                  <div
+                    className="v-badge-title"
+                    style={{ color: "var(--accent)" }}
+                  >
+                    Something went wrong
+                  </div>
+                  <div className="v-badge-sub">
+                    We couldn&apos;t verify this certificate right now. Please
+                    check your connection and try again.
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* VALID RESULT */}
-          {result === "valid" && cert && (
+          {cert && (
             <div
               className="v-result valid"
               ref={validRef}
@@ -198,14 +205,16 @@ export default function CertificateVerifyContent() {
                 <div className="cp-corner br" />
                 <div className="cp-brand">HR Playhouse Hub</div>
                 <div className="cp-head">Certificate of Level Completion</div>
-                <div style={{ fontSize: 32, marginBottom: 10 }}>🏅</div>
+                <div style={{ fontSize: 32, marginBottom: 10 }}>
+                  {cert.badge_emoji}
+                </div>
                 <div className="cp-certifies">This certifies that</div>
-                <div className="cp-name">{cert.name}</div>
+                <div className="cp-name">{cert.learner_name}</div>
                 <div className="cp-completed">
                   has successfully completed all requirements of
                 </div>
-                <div className="cp-level">{cert.level}</div>
-                <div className="cp-course">{cert.course}</div>
+                <div className="cp-level">{levelLabel(cert.level)}</div>
+                <div className="cp-course">{cert.course_name}</div>
                 <div
                   style={{
                     fontSize: 12,
@@ -213,23 +222,23 @@ export default function CertificateVerifyContent() {
                     marginBottom: 18,
                   }}
                 >
-                  {cert.desc}
+                  {cert.description}
                 </div>
                 <div className="cp-divider" />
                 <div className="cp-footer">
                   <div>
-                    <div className="cp-sig">Dr. Marvellous Gberevbie</div>
-                    <div>Founder &amp; CEO · HR Playhouse Hub</div>
+                    <div className="cp-sig">{cert.signer_name}</div>
+                    <div>{cert.signer_role}</div>
                     <div style={{ marginTop: 2 }}>
                       ACU Commonwealth Universities Grant
                     </div>
                   </div>
                   <div style={{ textAlign: "right" }}>
                     <div style={{ fontWeight: 600, color: "var(--ink)" }}>
-                      {cert.date}
+                      {formatIssued(cert.issued_at)}
                     </div>
                     <div>Date of Issue</div>
-                    <div style={{ marginTop: 2 }}>ID: {matchedId}</div>
+                    <div style={{ marginTop: 2 }}>ID: {cert.id}</div>
                   </div>
                 </div>
               </div>
@@ -237,7 +246,7 @@ export default function CertificateVerifyContent() {
           )}
 
           {/* INVALID RESULT */}
-          {result === "invalid" && (
+          {submittedId && !isLoading && !isError && data && !data.valid && (
             <div className="v-result invalid" style={{ display: "block" }}>
               <div className="v-badge">
                 <div className="v-badge-icon">❌</div>
@@ -250,14 +259,7 @@ export default function CertificateVerifyContent() {
                   </div>
                   <div className="v-badge-sub">
                     We could not find a certificate with that ID. Check the ID
-                    and try again, or{" "}
-                    <a
-                      href="mailto:contact@thehrplayhousehub.org"
-                      style={{ color: "var(--accent)", fontWeight: 600 }}
-                    >
-                      contact us
-                    </a>{" "}
-                    if you believe this is correct.
+                    and try again if you believe this is correct.
                   </div>
                 </div>
               </div>

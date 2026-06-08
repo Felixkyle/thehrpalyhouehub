@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import PasswordResetContent from "./password-reset-content";
 
 export const metadata: Metadata = {
@@ -7,5 +8,9 @@ export const metadata: Metadata = {
 };
 
 export default function Page() {
-  return <PasswordResetContent />;
+  return (
+    <Suspense fallback={null}>
+      <PasswordResetContent />
+    </Suspense>
+  );
 }

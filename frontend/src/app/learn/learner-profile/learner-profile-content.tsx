@@ -4,30 +4,35 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
+import {
+  useMe,
+  usePreferences,
+  useUpdateProfile,
+  useChangePassword,
+  useUploadAvatar,
+  useUpdatePreferences,
+} from "@/lib/hooks";
+import { useAuth } from "@/lib/stores/auth";
+import { ApiError } from "@/lib/api/client";
+import type { NotificationPrefs, PrivacyPrefs } from "@/lib/api/types";
 import "./learner-profile.css";
 
 /**
  * Profile & settings.
  *
- * Faithful port of learner-profile.html. The original used inline `onclick` /
- * `oninput` handlers and id-based DOM mutation:
+ * Wired to the real backend:
+ *  - useMe() provides the User + UserStats used for the sidebar and to
+ *    seed the Personal Info form.
+ *  - useUpdateProfile() persists the Personal Info form (PATCH /users/me).
+ *  - useChangePassword() drives the password form.
+ *  - useUploadAvatar() handles the avatar picker (replaces the old
+ *    localStorage/FileReader approach).
+ *  - usePreferences()/useUpdatePreferences() back the Notifications and
+ *    Privacy toggle tabs.
  *
- *  - `showTab()` toggled `.active` classes; now a `tab` state machine renders
- *    the matching section (the original CSS `.settings-section{display:none}`
- *    rule is dropped accordingly).
- *  - `savePersonal()` / `resetPersonal()` mutated the sidebar avatar/name and
- *    flashed a "saved" message; controlled inputs + derived state reproduce
- *    that exactly (3s auto-hide preserved).
- *  - `checkPwStrength()` drove a coloured strength bar; same scoring, same
- *    colour table, now state.
- *  - `changePassword()` validated and flashed "Password updated".
- *  - `savePrefs()` alert, `confirmDelete()` confirm + mailto.
- *  - `uploadAvatar()` read a file via FileReader and stored it in
- *    localStorage; an IIFE restored it on load. Same behaviour via a ref +
- *    state + a load-time useEffect.
- *
- * This page uses the standard marketing nav/footer, so the shared components
- * are used. The password-reset link maps to the local /password-reset route.
+ * Auth-gated: the queries are disabled until a token exists, so the page
+ * shows a sign-in prompt when the user is not logged in and a spinner while
+ * the profile loads.
  */
 
 type Tab = "personal" | "password" | "notifications" | "privacy";
@@ -42,25 +47,28 @@ const PW_COLORS = [
 ];
 
 export default function LearnerProfileContent() {
+  const token = useAuth((s) => s.token);
+  const me = useMe();
+  const prefsQuery = usePreferences();
+  const updateProfile = useUpdateProfile();
+  const changePasswordM = useChangePassword();
+  const uploadAvatar = useUploadAvatar();
+  const updatePrefs = useUpdatePreferences();
+
   const [tab, setTab] = useState<Tab>("personal");
 
-  // Personal info (controlled).
-  const [fname, setFname] = useState("Ada");
-  const [lname, setLname] = useState("Okonkwo");
-  const [email, setEmail] = useState("ada.okonkwo@company.com");
-  const [jobTitle, setJobTitle] = useState("HR Business Partner");
-  const [org, setOrg] = useState("TechStart Nigeria");
+  // Personal info (controlled). Seeded from useMe once loaded.
+  const [fname, setFname] = useState("");
+  const [lname, setLname] = useState("");
+  const [email, setEmail] = useState("");
+  const [jobTitle, setJobTitle] = useState("");
+  const [org, setOrg] = useState("");
   const [country, setCountry] = useState("Nigeria");
   const [linkedin, setLinkedin] = useState("");
-  const [bio, setBio] = useState(
-    "HR practitioner with 5 years of experience across recruitment, performance management and culture development in Lagos-based tech companies.",
-  );
+  const [bio, setBio] = useState("");
 
-  // Sidebar (updated only on Save, like the original).
-  const [displayName, setDisplayName] = useState("Ada Okonkwo");
-  const [displayInit, setDisplayInit] = useState("AO");
-  const [displayRole, setDisplayRole] = useState("HR Business Partner · Lagos");
   const [personalSaved, setPersonalSaved] = useState(false);
+  const [personalError, setPersonalError] = useState<string | null>(null);
 
   // Password.
   const [pwCurrent, setPwCurrent] = useState("");
@@ -68,34 +76,89 @@ export default function LearnerProfileContent() {
   const [pwConfirm, setPwConfirm] = useState("");
   const [pwStrength, setPwStrength] = useState(0);
   const [pwSaved, setPwSaved] = useState(false);
+  const [pwError, setPwError] = useState<string | null>(null);
 
   // Avatar.
-  const [avatarSrc, setAvatarSrc] = useState<string | null>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
-  // Restore the saved profile photo on load (original IIFE).
-  useEffect(() => {
-    const saved = localStorage.getItem("hrph_profile_photo");
-    if (saved) setAvatarSrc(saved);
-  }, []);
+  // Preferences (controlled toggles), seeded from usePreferences.
+  const [notif, setNotif] = useState<NotificationPrefs | null>(null);
+  const [privacy, setPrivacy] = useState<PrivacyPrefs | null>(null);
+  const [prefsSaved, setPrefsSaved] = useState(false);
 
-  function savePersonal() {
-    const f = fname.trim();
-    const l = lname.trim();
-    if (f) setDisplayName(f + " " + l);
-    setDisplayInit(
-      (f[0] || l[0] || "?").toUpperCase() + (l[0] || "").toUpperCase(),
-    );
-    const t = jobTitle.trim();
-    setDisplayRole((t || "HR Professional") + (country ? " · " + country : ""));
-    setPersonalSaved(true);
-    setTimeout(() => setPersonalSaved(false), 3000);
-    /* Stephen: POST to /wp-json/wp/v2/users/me with updated meta */
+  const user = me.data?.user;
+  const stats = me.data?.stats;
+
+  // Seed the personal-info form when the user loads (or changes).
+  useEffect(() => {
+    if (!user) return;
+    setFname(user.first_name ?? "");
+    setLname(user.last_name ?? "");
+    setEmail(user.email ?? "");
+    setJobTitle(user.job_title ?? "");
+    setOrg(user.organisation ?? "");
+    setCountry(user.country ?? "Nigeria");
+    setLinkedin(user.linkedin_url ?? "");
+    setBio(user.bio ?? "");
+  }, [user]);
+
+  // Seed preference toggles when they load.
+  useEffect(() => {
+    if (prefsQuery.data) {
+      setNotif(prefsQuery.data.notifications);
+      setPrivacy(prefsQuery.data.privacy);
+    }
+  }, [prefsQuery.data]);
+
+  // Derived sidebar display values.
+  const displayName =
+    user?.display_name ||
+    [user?.first_name, user?.last_name].filter(Boolean).join(" ") ||
+    "Your Profile";
+  const displayInit =
+    ((user?.first_name?.[0] || user?.last_name?.[0] || "?") +
+      (user?.last_name?.[0] || "")).toUpperCase();
+  const displayRole =
+    (user?.job_title || "HR Professional") +
+    (user?.country ? " · " + user.country : "");
+  const avatarSrc = user?.avatar_url || null;
+
+  async function savePersonal() {
+    setPersonalError(null);
+    setPersonalSaved(false);
+    try {
+      await updateProfile.mutateAsync({
+        first_name: fname.trim(),
+        last_name: lname.trim(),
+        email: email.trim(),
+        job_title: jobTitle.trim() || null,
+        organisation: org.trim() || null,
+        country: country || null,
+        linkedin_url: linkedin.trim() || null,
+        bio: bio.trim() || null,
+      });
+      setPersonalSaved(true);
+      setTimeout(() => setPersonalSaved(false), 3000);
+    } catch (err) {
+      setPersonalError(
+        err instanceof ApiError
+          ? err.message
+          : "Could not save changes. Please try again.",
+      );
+    }
   }
 
   function resetPersonal() {
-    setFname("Ada");
-    setLname("Okonkwo");
+    if (!user) return;
+    setFname(user.first_name ?? "");
+    setLname(user.last_name ?? "");
+    setEmail(user.email ?? "");
+    setJobTitle(user.job_title ?? "");
+    setOrg(user.organisation ?? "");
+    setCountry(user.country ?? "Nigeria");
+    setLinkedin(user.linkedin_url ?? "");
+    setBio(user.bio ?? "");
+    setPersonalError(null);
   }
 
   function checkPwStrength(pw: string) {
@@ -108,31 +171,48 @@ export default function LearnerProfileContent() {
     setPwStrength(score);
   }
 
-  function changePassword() {
+  async function changePassword() {
+    setPwError(null);
+    setPwSaved(false);
     if (!pwCurrent || !pwNew || !pwConfirm) {
-      alert("Please fill in all password fields.");
+      setPwError("Please fill in all password fields.");
       return;
     }
     if (pwNew.length < 8) {
-      alert("New password must be at least 8 characters.");
+      setPwError("New password must be at least 8 characters.");
       return;
     }
     if (pwNew !== pwConfirm) {
-      alert("New passwords do not match.");
+      setPwError("New passwords do not match.");
       return;
     }
-    /* Stephen: POST to /wp-json/wp/v2/users/me with {password: nw} */
-    setPwSaved(true);
-    setTimeout(() => setPwSaved(false), 3000);
-    setPwCurrent("");
-    setPwNew("");
-    setPwConfirm("");
-    setPwStrength(0);
+    try {
+      await changePasswordM.mutateAsync({ current: pwCurrent, next: pwNew });
+      setPwSaved(true);
+      setTimeout(() => setPwSaved(false), 3000);
+      setPwCurrent("");
+      setPwNew("");
+      setPwConfirm("");
+      setPwStrength(0);
+    } catch (err) {
+      setPwError(
+        err instanceof ApiError
+          ? err.message
+          : "Could not update password. Please try again.",
+      );
+    }
   }
 
-  function savePrefs() {
-    alert("Preferences saved.");
-    /* Stephen: save toggle states to user meta via /wp-json/wp/v2/users/me */
+  async function savePrefs() {
+    if (!notif || !privacy) return;
+    setPrefsSaved(false);
+    try {
+      await updatePrefs.mutateAsync({ notifications: notif, privacy });
+      setPrefsSaved(true);
+      setTimeout(() => setPrefsSaved(false), 3000);
+    } catch {
+      /* swallow — surfaced inline below via updatePrefs.isError */
+    }
   }
 
   function confirmDelete() {
@@ -146,24 +226,128 @@ export default function LearnerProfileContent() {
     }
   }
 
-  function uploadAvatar(input: HTMLInputElement) {
+  function uploadAvatarFile(input: HTMLInputElement) {
     const file = input.files?.[0];
     if (!file) return;
     if (file.size > 3 * 1024 * 1024) {
       alert("Photo must be under 3MB.");
       return;
     }
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const result = e.target?.result as string;
-      setAvatarSrc(result);
-      localStorage.setItem("hrph_profile_photo", result);
-    };
-    reader.readAsDataURL(file);
+    uploadAvatar.mutate(file);
+  }
+
+  function setNotifKey(key: keyof NotificationPrefs, value: boolean) {
+    setNotif((prev) => (prev ? { ...prev, [key]: value } : prev));
+  }
+  function setPrivacyKey(key: keyof PrivacyPrefs, value: boolean) {
+    setPrivacy((prev) => (prev ? { ...prev, [key]: value } : prev));
   }
 
   const pwPct = Math.min(100, pwStrength * 20);
   const pwColor = PW_COLORS[pwStrength] || PW_COLORS[0];
+
+  // ── Auth gate ──────────────────────────────────────────────────────
+  if (!token) {
+    return (
+      <>
+        <Nav />
+        <main>
+          <div className="page-hero hero-navy" style={{ padding: 40 }}>
+            <div className="eyebrow">Account</div>
+            <h1
+              className="page-title"
+              style={{ fontSize: "clamp(26px,4vw,40px)" }}
+            >
+              Your Profile &amp; Settings
+            </h1>
+          </div>
+          <div className="wrap">
+            <div
+              className="card"
+              style={{ padding: 40, textAlign: "center", margin: "40px 0" }}
+            >
+              <div className="settings-title">Please sign in</div>
+              <div className="settings-sub" style={{ marginBottom: 20 }}>
+                You need to be signed in to view and manage your profile.
+              </div>
+              <Link className="btn btn-accent btn-sm" href="/login">
+                Sign in
+              </Link>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </>
+    );
+  }
+
+  // ── Loading / error for the profile fetch ──────────────────────────
+  if (me.isLoading) {
+    return (
+      <>
+        <Nav />
+        <main>
+          <div className="page-hero hero-navy" style={{ padding: 40 }}>
+            <div className="eyebrow">Account</div>
+            <h1
+              className="page-title"
+              style={{ fontSize: "clamp(26px,4vw,40px)" }}
+            >
+              Your Profile &amp; Settings
+            </h1>
+          </div>
+          <div className="wrap">
+            <div
+              className="card"
+              style={{ padding: 40, textAlign: "center", margin: "40px 0" }}
+            >
+              <div className="settings-sub">Loading your profile…</div>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </>
+    );
+  }
+
+  if (me.isError || !user) {
+    return (
+      <>
+        <Nav />
+        <main>
+          <div className="page-hero hero-navy" style={{ padding: 40 }}>
+            <div className="eyebrow">Account</div>
+            <h1
+              className="page-title"
+              style={{ fontSize: "clamp(26px,4vw,40px)" }}
+            >
+              Your Profile &amp; Settings
+            </h1>
+          </div>
+          <div className="wrap">
+            <div
+              className="card"
+              style={{ padding: 40, textAlign: "center", margin: "40px 0" }}
+            >
+              <div className="settings-title">Couldn&apos;t load your profile</div>
+              <div className="settings-sub" style={{ marginBottom: 20 }}>
+                {me.error instanceof ApiError
+                  ? me.error.message
+                  : "Something went wrong. Please try again."}
+              </div>
+              <button
+                className="btn btn-accent btn-sm"
+                onClick={() => me.refetch()}
+              >
+                Retry
+              </button>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </>
+    );
+  }
 
   return (
     <>
@@ -198,7 +382,9 @@ export default function LearnerProfileContent() {
                   )}
                   {!avatarSrc && <span>{displayInit}</span>}
                   <div className="profile-avatar-overlay">
-                    <span style={{ color: "#fff", fontSize: 20 }}>📷</span>
+                    <span style={{ color: "#fff", fontSize: 20 }}>
+                      {uploadAvatar.isPending ? "…" : "📷"}
+                    </span>
                   </div>
                 </div>
                 <input
@@ -206,21 +392,25 @@ export default function LearnerProfileContent() {
                   ref={avatarInputRef}
                   accept="image/*"
                   style={{ display: "none" }}
-                  onChange={(e) => uploadAvatar(e.target)}
+                  onChange={(e) => uploadAvatarFile(e.target)}
                 />
                 <div className="profile-name">{displayName}</div>
                 <div className="profile-role">{displayRole}</div>
                 <div className="profile-stats">
                   <div className="pstat">
-                    <div className="pstat-n">1</div>
+                    <div className="pstat-n">{stats?.levels_completed ?? 0}</div>
                     <div className="pstat-l">Completed</div>
                   </div>
                   <div className="pstat">
-                    <div className="pstat-n">75%</div>
-                    <div className="pstat-l">Level 2</div>
+                    <div className="pstat-n">
+                      {stats?.current_level_progress ?? 0}%
+                    </div>
+                    <div className="pstat-l">
+                      Level {stats?.current_level ?? 1}
+                    </div>
                   </div>
                   <div className="pstat">
-                    <div className="pstat-n">4</div>
+                    <div className="pstat-n">{stats?.badges_earned ?? 0}</div>
                     <div className="pstat-l">Badges</div>
                   </div>
                 </div>
@@ -353,16 +543,30 @@ export default function LearnerProfileContent() {
                     <button
                       className="btn btn-outline btn-sm"
                       onClick={resetPersonal}
+                      disabled={updateProfile.isPending}
                     >
                       Reset
                     </button>
                     <button
                       className="btn btn-accent btn-sm"
                       onClick={savePersonal}
+                      disabled={updateProfile.isPending}
                     >
-                      Save changes
+                      {updateProfile.isPending ? "Saving…" : "Save changes"}
                     </button>
                   </div>
+                  {personalError && (
+                    <div
+                      style={{
+                        marginTop: 12,
+                        fontSize: 13,
+                        color: "var(--accent)",
+                        fontWeight: 600,
+                      }}
+                    >
+                      ⚠ {personalError}
+                    </div>
+                  )}
                   {personalSaved && (
                     <div
                       style={{
@@ -447,10 +651,25 @@ export default function LearnerProfileContent() {
                     <button
                       className="btn btn-accent btn-sm"
                       onClick={changePassword}
+                      disabled={changePasswordM.isPending}
                     >
-                      Update password
+                      {changePasswordM.isPending
+                        ? "Updating…"
+                        : "Update password"}
                     </button>
                   </div>
+                  {pwError && (
+                    <div
+                      style={{
+                        marginTop: 12,
+                        fontSize: 13,
+                        color: "var(--accent)",
+                        fontWeight: 600,
+                      }}
+                    >
+                      ⚠ {pwError}
+                    </div>
+                  )}
                   {pwSaved && (
                     <div
                       style={{
@@ -490,92 +709,171 @@ export default function LearnerProfileContent() {
                       Choose what updates you receive from HR Playhouse Hub.
                     </div>
                   </div>
-                  <div className="pref-row">
-                    <div>
-                      <div className="pref-label">
-                        Course progress reminders
+                  {prefsQuery.isLoading || !notif ? (
+                    <div className="settings-sub">Loading preferences…</div>
+                  ) : (
+                    <>
+                      <div className="pref-row">
+                        <div>
+                          <div className="pref-label">
+                            Course progress reminders
+                          </div>
+                          <div className="pref-desc">
+                            Nudges when you haven&apos;t logged in for 7+ days
+                          </div>
+                        </div>
+                        <label className="toggle">
+                          <input
+                            type="checkbox"
+                            checked={notif.course_reminders}
+                            onChange={(e) =>
+                              setNotifKey("course_reminders", e.target.checked)
+                            }
+                          />
+                          <div className="toggle-slider" />
+                        </label>
                       </div>
-                      <div className="pref-desc">
-                        Nudges when you haven&apos;t logged in for 7+ days
+                      <div className="pref-row">
+                        <div>
+                          <div className="pref-label">
+                            Level completion emails
+                          </div>
+                          <div className="pref-desc">
+                            Celebration email + certificate when you finish a
+                            level
+                          </div>
+                        </div>
+                        <label className="toggle">
+                          <input
+                            type="checkbox"
+                            checked={notif.completion_emails}
+                            onChange={(e) =>
+                              setNotifKey("completion_emails", e.target.checked)
+                            }
+                          />
+                          <div className="toggle-slider" />
+                        </label>
                       </div>
-                    </div>
-                    <label className="toggle">
-                      <input type="checkbox" defaultChecked />
-                      <div className="toggle-slider" />
-                    </label>
-                  </div>
-                  <div className="pref-row">
-                    <div>
-                      <div className="pref-label">Level completion emails</div>
-                      <div className="pref-desc">
-                        Celebration email + certificate when you finish a level
+                      <div className="pref-row">
+                        <div>
+                          <div className="pref-label">
+                            Webinar announcements
+                          </div>
+                          <div className="pref-desc">
+                            Upcoming live sessions and recordings
+                          </div>
+                        </div>
+                        <label className="toggle">
+                          <input
+                            type="checkbox"
+                            checked={notif.webinar_announcements}
+                            onChange={(e) =>
+                              setNotifKey(
+                                "webinar_announcements",
+                                e.target.checked,
+                              )
+                            }
+                          />
+                          <div className="toggle-slider" />
+                        </label>
                       </div>
-                    </div>
-                    <label className="toggle">
-                      <input type="checkbox" defaultChecked />
-                      <div className="toggle-slider" />
-                    </label>
-                  </div>
-                  <div className="pref-row">
-                    <div>
-                      <div className="pref-label">Webinar announcements</div>
-                      <div className="pref-desc">
-                        Upcoming live sessions and recordings
+                      <div className="pref-row">
+                        <div>
+                          <div className="pref-label">
+                            New case studies &amp; content
+                          </div>
+                          <div className="pref-desc">
+                            When new cases or playbook entries are added
+                          </div>
+                        </div>
+                        <label className="toggle">
+                          <input
+                            type="checkbox"
+                            checked={notif.new_content_emails}
+                            onChange={(e) =>
+                              setNotifKey("new_content_emails", e.target.checked)
+                            }
+                          />
+                          <div className="toggle-slider" />
+                        </label>
                       </div>
-                    </div>
-                    <label className="toggle">
-                      <input type="checkbox" defaultChecked />
-                      <div className="toggle-slider" />
-                    </label>
-                  </div>
-                  <div className="pref-row">
-                    <div>
-                      <div className="pref-label">
-                        New case studies &amp; content
+                      <div className="pref-row">
+                        <div>
+                          <div className="pref-label">
+                            Innovation Lab activity
+                          </div>
+                          <div className="pref-desc">
+                            Replies to your posts, new discussions in your topics
+                          </div>
+                        </div>
+                        <label className="toggle">
+                          <input
+                            type="checkbox"
+                            checked={notif.lab_activity}
+                            onChange={(e) =>
+                              setNotifKey("lab_activity", e.target.checked)
+                            }
+                          />
+                          <div className="toggle-slider" />
+                        </label>
                       </div>
-                      <div className="pref-desc">
-                        When new cases or playbook entries are added
+                      <div className="pref-row">
+                        <div>
+                          <div className="pref-label">
+                            Platform updates &amp; news
+                          </div>
+                          <div className="pref-desc">
+                            Major feature launches and programme announcements
+                          </div>
+                        </div>
+                        <label className="toggle">
+                          <input
+                            type="checkbox"
+                            checked={notif.platform_updates}
+                            onChange={(e) =>
+                              setNotifKey("platform_updates", e.target.checked)
+                            }
+                          />
+                          <div className="toggle-slider" />
+                        </label>
                       </div>
-                    </div>
-                    <label className="toggle">
-                      <input type="checkbox" />
-                      <div className="toggle-slider" />
-                    </label>
-                  </div>
-                  <div className="pref-row">
-                    <div>
-                      <div className="pref-label">Innovation Lab activity</div>
-                      <div className="pref-desc">
-                        Replies to your posts, new discussions in your topics
+                      <div className="save-btn-row">
+                        <button
+                          className="btn btn-accent btn-sm"
+                          onClick={savePrefs}
+                          disabled={updatePrefs.isPending}
+                        >
+                          {updatePrefs.isPending
+                            ? "Saving…"
+                            : "Save preferences"}
+                        </button>
                       </div>
-                    </div>
-                    <label className="toggle">
-                      <input type="checkbox" defaultChecked />
-                      <div className="toggle-slider" />
-                    </label>
-                  </div>
-                  <div className="pref-row">
-                    <div>
-                      <div className="pref-label">
-                        Platform updates &amp; news
-                      </div>
-                      <div className="pref-desc">
-                        Major feature launches and programme announcements
-                      </div>
-                    </div>
-                    <label className="toggle">
-                      <input type="checkbox" defaultChecked />
-                      <div className="toggle-slider" />
-                    </label>
-                  </div>
-                  <div className="save-btn-row">
-                    <button
-                      className="btn btn-accent btn-sm"
-                      onClick={savePrefs}
-                    >
-                      Save preferences
-                    </button>
-                  </div>
+                      {updatePrefs.isError && (
+                        <div
+                          style={{
+                            marginTop: 12,
+                            fontSize: 13,
+                            color: "var(--accent)",
+                            fontWeight: 600,
+                          }}
+                        >
+                          ⚠ Could not save preferences. Please try again.
+                        </div>
+                      )}
+                      {prefsSaved && (
+                        <div
+                          style={{
+                            marginTop: 12,
+                            fontSize: 13,
+                            color: "var(--green)",
+                            fontWeight: 600,
+                          }}
+                        >
+                          ✓ Preferences saved
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
               )}
 
@@ -589,59 +887,114 @@ export default function LearnerProfileContent() {
                       activity.
                     </div>
                   </div>
-                  <div className="pref-row">
-                    <div>
-                      <div className="pref-label">
-                        Show profile in Innovation Lab
+                  {prefsQuery.isLoading || !privacy ? (
+                    <div className="settings-sub">Loading settings…</div>
+                  ) : (
+                    <>
+                      <div className="pref-row">
+                        <div>
+                          <div className="pref-label">
+                            Show profile in Innovation Lab
+                          </div>
+                          <div className="pref-desc">
+                            Other learners can see your name and bio in the
+                            community forum
+                          </div>
+                        </div>
+                        <label className="toggle">
+                          <input
+                            type="checkbox"
+                            checked={privacy.show_profile_in_lab}
+                            onChange={(e) =>
+                              setPrivacyKey(
+                                "show_profile_in_lab",
+                                e.target.checked,
+                              )
+                            }
+                          />
+                          <div className="toggle-slider" />
+                        </label>
                       </div>
-                      <div className="pref-desc">
-                        Other learners can see your name and bio in the
-                        community forum
+                      <div className="pref-row">
+                        <div>
+                          <div className="pref-label">
+                            Anonymous activity option
+                          </div>
+                          <div className="pref-desc">
+                            Allow posting in the Innovation Lab without your name
+                            showing
+                          </div>
+                        </div>
+                        <label className="toggle">
+                          <input
+                            type="checkbox"
+                            checked={privacy.anonymous_posts}
+                            onChange={(e) =>
+                              setPrivacyKey("anonymous_posts", e.target.checked)
+                            }
+                          />
+                          <div className="toggle-slider" />
+                        </label>
                       </div>
-                    </div>
-                    <label className="toggle">
-                      <input type="checkbox" defaultChecked />
-                      <div className="toggle-slider" />
-                    </label>
-                  </div>
-                  <div className="pref-row">
-                    <div>
-                      <div className="pref-label">
-                        Anonymous activity option
+                      <div className="pref-row">
+                        <div>
+                          <div className="pref-label">
+                            Share progress with employer
+                          </div>
+                          <div className="pref-desc">
+                            Allow HR Playhouse Hub to share your progress with
+                            your registered organisation
+                          </div>
+                        </div>
+                        <label className="toggle">
+                          <input
+                            type="checkbox"
+                            checked={privacy.share_progress_with_employer}
+                            onChange={(e) =>
+                              setPrivacyKey(
+                                "share_progress_with_employer",
+                                e.target.checked,
+                              )
+                            }
+                          />
+                          <div className="toggle-slider" />
+                        </label>
                       </div>
-                      <div className="pref-desc">
-                        Allow posting in the Innovation Lab without your name
-                        showing
+                      <div className="save-btn-row">
+                        <button
+                          className="btn btn-accent btn-sm"
+                          onClick={savePrefs}
+                          disabled={updatePrefs.isPending}
+                        >
+                          {updatePrefs.isPending ? "Saving…" : "Save settings"}
+                        </button>
                       </div>
-                    </div>
-                    <label className="toggle">
-                      <input type="checkbox" />
-                      <div className="toggle-slider" />
-                    </label>
-                  </div>
-                  <div className="pref-row">
-                    <div>
-                      <div className="pref-label">
-                        Share progress with employer
-                      </div>
-                      <div className="pref-desc">
-                        Allow HR Playhouse Hub to share your progress with your
-                        registered organisation
-                      </div>
-                    </div>
-                    <label className="toggle">
-                      <input type="checkbox" />
-                      <div className="toggle-slider" />
-                    </label>
-                  </div>
-                  <div className="save-btn-row">
-                    <button
-                      className="btn btn-accent btn-sm"
-                      onClick={savePrefs}
-                    >
-                      Save settings
-                    </button>
-                  </div>
+                      {updatePrefs.isError && (
+                        <div
+                          style={{
+                            marginTop: 12,
+                            fontSize: 13,
+                            color: "var(--accent)",
+                            fontWeight: 600,
+                          }}
+                        >
+                          ⚠ Could not save settings. Please try again.
+                        </div>
+                      )}
+                      {prefsSaved && (
+                        <div
+                          style={{
+                            marginTop: 12,
+                            fontSize: 13,
+                            color: "var(--green)",
+                            fontWeight: 600,
+                          }}
+                        >
+                          ✓ Settings saved
+                        </div>
+                      )}
+                    </>
+                  )}
                   <div className="danger-zone" style={{ marginTop: 28 }}>
                     <div className="danger-title">Delete account</div>
                     <div className="danger-body">

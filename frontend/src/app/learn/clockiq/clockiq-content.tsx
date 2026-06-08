@@ -1,18 +1,91 @@
+"use client";
+
+import { useState } from "react";
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
+import { useClockiqEnquiry } from "@/lib/hooks";
+import { ApiError } from "@/lib/api/client";
 import "./clockiq.css";
 
 /**
  * ClockIQ product page.
  *
- * Faithful port of clockiq.html. The page is fully static (the only inline
- * script was the shared mobile-nav toggle, which now lives in the shared
- * <Nav /> component), so no client directive is needed. Standard marketing
- * nav/footer are rendered via the shared components. All ClockIQ links point
- * at the live Netlify app and stay plain anchors, matching the original
- * link-rewrite rules.
+ * Faithful port of clockiq.html. Standard marketing nav/footer are rendered
+ * via the shared components. All ClockIQ product links point at the live
+ * Netlify app and stay plain anchors, matching the original link-rewrite
+ * rules.
+ *
+ * The "Request a demo" mailto link has been replaced with a real enquiry form
+ * wired to the backend via useClockiqEnquiry(). On submit it POSTs
+ * { name, email, organisation?, team_size?, message? } and shows success or
+ * error states inline. The Enterprise "Contact us" mailto remains as a plain
+ * mail link (it is a generic contact affordance, not a tracked enquiry).
  */
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const FIELD_STYLE: React.CSSProperties = {
+  width: "100%",
+  padding: "12px 14px",
+  borderRadius: 10,
+  border: "1px solid rgba(255,255,255,.18)",
+  background: "rgba(255,255,255,.06)",
+  color: "#fff",
+  fontSize: 14,
+  outline: "none",
+};
+
+const LABEL_STYLE: React.CSSProperties = {
+  display: "block",
+  textAlign: "left",
+  fontSize: 12,
+  fontWeight: 700,
+  textTransform: "uppercase",
+  letterSpacing: ".08em",
+  color: "rgba(255,255,255,.6)",
+  marginBottom: 6,
+};
+
 export default function ClockiqContent() {
+  const enquiry = useClockiqEnquiry();
+
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [organisation, setOrganisation] = useState("");
+  const [teamSize, setTeamSize] = useState("");
+  const [message, setMessage] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<{
+    name: boolean;
+    email: boolean;
+  }>({ name: false, email: false });
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+
+    const nm = name.trim();
+    const em = email.trim();
+    const errs = { name: nm === "", email: !EMAIL_RE.test(em) };
+    setFieldErrors(errs);
+    if (errs.name || errs.email) return;
+
+    try {
+      await enquiry.mutateAsync({
+        name: nm,
+        email: em,
+        organisation: organisation.trim() || undefined,
+        team_size: teamSize || undefined,
+        message: message.trim() || undefined,
+      });
+    } catch {
+      // Error surfaced via enquiry.isError below.
+    }
+  }
+
+  const errorMessage =
+    enquiry.error instanceof ApiError
+      ? enquiry.error.message
+      : "Something went wrong. Please try again or email contact@thehrplayhousehub.org.";
+
   return (
     <>
       <Nav />
@@ -507,13 +580,216 @@ export default function ClockiqContent() {
               >
                 Launch ClockIQ →
               </a>
-              <a
-                className="btn btn-lg btn-outline-white"
-                href="mailto:contact@thehrplayhousehub.org?subject=ClockIQ Demo Request"
-              >
+              <a className="btn btn-lg btn-outline-white" href="#clockiq-demo">
                 Request a demo
               </a>
             </div>
+
+            {/* DEMO ENQUIRY FORM */}
+            <div
+              id="clockiq-demo"
+              style={{
+                maxWidth: 520,
+                margin: "40px auto 0",
+                textAlign: "left",
+              }}
+            >
+              {enquiry.isSuccess ? (
+                <div
+                  style={{
+                    textAlign: "center",
+                    padding: "28px 24px",
+                    borderRadius: 16,
+                    background: "rgba(255,255,255,.06)",
+                    border: "1px solid rgba(255,255,255,.14)",
+                  }}
+                >
+                  <div style={{ fontSize: 40, marginBottom: 8 }}>✓</div>
+                  <div
+                    style={{
+                      fontFamily: "var(--f-display)",
+                      fontSize: 22,
+                      fontWeight: 800,
+                      color: "#fff",
+                      marginBottom: 8,
+                    }}
+                  >
+                    Thank you — we&apos;ll be in touch
+                  </div>
+                  <p
+                    style={{
+                      fontSize: 14,
+                      color: "rgba(255,255,255,.6)",
+                      lineHeight: 1.6,
+                      margin: 0,
+                    }}
+                  >
+                    Your enquiry has been received. A member of the ClockIQ team
+                    will reach out shortly to arrange your demo.
+                  </p>
+                </div>
+              ) : (
+                <form onSubmit={handleSubmit} noValidate>
+                  <div
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      textTransform: "uppercase",
+                      letterSpacing: ".12em",
+                      color: "rgba(255,255,255,.5)",
+                      marginBottom: 16,
+                      textAlign: "center",
+                    }}
+                  >
+                    Request a demo
+                  </div>
+
+                  <div style={{ marginBottom: 14 }}>
+                    <label style={LABEL_STYLE} htmlFor="cq-name">
+                      Name *
+                    </label>
+                    <input
+                      id="cq-name"
+                      type="text"
+                      placeholder="Ada Okonkwo"
+                      autoComplete="name"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      style={{
+                        ...FIELD_STYLE,
+                        borderColor: fieldErrors.name
+                          ? "var(--accent)"
+                          : undefined,
+                      }}
+                    />
+                    {fieldErrors.name && (
+                      <div
+                        style={{
+                          fontSize: 12,
+                          color: "var(--accent)",
+                          marginTop: 6,
+                        }}
+                      >
+                        Please enter your name
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ marginBottom: 14 }}>
+                    <label style={LABEL_STYLE} htmlFor="cq-email">
+                      Email *
+                    </label>
+                    <input
+                      id="cq-email"
+                      type="email"
+                      placeholder="ada@company.com"
+                      autoComplete="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      style={{
+                        ...FIELD_STYLE,
+                        borderColor: fieldErrors.email
+                          ? "var(--accent)"
+                          : undefined,
+                      }}
+                    />
+                    {fieldErrors.email && (
+                      <div
+                        style={{
+                          fontSize: 12,
+                          color: "var(--accent)",
+                          marginTop: 6,
+                        }}
+                      >
+                        Please enter a valid email address
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ marginBottom: 14 }}>
+                    <label style={LABEL_STYLE} htmlFor="cq-org">
+                      Organisation
+                    </label>
+                    <input
+                      id="cq-org"
+                      type="text"
+                      placeholder="Your company"
+                      autoComplete="organization"
+                      value={organisation}
+                      onChange={(e) => setOrganisation(e.target.value)}
+                      style={FIELD_STYLE}
+                    />
+                  </div>
+
+                  <div style={{ marginBottom: 14 }}>
+                    <label style={LABEL_STYLE} htmlFor="cq-team">
+                      Team size
+                    </label>
+                    <select
+                      id="cq-team"
+                      value={teamSize}
+                      onChange={(e) => setTeamSize(e.target.value)}
+                      style={FIELD_STYLE}
+                    >
+                      <option value="">Select team size</option>
+                      <option value="1-10">1–10</option>
+                      <option value="11-50">11–50</option>
+                      <option value="51-200">51–200</option>
+                      <option value="200+">200+</option>
+                    </select>
+                  </div>
+
+                  <div style={{ marginBottom: 18 }}>
+                    <label style={LABEL_STYLE} htmlFor="cq-message">
+                      Message
+                    </label>
+                    <textarea
+                      id="cq-message"
+                      placeholder="Tell us a little about what you need…"
+                      rows={4}
+                      value={message}
+                      onChange={(e) => setMessage(e.target.value)}
+                      style={{ ...FIELD_STYLE, resize: "vertical" }}
+                    />
+                  </div>
+
+                  {enquiry.isError && (
+                    <div
+                      style={{
+                        fontSize: 13,
+                        color: "#fff",
+                        background: "rgba(201,53,30,.18)",
+                        border: "1px solid var(--accent)",
+                        borderRadius: 10,
+                        padding: "10px 14px",
+                        marginBottom: 16,
+                        textAlign: "left",
+                      }}
+                      role="alert"
+                    >
+                      ⚠ {errorMessage}
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    className="btn btn-lg"
+                    style={{
+                      width: "100%",
+                      background: "#fff",
+                      color: "var(--green)",
+                      fontWeight: 800,
+                      opacity: enquiry.isPending ? 0.7 : 1,
+                      cursor: enquiry.isPending ? "wait" : "pointer",
+                    }}
+                    disabled={enquiry.isPending}
+                  >
+                    {enquiry.isPending ? "Sending…" : "Request a demo →"}
+                  </button>
+                </form>
+              )}
+            </div>
+
             <div
               style={{
                 marginTop: 24,

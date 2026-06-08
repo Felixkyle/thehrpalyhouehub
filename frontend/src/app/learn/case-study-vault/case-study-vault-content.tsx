@@ -1,14 +1,14 @@
 "use client";
 
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useCaseStudies, useCaseStudy } from "@/lib/hooks";
+import { ApiError } from "@/lib/api/client";
+import type { CaseStudySummary, CaseStudyDetail } from "@/lib/api/types";
 import {
-  CASES,
   INDUSTRY_OPTIONS,
   TOPICS,
-  type CaseStudy,
   type Difficulty,
-  type ScenarioParagraph,
   type TopicKey,
 } from "./case-study-vault-data";
 import "./case-study-vault.css";
@@ -16,16 +16,16 @@ import "./case-study-vault.css";
 /**
  * Case Study Vault.
  *
- * Real React port of case_study_vault_v2.html — 32 case studies grouped
- * into 8 topic areas. Both the card grid and the modal detail view are
- * driven by the typed `CASES` data in `case-study-vault-data.ts`. There
- * is no `dangerouslySetInnerHTML` and no inline-handler dispatcher; the
- * filters, modal open/close, escape-to-close, body-scroll lock, and
- * download-summary behaviour are all real React state/handlers.
+ * Wired to the real backend: the card grid is driven by
+ * `useCaseStudies(filters)` ({ case_studies: CaseStudySummary[] }) and the
+ * detail modal by `useCaseStudy(id)` ({ ...CaseStudyDetail }). The static
+ * `CASES` array is no longer imported — only the UI config (`TOPICS` for
+ * topic grouping/labels/icons, `INDUSTRY_OPTIONS` for the filter select)
+ * still comes from the local data module.
  *
- * DOM class names mirror the original page so case-study-vault.css still
- * styles everything correctly (.topic-section, .case-card, .case-card-top,
- * .case-tags, .modal-overlay, .modal, .modal-tags, .case-section, etc.).
+ * Filters (search/topic/difficulty/industry) are passed through to the API
+ * as { q, topic, difficulty, industry_key }. DOM class names mirror the
+ * original page so case-study-vault.css still styles everything correctly.
  */
 
 const DIFFICULTY_LABEL: Record<Difficulty, string> = {
@@ -34,37 +34,19 @@ const DIFFICULTY_LABEL: Record<Difficulty, string> = {
   expert: "Expert",
 };
 
-function ScenarioBody(props: { paragraphs: ScenarioParagraph[] }) {
-  return (
-    <Fragment>
-      {props.paragraphs.map((p, i) => (
-        <p key={i}>
-          {typeof p === "string"
-            ? p
-            : p.map((seg, j) =>
-                seg.italic ? (
-                  <em key={j}>{seg.text}</em>
-                ) : (
-                  <Fragment key={j}>{seg.text}</Fragment>
-                ),
-              )}
-        </p>
-      ))}
-    </Fragment>
-  );
-}
+const TOPIC_LABEL: Record<string, string> = Object.fromEntries(
+  TOPICS.map((t) => [t.key, t.label]),
+);
 
-function CaseCard(props: { c: CaseStudy; onOpen: (id: string) => void }) {
+function CaseCard(props: { c: CaseStudySummary; onOpen: (id: string) => void }) {
   const { c, onOpen } = props;
+  const diffLabel = DIFFICULTY_LABEL[c.difficulty] ?? c.difficulty;
   return (
     <div
       className={`case-card${c.featured ? " featured" : " "}`}
       data-topic={c.topic}
       data-diff={c.difficulty}
-      data-industry={c.industryKey}
-      data-title={c.searchTitle}
-      data-org={c.searchOrg}
-      data-preview={c.searchPreview}
+      data-industry={c.industry_key}
       onClick={() => onOpen(c.id)}
       role="button"
       tabIndex={0}
@@ -77,14 +59,12 @@ function CaseCard(props: { c: CaseStudy; onOpen: (id: string) => void }) {
     >
       <div className="case-card-top">
         <div className="case-tags">
-          <span className={`diff-badge diff-${c.difficulty}`}>
-            {DIFFICULTY_LABEL[c.difficulty]}
-          </span>
+          <span className={`diff-badge diff-${c.difficulty}`}>{diffLabel}</span>
           <span className="industry-badge">{c.industry}</span>
           {c.featured ? <span className="feat-badge">Featured</span> : null}
         </div>
         <div className="case-title">{c.title}</div>
-        <div className="case-org">{c.orgLine}</div>
+        <div className="case-org">{c.org_line}</div>
       </div>
       <div className="case-card-bottom">
         <div className="case-preview">{c.preview}</div>
@@ -103,40 +83,44 @@ function CaseCard(props: { c: CaseStudy; onOpen: (id: string) => void }) {
   );
 }
 
-function CaseDetail(props: { c: CaseStudy }) {
+function CaseDetail(props: { c: CaseStudyDetail }) {
   const { c } = props;
+  const diffLabel = DIFFICULTY_LABEL[c.difficulty] ?? c.difficulty;
+  const topicLabel = TOPIC_LABEL[c.topic] ?? c.topic;
+  const challengeItems = c.challenge.items ?? [];
+  const challengeParagraphs = c.challenge.paragraphs ?? [];
   return (
     <div className="case-modal" style={{ display: "block" }}>
       <div className="modal-header">
         <div className="modal-tags">
-          <span className={`diff-badge diff-${c.difficulty}`}>
-            {DIFFICULTY_LABEL[c.difficulty]}
-          </span>
+          <span className={`diff-badge diff-${c.difficulty}`}>{diffLabel}</span>
           <span className="industry-badge">{c.industry}</span>
-          <span className="industry-badge">{c.topicLabel}</span>
+          <span className="industry-badge">{topicLabel}</span>
         </div>
         <div className="modal-title">{c.title}</div>
-        <div className="modal-org">{c.orgLine}</div>
+        <div className="modal-org">{c.org_line}</div>
       </div>
       <div className="modal-body">
         <div className="case-section">
           <div className="case-section-label">Scenario &amp; Background</div>
           <div className="case-section-body">
-            <ScenarioBody paragraphs={c.scenario} />
+            {c.scenario.paragraphs.map((p, i) => (
+              <p key={i}>{p}</p>
+            ))}
           </div>
         </div>
 
         <div className="case-section">
           <div className="case-section-label">Challenge &amp; Decision Points</div>
           <div className="case-section-body">
-            {c.challenge.kind === "list" ? (
+            {challengeItems.length > 0 ? (
               <ul>
-                {c.challenge.items.map((item, i) => (
+                {challengeItems.map((item, i) => (
                   <li key={i}>{item}</li>
                 ))}
               </ul>
             ) : (
-              c.challenge.paragraphs.map((p, i) => <p key={i}>{p}</p>)
+              challengeParagraphs.map((p, i) => <p key={i}>{p}</p>)
             )}
           </div>
         </div>
@@ -144,7 +128,7 @@ function CaseDetail(props: { c: CaseStudy }) {
         <div className="case-section">
           <div className="pause-box">
             <div className="pause-label">Pause &amp; Reflect</div>
-            {c.pauseQs.map((q, i) => (
+            {c.reflect_questions.map((q, i) => (
               <div key={i} className="pause-q">
                 {q}
               </div>
@@ -180,7 +164,7 @@ function CaseDetail(props: { c: CaseStudy }) {
           <div className="case-section-label">Application Questions</div>
           <div className="appq-box">
             <div className="appq-label">Apply the Learning</div>
-            {c.appqs.map((a, i) => (
+            {c.application_questions.map((a, i) => (
               <div key={i} className="appq-item">
                 {a}
               </div>
@@ -200,18 +184,11 @@ function CaseDetail(props: { c: CaseStudy }) {
   );
 }
 
-function plainScenario(paragraphs: ScenarioParagraph[]): string {
-  return paragraphs
-    .map((p) =>
-      typeof p === "string" ? p : p.map((seg) => seg.text).join(""),
-    )
-    .join("\n\n");
-}
-
-function downloadSummary(c: CaseStudy) {
-  const diff = DIFFICULTY_LABEL[c.difficulty];
+function downloadSummary(c: CaseStudyDetail) {
+  const diff = DIFFICULTY_LABEL[c.difficulty] ?? c.difficulty;
+  const topicLabel = TOPIC_LABEL[c.topic] ?? c.topic;
   const lessonsText = c.lessons.map((l) => "• " + l.trim()).join("\n");
-  const appqText = c.appqs
+  const appqText = c.application_questions
     .map((a, i) => `${i + 1}. ${a.trim()}`)
     .join("\n");
   const content = [
@@ -219,11 +196,11 @@ function downloadSummary(c: CaseStudy) {
     "====================================",
     "",
     c.title,
-    `${c.org} | ${diff} | ${c.industry} | ${c.topicLabel}`,
+    `${c.org_line} | ${diff} | ${c.industry} | ${topicLabel}`,
     "",
     "SCENARIO",
     "--------",
-    plainScenario(c.scenario).trim(),
+    c.scenario.paragraphs.join("\n\n").trim(),
     "",
     "KEY LESSONS",
     "-----------",
@@ -252,48 +229,55 @@ export default function CaseStudyVaultContent() {
   const [industryKey, setIndustryKey] = useState("");
   const [openCaseId, setOpenCaseId] = useState<string | null>(null);
 
-  // ── FILTER (mirrors original applyFilters) ───────────────────
-  // q matches data-title / data-org / data-preview / data-industry
-  // (the source includes industry in the search to keep query-only
-  // typing of e.g. "saas" reachable). Topic and difficulty are exact
-  // matches; the industry select uses contains().
-  const filtered = useMemo(() => {
-    const q = query.toLowerCase().trim();
-    const industryLower = industryKey.toLowerCase();
-    return CASES.map((c) => {
-      const matchQ =
-        !q ||
-        c.searchTitle.includes(q) ||
-        c.searchOrg.includes(q) ||
-        c.searchPreview.includes(q) ||
-        c.industryKey.includes(q);
-      const matchTopic = !topic || c.topic === topic;
-      const matchDiff = !difficulty || c.difficulty === difficulty;
-      const matchInd = !industryLower || c.industryKey.includes(industryLower);
-      return { c, visible: matchQ && matchTopic && matchDiff && matchInd };
-    });
-  }, [query, topic, difficulty, industryKey]);
+  // ── LIST QUERY: filters flow straight to the API ─────────────
+  const debouncedQuery = useDebounced(query, 250);
+  const listFilters = useMemo(
+    () => ({
+      q: debouncedQuery.trim() || undefined,
+      topic: topic || undefined,
+      difficulty: difficulty || undefined,
+      industry_key: industryKey || undefined,
+    }),
+    [debouncedQuery, topic, difficulty, industryKey],
+  );
 
-  const visibleCases = filtered.filter((f) => f.visible);
-  const count = visibleCases.length;
+  const {
+    data: listData,
+    isLoading: listLoading,
+    isError: listError,
+    error: listErr,
+    refetch: refetchList,
+  } = useCaseStudies(listFilters);
+
+  const cases = useMemo(() => listData?.case_studies ?? [], [listData]);
+  const count = cases.length;
   const resultsLabel = count + " case" + (count === 1 ? "" : "s");
 
-  const visibleByTopic = useMemo(() => {
-    const map = new Map<TopicKey, CaseStudy[]>();
+  // Group the API results by topic, preserving the TOPICS order.
+  const casesByTopic = useMemo(() => {
+    const map = new Map<string, CaseStudySummary[]>();
     for (const t of TOPICS) map.set(t.key, []);
-    for (const { c, visible } of filtered) {
-      if (!visible) continue;
-      if (topic && c.topic !== topic) continue;
-      map.get(c.topic)?.push(c);
+    for (const c of cases) {
+      if (!map.has(c.topic)) map.set(c.topic, []);
+      map.get(c.topic)!.push(c);
     }
     return map;
-  }, [filtered, topic]);
+  }, [cases]);
 
-  const openCase = openCaseId ? CASES.find((c) => c.id === openCaseId) : null;
+  // ── DETAIL QUERY: fetched on demand when a card is opened ────
+  const {
+    data: openCase,
+    isLoading: detailLoading,
+    isError: detailError,
+    error: detailErr,
+    refetch: refetchDetail,
+  } = useCaseStudy(openCaseId);
+
+  const modalOpen = openCaseId !== null;
 
   // ── Body scroll lock + Escape-to-close, matching original ────
   useEffect(() => {
-    if (!openCase) return;
+    if (!modalOpen) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     const onKey = (e: KeyboardEvent) => {
@@ -304,7 +288,7 @@ export default function CaseStudyVaultContent() {
       document.body.style.overflow = prev;
       document.removeEventListener("keydown", onKey);
     };
-  }, [openCase]);
+  }, [modalOpen]);
 
   function clearFilters() {
     setQuery("");
@@ -469,53 +453,85 @@ export default function CaseStudyVaultContent() {
 
       {/* VAULT BODY */}
       <div className="vault-body">
-        {TOPICS.map((t) => {
-          const cases = visibleByTopic.get(t.key) ?? [];
-          if (topic && topic !== t.key) return null;
-          if (cases.length === 0) return null;
-          return (
-            <div
-              key={t.key}
-              className="topic-section"
-              data-topic={t.key}
-            >
-              <div className="topic-header">
-                <div className={`topic-icon ${t.iconClass}`}>{t.icon}</div>
-                <div className="topic-name">{t.label}</div>
-                <div className="topic-count">{cases.length} cases</div>
-              </div>
-              <div className="cases-grid">
-                {cases.map((c) => (
-                  <CaseCard
-                    key={c.id}
-                    c={c}
-                    onOpen={(id) => setOpenCaseId(id)}
-                  />
-                ))}
-              </div>
-            </div>
-          );
-        })}
-
-        {count === 0 ? (
-          <div
-            id="no-results"
-            className="no-results"
-            style={{ display: "block" }}
-          >
-            <div className="no-results-icon">🔎</div>
-            <div className="no-results-title">
-              No cases match your filters
-            </div>
-            <div>Try adjusting your search or clearing the filters</div>
+        {listLoading ? (
+          <div className="no-results" style={{ display: "block" }}>
+            <div className="no-results-icon">⏳</div>
+            <div className="no-results-title">Loading case studies…</div>
+            <div>Fetching the vault from the server</div>
           </div>
-        ) : null}
+        ) : listError ? (
+          <div className="no-results" style={{ display: "block" }}>
+            <div className="no-results-icon">⚠</div>
+            <div className="no-results-title">
+              Couldn&apos;t load case studies
+            </div>
+            <div>
+              {listErr instanceof ApiError
+                ? listErr.message
+                : "Something went wrong. Please try again."}
+            </div>
+            <button
+              type="button"
+              className="clear-btn"
+              style={{ marginTop: 16 }}
+              onClick={() => refetchList()}
+            >
+              Retry
+            </button>
+          </div>
+        ) : (
+          <>
+            {TOPICS.map((t) => {
+              const topicCases = casesByTopic.get(t.key) ?? [];
+              if (topic && topic !== t.key) return null;
+              if (topicCases.length === 0) return null;
+              return (
+                <div
+                  key={t.key}
+                  className="topic-section"
+                  data-topic={t.key}
+                >
+                  <div className="topic-header">
+                    <div className={`topic-icon ${t.iconClass}`}>{t.icon}</div>
+                    <div className="topic-name">{t.label}</div>
+                    <div className="topic-count">
+                      {topicCases.length} cases
+                    </div>
+                  </div>
+                  <div className="cases-grid">
+                    {topicCases.map((c) => (
+                      <CaseCard
+                        key={c.id}
+                        c={c}
+                        onOpen={(id) => setOpenCaseId(id)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+
+            {count === 0 ? (
+              <div
+                id="no-results"
+                className="no-results"
+                style={{ display: "block" }}
+              >
+                <div className="no-results-icon">🔎</div>
+                <div className="no-results-title">
+                  No cases match your filters
+                </div>
+                <div>Try adjusting your search or clearing the filters</div>
+              </div>
+            ) : null}
+          </>
+        )}
       </div>
 
       {/* MODAL OVERLAY */}
       <div
         id="case-modal-overlay"
-        className={`modal-overlay${openCase ? "" : " hidden"}`}
+        className={`modal-overlay${modalOpen ? "" : " hidden"}`}
         onClick={(e) => {
           if (e.target === e.currentTarget) setOpenCaseId(null);
         }}
@@ -530,10 +546,57 @@ export default function CaseStudyVaultContent() {
             ✕
           </button>
           <div id="case-modal-content">
-            {openCase ? <CaseDetail c={openCase} /> : null}
+            {modalOpen ? (
+              detailLoading ? (
+                <div className="case-modal" style={{ display: "block" }}>
+                  <div className="modal-body">
+                    <div className="no-results" style={{ display: "block" }}>
+                      <div className="no-results-icon">⏳</div>
+                      <div className="no-results-title">Loading case…</div>
+                    </div>
+                  </div>
+                </div>
+              ) : detailError ? (
+                <div className="case-modal" style={{ display: "block" }}>
+                  <div className="modal-body">
+                    <div className="no-results" style={{ display: "block" }}>
+                      <div className="no-results-icon">⚠</div>
+                      <div className="no-results-title">
+                        Couldn&apos;t load this case
+                      </div>
+                      <div>
+                        {detailErr instanceof ApiError
+                          ? detailErr.message
+                          : "Something went wrong. Please try again."}
+                      </div>
+                      <button
+                        type="button"
+                        className="clear-btn"
+                        style={{ marginTop: 16 }}
+                        onClick={() => refetchDetail()}
+                      >
+                        Retry
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : openCase ? (
+                <CaseDetail c={openCase} />
+              ) : null
+            ) : null}
           </div>
         </div>
       </div>
     </div>
   );
+}
+
+/** Small debounce so each keystroke doesn't fire a new list request. */
+function useDebounced<T>(value: T, delayMs: number): T {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const id = setTimeout(() => setDebounced(value), delayMs);
+    return () => clearTimeout(id);
+  }, [value, delayMs]);
+  return debounced;
 }

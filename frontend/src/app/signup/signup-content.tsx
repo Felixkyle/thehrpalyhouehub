@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import Script from "next/script";
+import { useRouter } from "next/navigation";
+import { useSignup } from "@/lib/hooks";
+import { ApiError } from "@/lib/api/client";
 import "./signup.css";
 
 /**
@@ -12,51 +14,27 @@ import "./signup.css";
  * <Nav />/<Footer /> components are deliberately NOT used — the original
  * nav (logo + "Already have an account? Sign in") is ported inline.
  *
- * The original imperative script is reproduced exactly:
- *  - EmailJS is loaded from the same CDN via next/script and initialised with
- *    the placeholder public key (DEVELOPER INSTRUCTIONS comment preserved).
+ * Submission is wired to the backend via the useSignup() hook
+ * (POST /api/auth/signup); on success the session is stored and the success
+ * state is shown, with a CTA into the dashboard. The original client-side UX
+ * is preserved:
  *  - togglePassword(): swaps the input type and the 👁 / 🙈 icon.
  *  - validateField()/live blur validation: adds `has-error` to the group and
  *    `error` to the control; the same regex and >=8 password rule are used.
  *  - submit: validates all fields (consent failure outlines the consent row
- *    red), enters the loading state, sends via emailjs.send with the identical
- *    template params (incl. the "Not specified" fallbacks and en-GB date),
- *    then shows the success state — or, on failure, reveals the error banner
- *    and restores the button.
+ *    red), enters the loading state, calls the signup mutation, then shows the
+ *    success state — or, on failure, reveals the error banner (a duplicate
+ *    email is surfaced on the email field) and restores the button.
  */
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-/* ── EMAILJS SETUP ──────────────────────────────────────────────
-   DEVELOPER INSTRUCTIONS:
-   1. Go to https://www.emailjs.com/ and create a free account
-   2. Add a service (Gmail is easiest — connect contact@thehrplayhousehub.org)
-   3. Create an email template with these variables:
-      {{firstname}}, {{lastname}}, {{email}}, {{role}}, {{country}}, {{how}}, {{signup_date}}
-   4. Replace the three placeholder values below with your real IDs
-   ─────────────────────────────────────────────────────────────── */
-const EMAILJS_PUBLIC_KEY = "YOUR_EMAILJS_PUBLIC_KEY"; // e.g. 'abc123XYZ'
-const EMAILJS_SERVICE_ID = "YOUR_SERVICE_ID"; // e.g. 'service_xxxxx'
-const EMAILJS_TEMPLATE_ID = "YOUR_TEMPLATE_ID"; // e.g. 'template_xxxxx'
-
-interface SignupEmailJs {
-  init: (opts: { publicKey: string }) => void;
-  send: (
-    serviceId: string,
-    templateId: string,
-    params: Record<string, unknown>,
-  ) => Promise<unknown>;
-}
-
-/** Access the CDN-loaded EmailJS without a global Window augmentation
- * (other pages augment Window.emailjs with a different shape). */
-function getEmailJs(): SignupEmailJs | undefined {
-  return (window as unknown as { emailjs?: SignupEmailJs }).emailjs;
-}
-
 type FieldId = "firstname" | "lastname" | "email" | "password" | "role";
 
 export default function SignupContent() {
+  const router = useRouter();
+  const signup = useSignup();
+
   const [firstname, setFirstname] = useState("");
   const [lastname, setLastname] = useState("");
   const [email, setEmail] = useState("");
@@ -121,36 +99,24 @@ export default function SignupContent() {
     setLoading(true);
     setShowErrorBanner(false);
 
-    const templateParams = {
-      to_email: "contact@thehrplayhousehub.org",
-      reply_to: em,
-      firstname: fn,
-      lastname: ln,
-      email: em,
-      role: rl,
-      country: co || "Not specified",
-      how: hw || "Not specified",
-      signup_date: new Date().toLocaleDateString("en-GB", {
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-    };
-
     try {
-      const emailjs = getEmailJs();
-      if (!emailjs) throw new Error("EmailJS not loaded");
-      await emailjs.send(
-        EMAILJS_SERVICE_ID,
-        EMAILJS_TEMPLATE_ID,
-        templateParams,
-      );
-      // Show success
+      await signup.mutateAsync({
+        first_name: fn,
+        last_name: ln,
+        email: em,
+        password: pw,
+        role: rl,
+        country: co || undefined,
+        how_heard: hw || undefined,
+        consent_accepted: true,
+      });
+      // Account created + session stored by the useSignup hook.
       setSubmitted(true);
     } catch (err) {
-      console.error("EmailJS error:", err);
+      // Surface a field-level error for a duplicate email, else a banner.
+      if (err instanceof ApiError && err.fields?.email) {
+        setFieldError("email", false);
+      }
       setShowErrorBanner(true);
       setLoading(false);
     }
@@ -158,14 +124,6 @@ export default function SignupContent() {
 
   return (
     <>
-      <Script
-        src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"
-        strategy="afterInteractive"
-        onLoad={() => {
-          getEmailJs()?.init({ publicKey: EMAILJS_PUBLIC_KEY });
-        }}
-      />
-
       <nav className="nav">
         <a className="nav-logo" href="https://www.thehrplayhousehub.org/">
           <div className="nav-logo-pill">HR Playhouse</div>
@@ -576,11 +534,13 @@ export default function SignupContent() {
             </div>
             <a
               className="success-cta"
-              href="/signup"
-              target="_blank"
-              rel="noreferrer"
+              href="/learn/dashboard"
+              onClick={(e) => {
+                e.preventDefault();
+                router.push("/learn/dashboard");
+              }}
             >
-              Complete registration on the platform →
+              Go to your dashboard →
             </a>
           </div>
         </div>

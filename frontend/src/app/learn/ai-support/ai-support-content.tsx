@@ -2,6 +2,9 @@
 
 import { Fragment, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
+import { useAiChat } from "@/lib/hooks";
+import { ApiError } from "@/lib/api/client";
+import type { AiMessage, AiContentBlock } from "@/lib/api/types";
 import "./ai-support.css";
 
 /**
@@ -26,33 +29,14 @@ import "./ai-support.css";
  *
  * Internal links (Dashboard, Playbook) use Next `<Link>`; the LMS course link
  * stays a plain anchor per the link-rewrite rules.
+ *
+ * Wiring: the chat is now backed by the real `useAiChat()` mutation
+ * (POST /api/ai/chat). The full conversation history is kept as `AiMessage[]`
+ * and sent with every turn; the assistant reply (`{ message: AiMessage }`) is
+ * appended back. Document attachments are sent as `AiContentBlock` entries of
+ * type "document" with a base64 source. The system prompt is owned by the
+ * backend, so it is no longer defined here.
  */
-
-const API_ENDPOINT = "/wp-json/hrph/v1/chat"; // ← Change this to your proxy endpoint
-
-const SYSTEM_PROMPT = `You are an expert HR advisor for HR Playhouse Hub, a professional HR learning platform. You provide evidence-based, practical HR guidance to HR professionals at all career stages — from early-career advisors to CHROs.
-
-Your knowledge base includes:
-- CIPD professional frameworks and standards
-- SHRM competency model
-- Gallup engagement research
-- UK employment law (Equality Act 2010, Employment Rights Act 1996, ACAS Codes of Practice)
-- Nigerian Labour Act and National Industrial Court principles
-- US employment law (Title VII, ADA, FMLA, ADEA, at-will doctrine)
-- Singapore Employment Act, MOM guidelines, TAFEP
-- Hong Kong Employment Ordinance
-- Academic HR research and best practice
-
-Your responses are:
-- Practical and actionable — give real guidance, not just principles
-- Jurisdiction-aware — ask which country if it matters for the answer
-- Evidence-based — reference frameworks, legislation, and research when relevant
-- Balanced — acknowledge complexity and nuance in HR situations
-- Professional but accessible — expert tone, not academic jargon
-
-Always end responses involving employment law with a brief reminder that this is guidance only and a qualified employment lawyer should be consulted for specific legal situations.
-
-If a document has been shared, analyse it thoroughly and provide specific, detailed feedback relevant to the document type.`;
 
 const SUGGESTED_QUESTIONS = [
   "How do I handle a disciplinary process fairly under UK law?",
@@ -144,19 +128,14 @@ type ChatMessage = {
   docName?: string | null;
 };
 
-type HistoryEntry = {
-  role: "user" | "assistant";
-  content:
-    | string
-    | Array<
-        | { type: "text"; text: string }
-        | {
-            type: "document";
-            source: { type: "base64"; media_type: string; data: string };
-            title: string;
-          }
-      >;
-};
+/** Flatten an AiMessage's content down to plain text for rendering. */
+function messageToText(content: AiMessage["content"]): string {
+  if (typeof content === "string") return content;
+  return content
+    .filter((block) => block.type === "text" && block.text)
+    .map((block) => block.text as string)
+    .join("\n\n");
+}
 
 function toBase64(file: File): Promise<string> {
   return new Promise((res, rej) => {
@@ -168,6 +147,8 @@ function toBase64(file: File): Promise<string> {
 }
 
 export default function AiSupportContent() {
+  const chat = useAiChat();
+
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [welcomeVisible, setWelcomeVisible] = useState(true);
   const [typing, setTyping] = useState(false);
@@ -177,7 +158,7 @@ export default function AiSupportContent() {
   const [fileName, setFileName] = useState("filename.pdf");
 
   // Mirrors of the original module-scoped mutable state.
-  const conversationHistory = useRef<HistoryEntry[]>([]);
+  const conversationHistory = useRef<AiMessage[]>([]);
   const uploadedFileContent = useRef<string | null>(null);
   const uploadedFileName = useRef<string | null>(null);
   const isLoading = useRef(false);
@@ -273,7 +254,7 @@ export default function AiSupportContent() {
     if (textareaRef.current) textareaRef.current.style.height = "auto";
 
     // Build message for API
-    let userContent: HistoryEntry["content"];
+    let userContent: AiMessage["content"];
     const ext = uploadedFileName.current
       ? uploadedFileName.current.split(".").pop()!.toLowerCase()
       : null;
@@ -284,7 +265,7 @@ export default function AiSupportContent() {
       uploadedFileContent.current &&
       (ext === "pdf" || ext === "doc" || ext === "docx")
     ) {
-      userContent = [
+      const blocks: AiContentBlock[] = [
         { type: "text", text: text },
         {
           type: "document",
@@ -299,6 +280,7 @@ export default function AiSupportContent() {
           title: uploadedFileName.current as string,
         },
       ];
+      userContent = blocks;
     } else {
       userContent = text;
     }
@@ -319,28 +301,18 @@ export default function AiSupportContent() {
     requestAnimationFrame(scrollMessagesToBottom);
 
     try {
-      const response = await fetch(API_ENDPOINT, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 1024,
-          system: SYSTEM_PROMPT,
-          messages: conversationHistory.current,
-        }),
-      });
+      // Send the full conversation history; the backend owns the system prompt.
+      const { message } = await chat.mutateAsync(conversationHistory.current);
 
       setTyping(false);
 
-      if (!response.ok) throw new Error(`API error: ${response.status}`);
-      const data = await response.json();
       const assistantText =
-        data.content?.[0]?.text ||
+        messageToText(message.content) ||
         "Sorry, I could not generate a response. Please try again.";
 
       conversationHistory.current.push({
-        role: "assistant",
-        content: assistantText,
+        role: message.role,
+        content: message.content,
       });
       setMessages((prev) => [
         ...prev,
@@ -349,12 +321,15 @@ export default function AiSupportContent() {
       requestAnimationFrame(scrollMessagesToBottom);
     } catch (err) {
       setTyping(false);
+      // Drop the unanswered user turn so a retry doesn't double-send it.
+      conversationHistory.current.pop();
+      const detail =
+        err instanceof ApiError && err.status === 401
+          ? `Your session has expired. Please sign in again to continue using AI HR Support.`
+          : `I'm sorry — there was an error connecting to the AI service. Please try again in a moment.\n\nIf the problem persists, please contact contact@thehrplayhousehub.org for support.`;
       setMessages((prev) => [
         ...prev,
-        {
-          role: "assistant",
-          text: `I'm sorry — there was an error connecting to the AI service. Please try again in a moment.\n\nIf the problem persists, please contact contact@thehrplayhousehub.org for support.`,
-        },
+        { role: "assistant", text: detail },
       ]);
       requestAnimationFrame(scrollMessagesToBottom);
       console.error("AI Support error:", err);
@@ -552,7 +527,7 @@ export default function AiSupportContent() {
               </div>
               <button
                 className="send-btn"
-                disabled={isLoading.current}
+                disabled={chat.isPending}
                 onClick={() => sendMessage()}
                 title="Send"
               >

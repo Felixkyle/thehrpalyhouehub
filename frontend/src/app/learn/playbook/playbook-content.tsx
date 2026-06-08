@@ -2,14 +2,161 @@
 
 import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { usePlaybook } from "@/lib/hooks";
+import { ApiError } from "@/lib/api/client";
+import type { PlaybookEntry as ApiPlaybookEntry } from "@/lib/api/types";
 import {
-  PLAYBOOK_ENTRIES,
   type PlaybookEntry,
   type PlaybookSection,
   type LegalSection,
   type ChecklistSection,
 } from "./playbook-data";
 import "./playbook.css";
+
+// ── API → render-model adapter ─────────────────────────────────
+//
+// The backend returns flat PlaybookEntry records (string[] arrays). The
+// existing <Entry>/<Section> UI is driven by the richer render model in
+// playbook-data.ts (typed sections, jurisdiction tabs, etc.). We adapt each
+// API record into that render model so the markup/CSS is preserved exactly,
+// while the DATA now comes from the live API instead of the static array.
+
+const STEPS_LABEL = { icon: "📋", text: "Step-by-Step Guide" };
+const TEMPLATES_LABEL = {
+  icon: "💬",
+  text: "What to Say — Template Language",
+};
+const DONTS_LABEL = { icon: "✗", text: "Common Mistakes to Avoid" };
+const LEGAL_LABEL = {
+  icon: "⚖️",
+  text: "Legal & Compliance — Select Jurisdiction",
+};
+const MVHR_LABEL = { icon: "👥", text: "Manager vs HR Responsibilities" };
+const ESC_LABEL = { icon: "🚨", text: "When to Escalate" };
+
+// Jurisdiction name → flag emoji. Falls back to a neutral globe.
+const JUR_FLAGS: Record<string, string> = {
+  uk: "🇬🇧",
+  "united kingdom": "🇬🇧",
+  nigeria: "🇳🇬",
+  usa: "🇺🇸",
+  "united states": "🇺🇸",
+  us: "🇺🇸",
+  singapore: "🇸🇬",
+  china: "🇨🇳",
+  "hong kong": "🇭🇰",
+};
+
+function jurFlag(name: string): string {
+  return JUR_FLAGS[name.trim().toLowerCase()] ?? "🌍";
+}
+
+const JUR_NOTE =
+  "This is general guidance only and does not constitute legal advice. Always consult a qualified employment lawyer in the relevant jurisdiction for specific situations.";
+
+function adaptEntry(api: ApiPlaybookEntry): PlaybookEntry {
+  const sections: PlaybookSection[] = [];
+
+  if (api.steps.length) {
+    sections.push({
+      type: "steps",
+      label: STEPS_LABEL,
+      steps: api.steps.map((desc, i) => ({ n: i + 1, title: "", desc })),
+    });
+  }
+
+  if (api.templates.length) {
+    sections.push({
+      type: "templates",
+      label: TEMPLATES_LABEL,
+      blocks: api.templates.map((t) => ({ label: t.name, text: t.body })),
+    });
+  }
+
+  if (api.do_list.length || api.dont_list.length) {
+    sections.push({
+      type: "donts",
+      label: DONTS_LABEL,
+      doTitle: "✓ Do this",
+      dontTitle: "✗ Never do this",
+      do: api.do_list,
+      dont: api.dont_list,
+    });
+  }
+
+  if (api.legal.length) {
+    sections.push({
+      type: "legal",
+      label: LEGAL_LABEL,
+      tabs: api.legal.map((l) => ({
+        code: l.jurisdiction,
+        flag: jurFlag(l.jurisdiction),
+        name: l.jurisdiction,
+      })),
+      panels: api.legal.map((l) => ({
+        code: l.jurisdiction,
+        legalItems: l.items.map((text) => ({
+          icon: "•",
+          strongLabel: "",
+          text,
+        })),
+        note: JUR_NOTE,
+      })),
+    });
+  }
+
+  if (api.manager_guidance.length || api.hr_guidance.length) {
+    sections.push({
+      type: "mvhr",
+      label: MVHR_LABEL,
+      manager: { title: "👥 Manager responsible for", items: api.manager_guidance },
+      hr: { title: "📋 HR responsible for", items: api.hr_guidance },
+    });
+  }
+
+  if (api.escalation_flags.length) {
+    sections.push({
+      type: "escalation",
+      label: ESC_LABEL,
+      items: api.escalation_flags,
+    });
+  }
+
+  if (api.checklist_url) {
+    sections.push({
+      type: "checklist",
+      // payload is pipe-delimited lines for the in-browser .txt download;
+      // the API exposes a URL instead, so we link to it directly.
+      payload: api.checklist_url,
+      buttonLabel: "↓ Download Checklist",
+    });
+  }
+
+  const dataSearch = [
+    api.title,
+    api.category,
+    api.summary,
+    ...api.pills,
+  ]
+    .join(" ")
+    .toLowerCase();
+
+  // The category-filter buttons match on the entry id's leading prefix (e.g.
+  // "dc" for "dc1"). The API id already follows that convention.
+  return {
+    id: api.id,
+    catClass: "",
+    dataTitle: api.title.toLowerCase(),
+    dataCat: api.id,
+    dataSearch,
+    icon: api.icon,
+    catBadge: api.category,
+    title: api.title,
+    summary: api.summary,
+    pills: api.pills,
+    sections,
+  };
+}
 
 /**
  * Everyday HR Playbook.
@@ -62,13 +209,12 @@ const SIDEBAR_ITEMS: Array<{ id: string; icon: string; label: string }> = [
 ];
 
 function downloadChecklist(entry: PlaybookEntry, section: ChecklistSection) {
-  const lines = section.payload.split("|");
-  const content = lines.join("\n");
-  const blob = new Blob([content], { type: "text/plain" });
+  // `payload` now holds the API-provided checklist URL. Open it directly.
   const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download =
-    entry.title.replace(/[^a-zA-Z0-9]/g, "_") + "_Checklist.txt";
+  a.href = section.payload;
+  a.target = "_blank";
+  a.rel = "noopener noreferrer";
+  a.download = entry.title.replace(/[^a-zA-Z0-9]/g, "_") + "_Checklist";
   a.click();
 }
 
@@ -180,7 +326,9 @@ function Section(props: {
               <div key={s.n} className="step">
                 <div className="step-n">{s.n}</div>
                 <div className="step-body">
-                  <div className="step-title">{s.title}</div>
+                  {s.title ? (
+                    <div className="step-title">{s.title}</div>
+                  ) : null}
                   <div className="step-desc">{s.desc}</div>
                 </div>
               </div>
@@ -336,7 +484,9 @@ function LegalSectionView(props: {
               <div key={i} className="legal-item">
                 <div className="legal-icon">{item.icon}</div>
                 <div className="legal-text">
-                  <strong>{item.strongLabel}</strong> {item.text}
+                  {item.strongLabel ? <strong>{item.strongLabel}</strong> : null}
+                  {item.strongLabel ? " " : null}
+                  {item.text}
                 </div>
               </div>
             ))}
@@ -349,9 +499,16 @@ function LegalSectionView(props: {
 }
 
 export default function PlaybookContent() {
+  const { data, isLoading, isError, error, refetch } = usePlaybook();
   const [query, setQuery] = useState("");
   const [activeCat, setActiveCat] = useState("");
   const [activeSidebar, setActiveSidebar] = useState<string | null>(null);
+
+  // Adapt the live API entries into the render model the UI expects.
+  const entries = useMemo<PlaybookEntry[]>(
+    () => (data?.entries ?? []).map(adaptEntry),
+    [data],
+  );
   // Imperative handles registered by each <Entry>, keyed by entry id, so
   // sidebar scrollToEntry can both open and scroll the target without
   // climbing back through the DOM.
@@ -370,12 +527,12 @@ export default function PlaybookContent() {
   // entry's `dataCat` field starts with the selected category prefix.
   const filtered = useMemo(() => {
     const q = query.toLowerCase();
-    return PLAYBOOK_ENTRIES.map((entry) => {
+    return entries.map((entry) => {
       const matchCat = !activeCat || entry.dataCat.startsWith(activeCat);
       const matchQ = !q || entry.dataSearch.includes(q);
       return { entry, visible: matchCat && matchQ };
     });
-  }, [query, activeCat]);
+  }, [entries, query, activeCat]);
 
   const visibleCount = filtered.filter((f) => f.visible).length;
   const resultsLabel =
@@ -530,14 +687,41 @@ export default function PlaybookContent() {
 
         {/* ENTRIES */}
         <div className="entries-col">
-          {filtered.map(({ entry, visible }) => (
-            <Entry
-              key={entry.id}
-              entry={entry}
-              visible={visible}
-              registerHandle={registerHandle}
-            />
-          ))}
+          {isLoading ? (
+            <div className="entry" style={{ padding: "40px", textAlign: "center" }}>
+              <div className="entry-summary">Loading playbook…</div>
+            </div>
+          ) : isError ? (
+            <div className="entry" style={{ padding: "40px", textAlign: "center" }}>
+              <div className="entry-title">Couldn’t load the playbook</div>
+              <div className="entry-summary">
+                {error instanceof ApiError
+                  ? error.message
+                  : "Something went wrong while loading entries."}
+              </div>
+              <button
+                type="button"
+                className="dl-btn"
+                style={{ marginTop: 16 }}
+                onClick={() => refetch()}
+              >
+                Try again
+              </button>
+            </div>
+          ) : entries.length === 0 ? (
+            <div className="entry" style={{ padding: "40px", textAlign: "center" }}>
+              <div className="entry-summary">No playbook entries available yet.</div>
+            </div>
+          ) : (
+            filtered.map(({ entry, visible }) => (
+              <Entry
+                key={entry.id}
+                entry={entry}
+                visible={visible}
+                registerHandle={registerHandle}
+              />
+            ))
+          )}
         </div>
       </div>
     </div>

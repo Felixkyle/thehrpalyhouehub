@@ -3,19 +3,25 @@
 import Link from "next/link";
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
+import { useProgressReport } from "@/lib/hooks";
+import { useAuth } from "@/lib/stores/auth";
+import { ApiError } from "@/lib/api/client";
+import type { CourseLevel } from "@/lib/api/types";
 import "./progress-report.css";
 
 /**
  * Progress report.
  *
- * Faithful port of progress-report.html. The page is static markup; the only
- * scripts were `downloadPDF()` (a `window.print()` wrapper) and
- * `printCert(level,name,date)` which opened a printable certificate popup.
- * Both are kept verbatim as plain functions wired to React `onClick`
- * handlers — the generated certificate string is unchanged.
+ * Port of progress-report.html, now data-driven from the real API via
+ * `useProgressReport()` (auth-gated). The two original imperative scripts are
+ * kept verbatim:
+ *  - `downloadPDF()` — a `window.print()` wrapper.
+ *  - `printCert(level,name,date)` — opens a printable certificate popup; the
+ *    generated certificate string is unchanged, only its inputs now come from
+ *    the API.
  *
- * This page uses the standard marketing nav/footer, so the shared components
- * are used. The certificate-verify link maps to the local route.
+ * The page uses the standard marketing nav/footer. The certificate-verify
+ * link maps to the local route.
  */
 
 function downloadPDF() {
@@ -65,14 +71,125 @@ function printCert(level: string, name: string, date: string) {
   win.document.close();
 }
 
+/** Format an ISO timestamp as e.g. "March 2026". Empty/invalid → "". */
+function fmtMonthYear(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+}
+
+/** Map an activity-item status to the `.pr-dot` modifier + glyph. */
+function dotFor(status: string): { cls: string; glyph: string } {
+  if (status === "complete" || status === "done")
+    return { cls: "done", glyph: "✓" };
+  if (status === "current" || status === "active" || status === "in_progress")
+    return { cls: "active", glyph: "→" };
+  return { cls: "pending", glyph: "·" };
+}
+
+/** Accent colour + percent label colour for a level by status. */
+function levelAccent(level: CourseLevel): string {
+  if (level.status === "complete") return "var(--green)";
+  if (level.status === "current") return "var(--navy)";
+  return "var(--mist)";
+}
+
 export default function ProgressReportContent() {
+  const authed = useAuth((s) => !!s.token);
+  const { data, isLoading, isError, error } = useProgressReport();
+
+  // ── Not signed in ────────────────────────────────────────────────
+  if (!authed) {
+    return (
+      <>
+        <Nav />
+        <main>
+          <div className="wrap">
+            <div className="card" style={{ textAlign: "center", marginTop: 40 }}>
+              <div
+                className="eyebrow"
+                style={{ justifyContent: "center", marginBottom: 12 }}
+              >
+                Progress Report
+              </div>
+              <p style={{ color: "var(--ink-4)", marginBottom: 20 }}>
+                Sign in to view your personalised progress report, level
+                completion and certificates.
+              </p>
+              <Link href="/login" className="btn btn-accent btn-sm">
+                Sign in →
+              </Link>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </>
+    );
+  }
+
+  // ── Loading ──────────────────────────────────────────────────────
+  if (isLoading) {
+    return (
+      <>
+        <Nav />
+        <main>
+          <div className="wrap">
+            <div className="card" style={{ textAlign: "center", marginTop: 40 }}>
+              <div
+                className="eyebrow"
+                style={{ justifyContent: "center", marginBottom: 12 }}
+              >
+                Progress Report
+              </div>
+              <p style={{ color: "var(--ink-4)" }}>Loading your progress…</p>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </>
+    );
+  }
+
+  // ── Error ────────────────────────────────────────────────────────
+  if (isError || !data) {
+    const msg =
+      error instanceof ApiError
+        ? error.message
+        : "We couldn't load your progress report. Please try again.";
+    return (
+      <>
+        <Nav />
+        <main>
+          <div className="wrap">
+            <div className="card" style={{ textAlign: "center", marginTop: 40 }}>
+              <div
+                className="eyebrow"
+                style={{ justifyContent: "center", marginBottom: 12 }}
+              >
+                Progress Report
+              </div>
+              <p style={{ color: "var(--accent)", fontWeight: 600 }}>
+                ⚠ {msg}
+              </p>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </>
+    );
+  }
+
+  const { user, stats, levels, certificates, timeline, report_generated_at } =
+    data;
+
   return (
     <>
       <Nav />
       <main>
         <div className="pr-hero-strip">
           <div className="pr-hero-left">
-            <div className="pr-hero-name">Ada Okonkwo</div>
+            <div className="pr-hero-name">{user.display_name}</div>
             <div className="pr-hero-sub">
               HR Playhouse Hub · Professional Development Programme · Progress
               Report
@@ -96,22 +213,22 @@ export default function ProgressReportContent() {
           <div className="pr-overall">
             <div className="pr-stat">
               <div className="pr-stat-n" style={{ color: "var(--green)" }}>
-                1
+                {stats.levels_completed}
               </div>
               <div className="pr-stat-l">Levels complete</div>
             </div>
             <div className="pr-stat">
-              <div className="pr-stat-n">75%</div>
+              <div className="pr-stat-n">{stats.current_level_progress}%</div>
               <div className="pr-stat-l">Current level</div>
             </div>
             <div className="pr-stat">
               <div className="pr-stat-n" style={{ color: "var(--accent)" }}>
-                ~6
+                {stats.cpd_hours}
               </div>
               <div className="pr-stat-l">CPD hrs earned</div>
             </div>
             <div className="pr-stat">
-              <div className="pr-stat-n">4</div>
+              <div className="pr-stat-n">{stats.badges_earned}</div>
               <div className="pr-stat-l">Badges earned</div>
             </div>
           </div>
@@ -124,249 +241,143 @@ export default function ProgressReportContent() {
             Level Progress
           </div>
 
-          {/* L1 COMPLETE */}
-          <div className="pr-level-card">
-            <div
-              className="pr-level-bar"
-              style={{ background: "var(--green)" }}
-            />
-            <div className="pr-level-body">
-              <div className="pr-level-top">
-                <div>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      marginBottom: 6,
-                    }}
-                  >
-                    <span className="tag tag-green">✓ Complete</span>
-                    <span
-                      style={{ fontSize: 11, color: "var(--ink-4)" }}
-                    >
-                      Completed March 2026
-                    </span>
-                  </div>
-                  <div className="pr-level-title">
-                    Level 1 — HR Foundations
-                  </div>
-                  <div className="pr-level-meta">
-                    Completed March 2026 · ~6 hrs · 3 topics · 1 case study · 3
-                    games
-                  </div>
-                </div>
-                <div
-                  className="pr-level-pct"
-                  style={{ color: "var(--green)" }}
-                >
-                  100%
-                </div>
-              </div>
-              <div className="pr-bar">
-                <div
-                  className="pr-bar-fill"
-                  style={{ width: "100%", background: "var(--green)" }}
-                />
-              </div>
-              <div className="pr-activities">
-                <div className="pr-activity">
-                  <div className="pr-activity-label">Topics covered</div>
-                  <div className="pr-activity-item">
-                    <div className="pr-dot done">✓</div>The HR Mindset &amp;
-                    Function
-                  </div>
-                  <div className="pr-activity-item">
-                    <div className="pr-dot done">✓</div>Employment Relationships
-                  </div>
-                  <div className="pr-activity-item">
-                    <div className="pr-dot done">✓</div>Culture &amp; Engagement
-                  </div>
-                </div>
-                <div className="pr-activity">
-                  <div className="pr-activity-label">Case Study</div>
-                  <div className="pr-activity-item">
-                    <div className="pr-dot done">✓</div>TechStart Culture Clash
-                  </div>
-                  <div className="pr-activity-item">
-                    <div className="pr-dot done">✓</div>Reflection submitted
-                  </div>
-                </div>
-                <div className="pr-activity">
-                  <div className="pr-activity-label">Games &amp; Activities</div>
-                  <div className="pr-activity-item">
-                    <div className="pr-dot done">✓</div>HR Role Matcher
-                  </div>
-                  <div className="pr-activity-item">
-                    <div className="pr-dot done">✓</div>Culture Builder Game
-                  </div>
-                  <div className="pr-activity-item">
-                    <div className="pr-dot done">✓</div>Engagement Audit
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          {levels.map((level) => {
+            const accent = levelAccent(level);
+            const locked = level.status === "locked";
+            const pctColor =
+              level.status === "complete"
+                ? "var(--green)"
+                : level.status === "current"
+                  ? "var(--navy)"
+                  : "var(--ink-4)";
 
-          {/* L2 IN PROGRESS */}
-          <div
-            className="pr-level-card"
-            style={{ borderColor: "var(--navy)" }}
-          >
-            <div
-              className="pr-level-bar"
-              style={{ background: "var(--navy)" }}
-            />
-            <div className="pr-level-body">
-              <div className="pr-level-top">
-                <div>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      marginBottom: 6,
-                    }}
-                  >
-                    <span className="tag tag-accent">● In Progress</span>
-                    <span
-                      style={{ fontSize: 11, color: "var(--ink-4)" }}
-                    >
-                      Started February 2026
-                    </span>
-                  </div>
-                  <div className="pr-level-title">
-                    Level 2 — Operational HR
-                  </div>
-                  <div className="pr-level-meta">
-                    In progress · ~4.5 hrs remaining · 2 of 3 topics done
-                  </div>
-                </div>
-                <div
-                  className="pr-level-pct"
-                  style={{ color: "var(--navy)" }}
-                >
-                  75%
-                </div>
-              </div>
-              <div className="pr-bar">
-                <div
-                  className="pr-bar-fill"
-                  style={{ width: "75%", background: "var(--navy)" }}
-                />
-              </div>
-              <div className="pr-activities">
-                <div className="pr-activity">
-                  <div className="pr-activity-label">Topics covered</div>
-                  <div className="pr-activity-item">
-                    <div className="pr-dot done">✓</div>Recruitment &amp;
-                    Selection
-                  </div>
-                  <div className="pr-activity-item">
-                    <div className="pr-dot done">✓</div>Performance Management
-                  </div>
-                  <div className="pr-activity-item">
-                    <div className="pr-dot active">→</div>
-                    <span
-                      style={{ color: "var(--accent)", fontWeight: 600 }}
-                    >
-                      Retention &amp; Wellbeing
-                    </span>
-                  </div>
-                </div>
-                <div className="pr-activity">
-                  <div className="pr-activity-label">Case Study</div>
-                  <div className="pr-activity-item">
-                    <div className="pr-dot done">✓</div>HealthCo Retention
-                    Crisis
-                  </div>
-                  <div className="pr-activity-item">
-                    <div className="pr-dot active">→</div>Reflection pending
-                  </div>
-                </div>
-                <div className="pr-activity">
-                  <div className="pr-activity-label">Games &amp; Activities</div>
-                  <div className="pr-activity-item">
-                    <div className="pr-dot done">✓</div>Hiring Decision Game
-                  </div>
-                  <div className="pr-activity-item">
-                    <div className="pr-dot done">✓</div>Burnout Detective
-                  </div>
-                  <div className="pr-activity-item">
-                    <div className="pr-dot pending">·</div>Wellbeing Sprint
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+            // Status tag + sub-meta line
+            let tag: React.ReactNode;
+            let metaWhen: string | null = null;
+            if (level.status === "complete") {
+              const when = fmtMonthYear(level.completed_at);
+              tag = <span className="tag tag-green">✓ Complete</span>;
+              metaWhen = when ? `Completed ${when}` : "Completed";
+            } else if (level.status === "current") {
+              const when = fmtMonthYear(level.started_at);
+              tag = <span className="tag tag-accent">● In Progress</span>;
+              metaWhen = when ? `Started ${when}` : "In progress";
+            } else {
+              tag = <span className="tag tag-navy">🔒 Locked</span>;
+            }
 
-          {/* L3 + L4 LOCKED */}
-          <div className="pr-level-card" style={{ opacity: 0.5 }}>
-            <div
-              className="pr-level-bar"
-              style={{ background: "var(--mist)" }}
-            />
-            <div className="pr-level-body">
-              <div className="pr-level-top">
-                <div>
-                  <div style={{ marginBottom: 6 }}>
-                    <span className="tag tag-navy">🔒 Locked</span>
+            return (
+              <div
+                key={level.id}
+                className="pr-level-card"
+                style={{
+                  ...(level.status === "current"
+                    ? { borderColor: "var(--navy)" }
+                    : {}),
+                  ...(locked ? { opacity: 0.5 } : {}),
+                }}
+              >
+                <div className="pr-level-bar" style={{ background: accent }} />
+                <div className="pr-level-body">
+                  <div className="pr-level-top">
+                    <div>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8,
+                          marginBottom: 6,
+                        }}
+                      >
+                        {tag}
+                        {metaWhen && (
+                          <span
+                            style={{ fontSize: 11, color: "var(--ink-4)" }}
+                          >
+                            {metaWhen}
+                          </span>
+                        )}
+                      </div>
+                      <div className="pr-level-title">
+                        Level {level.level_number} — {level.title}
+                      </div>
+                      <div className="pr-level-meta">
+                        {locked
+                          ? `Unlocks when Level ${level.level_number - 1} is complete`
+                          : level.description}
+                      </div>
+                    </div>
+                    <div className="pr-level-pct" style={{ color: pctColor }}>
+                      {level.progress_percent}%
+                    </div>
                   </div>
-                  <div className="pr-level-title">
-                    Level 3 — Strategic HR
+                  <div className="pr-bar">
+                    <div
+                      className="pr-bar-fill"
+                      style={{
+                        width: `${level.progress_percent}%`,
+                        background: accent,
+                      }}
+                    />
                   </div>
-                  <div className="pr-level-meta">
-                    Unlocks when Level 2 is complete
-                  </div>
-                </div>
-                <div
-                  className="pr-level-pct"
-                  style={{ color: "var(--ink-4)" }}
-                >
-                  0%
+
+                  {!locked && (
+                    <div className="pr-activities">
+                      <div className="pr-activity">
+                        <div className="pr-activity-label">Topics covered</div>
+                        {level.topics.map((t) => {
+                          const d = dotFor(t.status);
+                          return (
+                            <div className="pr-activity-item" key={t.id}>
+                              <div className={`pr-dot ${d.cls}`}>{d.glyph}</div>
+                              {d.cls === "active" ? (
+                                <span
+                                  style={{
+                                    color: "var(--accent)",
+                                    fontWeight: 600,
+                                  }}
+                                >
+                                  {t.name}
+                                </span>
+                              ) : (
+                                t.name
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div className="pr-activity">
+                        <div className="pr-activity-label">Case Study</div>
+                        {level.case_studies.map((c) => {
+                          const d = dotFor(c.status);
+                          return (
+                            <div className="pr-activity-item" key={c.id}>
+                              <div className={`pr-dot ${d.cls}`}>{d.glyph}</div>
+                              {c.name}
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div className="pr-activity">
+                        <div className="pr-activity-label">
+                          Games &amp; Activities
+                        </div>
+                        {level.games.map((g) => {
+                          const d = dotFor(g.status);
+                          return (
+                            <div className="pr-activity-item" key={g.id}>
+                              <div className={`pr-dot ${d.cls}`}>{d.glyph}</div>
+                              {g.name}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
-              <div className="pr-bar">
-                <div
-                  className="pr-bar-fill"
-                  style={{ width: "0%", background: "var(--mist)" }}
-                />
-              </div>
-            </div>
-          </div>
-          <div className="pr-level-card" style={{ opacity: 0.5 }}>
-            <div
-              className="pr-level-bar"
-              style={{ background: "var(--mist)" }}
-            />
-            <div className="pr-level-body">
-              <div className="pr-level-top">
-                <div>
-                  <div style={{ marginBottom: 6 }}>
-                    <span className="tag tag-navy">🔒 Locked</span>
-                  </div>
-                  <div className="pr-level-title">
-                    Level 4 — Future-Forward HR
-                  </div>
-                  <div className="pr-level-meta">
-                    Unlocks when Level 3 is complete
-                  </div>
-                </div>
-                <div
-                  className="pr-level-pct"
-                  style={{ color: "var(--ink-4)" }}
-                >
-                  0%
-                </div>
-              </div>
-              <div className="pr-bar">
-                <div
-                  className="pr-bar-fill"
-                  style={{ width: "0%", background: "var(--mist)" }}
-                />
-              </div>
-            </div>
-          </div>
+            );
+          })}
 
           {/* CERTIFICATES */}
           <div
@@ -376,73 +387,62 @@ export default function ProgressReportContent() {
             Certificates Issued
           </div>
           <div className="pr-cert-row" style={{ marginTop: 0 }}>
-            <div
-              className="pr-cert earned"
-              onClick={() =>
-                printCert(
-                  "Level 1 — HR Foundations",
-                  "Ada Okonkwo",
-                  "March 2026",
-                )
-              }
-            >
-              <div
-                className="pr-cert-icon"
-                style={{ background: "var(--green-pale)" }}
-              >
-                🏅
-              </div>
-              <div className="pr-cert-info">
-                <div className="pr-cert-title">Level 1 — HR Foundations</div>
-                <div className="pr-cert-date">
-                  Issued March 2026 · Click to print
+            {certificates.map((cert, i) => {
+              const earned = cert.status === "earned";
+              const issued = fmtMonthYear(cert.issued_at);
+              const lockedNote =
+                cert.level === "full"
+                  ? "Issued when all 4 levels are complete"
+                  : `Issued when Level ${cert.level} is complete`;
+              return (
+                <div
+                  key={cert.id ?? `${cert.level}-${i}`}
+                  className={`pr-cert ${earned ? "earned" : "locked"}`}
+                  onClick={
+                    earned
+                      ? () =>
+                          printCert(
+                            `Level ${cert.level} — ${cert.title}`,
+                            cert.learner_name || user.display_name,
+                            issued,
+                          )
+                      : undefined
+                  }
+                >
+                  <div
+                    className="pr-cert-icon"
+                    style={{
+                      background: earned ? "var(--green-pale)" : "#E8ECF4",
+                    }}
+                  >
+                    {cert.badge_emoji || "🏅"}
+                  </div>
+                  <div className="pr-cert-info">
+                    <div className="pr-cert-title">
+                      {cert.level === "full"
+                        ? cert.title
+                        : `Level ${cert.level} — ${cert.title}`}
+                    </div>
+                    <div className="pr-cert-date">
+                      {earned
+                        ? `Issued ${issued} · Click to print`
+                        : lockedNote}
+                    </div>
+                  </div>
+                  {earned && (
+                    <span
+                      style={{
+                        fontSize: 12,
+                        color: "var(--accent)",
+                        fontWeight: 700,
+                      }}
+                    >
+                      Print →
+                    </span>
+                  )}
                 </div>
-              </div>
-              <span
-                style={{
-                  fontSize: 12,
-                  color: "var(--accent)",
-                  fontWeight: 700,
-                }}
-              >
-                Print →
-              </span>
-            </div>
-            <div className="pr-cert locked">
-              <div className="pr-cert-icon" style={{ background: "#E8ECF4" }}>
-                🏅
-              </div>
-              <div className="pr-cert-info">
-                <div className="pr-cert-title">Level 2 — Operational HR</div>
-                <div className="pr-cert-date">
-                  Issued when Level 2 is complete
-                </div>
-              </div>
-            </div>
-            <div className="pr-cert locked">
-              <div className="pr-cert-icon" style={{ background: "#E8ECF4" }}>
-                🏅
-              </div>
-              <div className="pr-cert-info">
-                <div className="pr-cert-title">Level 3 — Strategic HR</div>
-                <div className="pr-cert-date">
-                  Issued when Level 3 is complete
-                </div>
-              </div>
-            </div>
-            <div className="pr-cert locked">
-              <div className="pr-cert-icon" style={{ background: "#E8ECF4" }}>
-                🏆
-              </div>
-              <div className="pr-cert-info">
-                <div className="pr-cert-title">
-                  Full Programme Certificate
-                </div>
-                <div className="pr-cert-date">
-                  Issued when all 4 levels are complete
-                </div>
-              </div>
-            </div>
+              );
+            })}
           </div>
 
           {/* ACTIVITY TIMELINE */}
@@ -454,66 +454,21 @@ export default function ProgressReportContent() {
               Activity Timeline
             </div>
             <div className="timeline">
-              <div className="tl-item">
-                <div className="tl-dot done">✓</div>
-                <div className="tl-content">
-                  <div className="tl-title">
-                    Level 1 — HR Foundations completed
+              {timeline.map((item, i) => {
+                const when = fmtMonthYear(item.occurred_at);
+                const metaParts = [when, item.context].filter(Boolean);
+                if (item.hours != null)
+                  metaParts.push(`${item.hours} hrs`);
+                return (
+                  <div className="tl-item" key={`${item.title}-${i}`}>
+                    <div className="tl-dot done">✓</div>
+                    <div className="tl-content">
+                      <div className="tl-title">{item.title}</div>
+                      <div className="tl-meta">{metaParts.join(" · ")}</div>
+                    </div>
                   </div>
-                  <div className="tl-meta">
-                    March 2026 · Certificate issued · 6 hrs
-                  </div>
-                </div>
-              </div>
-              <div className="tl-item">
-                <div className="tl-dot done">✓</div>
-                <div className="tl-content">
-                  <div className="tl-title">
-                    Level 2 started — Recruitment &amp; Selection
-                  </div>
-                  <div className="tl-meta">February 2026</div>
-                </div>
-              </div>
-              <div className="tl-item">
-                <div className="tl-dot done">✓</div>
-                <div className="tl-content">
-                  <div className="tl-title">
-                    Performance Management topic completed
-                  </div>
-                  <div className="tl-meta">March 2026</div>
-                </div>
-              </div>
-              <div className="tl-item">
-                <div className="tl-dot done">✓</div>
-                <div className="tl-content">
-                  <div className="tl-title">
-                    Burnout Detective game completed
-                  </div>
-                  <div className="tl-meta">March 2026</div>
-                </div>
-              </div>
-              <div className="tl-item">
-                <div
-                  className="tl-dot active"
-                  style={{
-                    background: "var(--accent-pale)",
-                    borderColor: "rgba(201,80,30,.3)",
-                  }}
-                >
-                  →
-                </div>
-                <div className="tl-content">
-                  <div
-                    className="tl-title"
-                    style={{ color: "var(--accent)" }}
-                  >
-                    Retention &amp; Wellbeing — in progress
-                  </div>
-                  <div className="tl-meta">
-                    Current · Last activity: April 2026
-                  </div>
-                </div>
-              </div>
+                );
+              })}
             </div>
           </div>
 
@@ -532,8 +487,8 @@ export default function ProgressReportContent() {
           >
             This progress report was generated by HR Playhouse Hub Limited (RC
             8387672) ·{" "}
-            <strong style={{ color: "var(--ink)" }}>Ada Okonkwo</strong> ·
-            Generated April 2026 ·{" "}
+            <strong style={{ color: "var(--ink)" }}>{user.display_name}</strong>{" "}
+            · Generated {fmtMonthYear(report_generated_at)} ·{" "}
             <Link
               href="/learn/certificate-verify"
               style={{ color: "var(--accent)", fontWeight: 600 }}

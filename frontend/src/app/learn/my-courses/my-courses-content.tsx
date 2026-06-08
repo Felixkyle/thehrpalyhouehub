@@ -2,6 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useCourses, useMe } from "@/lib/hooks";
+import { useAuth } from "@/lib/stores/auth";
+import { ApiError } from "@/lib/api/client";
+import type { CourseLevel } from "@/lib/api/types";
 import "./my-courses.css";
 
 /**
@@ -27,17 +31,6 @@ import "./my-courses.css";
  * `.nav`), so that chrome is ported inline. Internal links with a local route
  * use Next `<Link>`; LMS course/case-study/playbook links stay plain anchors.
  */
-
-const LIVE_CONFIG = {
-  SITE_URL: "",
-  COURSE_IDS: { L1: 0, L2: 0, L3: 0, L4: 0 },
-  COURSE_URLS: {
-    L1: "/courses/level-1-hr-foundations/",
-    L2: "/courses/level-2-operational-hr/",
-    L3: "/courses/level-3-strategic-hr/",
-    L4: "/courses/level-4-future-forward-hr/",
-  },
-};
 
 type Cert = {
   level: string;
@@ -513,18 +506,298 @@ function printCert(certKey: string) {
   win.document.close();
 }
 
+/** Initials from a display name, e.g. "Ada Okonkwo" -> "AO". */
+function initialsOf(name: string) {
+  return (name || "?")
+    .split(" ")
+    .filter(Boolean)
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+}
+
+/** Color token for a level's accent bar / pills based on its status. */
+function statusColor(status: CourseLevel["status"]) {
+  if (status === "complete") return "var(--green)";
+  if (status === "current") return "var(--navy)";
+  return "var(--mist)";
+}
+
+/** Dot class + glyph for a single topic / case-study / game item. */
+function itemDot(status: string) {
+  const s = (status || "").toLowerCase();
+  if (s === "complete" || s === "done" || s === "completed") {
+    return { cls: "done", glyph: "✓" };
+  }
+  if (s === "current" || s === "active" || s === "in_progress" || s === "in-progress") {
+    return { cls: "active", glyph: "→" };
+  }
+  return { cls: "todo", glyph: "·" };
+}
+
+/** One ring in the progress strip. */
+function ProgressRing({ level }: { level: CourseLevel }) {
+  const CIRC = 169.6; // 2πr, r=27
+  const pct = Math.max(0, Math.min(100, level.progress_percent));
+  const offset = CIRC - (CIRC * pct) / 100;
+  const locked = level.status === "locked";
+  const color = statusColor(level.status);
+
+  return (
+    <div className="ps-item" style={locked ? { opacity: 0.4 } : undefined}>
+      <div className="ps-ring-wrap">
+        <svg width="64" height="64" viewBox="0 0 64 64">
+          <circle fill="none" stroke="var(--mist)" strokeWidth="5" cx="32" cy="32" r="27" />
+          <circle
+            fill="none"
+            stroke={locked ? "var(--ink-4)" : color}
+            strokeWidth="5"
+            strokeLinecap="round"
+            cx="32"
+            cy="32"
+            r="27"
+            strokeDasharray={String(CIRC)}
+            strokeDashoffset={String(locked ? CIRC : offset)}
+          />
+        </svg>
+        <div
+          className="ps-ring-label"
+          style={
+            locked
+              ? { fontSize: 16 }
+              : level.status === "complete"
+                ? { color: "var(--green)" }
+                : { color: "var(--navy)" }
+          }
+        >
+          {locked ? "🔒" : level.status === "complete" ? "✓" : `${pct}%`}
+        </div>
+      </div>
+      <div className="ps-level">
+        Level {level.level_number}
+        {level.status === "current" ? " · Current" : ""}
+      </div>
+      <div className="ps-name">{level.course_name}</div>
+      <div
+        className="ps-status"
+        style={
+          level.status === "complete"
+            ? { color: "var(--green)", fontWeight: 600 }
+            : level.status === "current"
+              ? { color: "var(--accent)", fontWeight: 600 }
+              : undefined
+        }
+      >
+        {level.status === "complete"
+          ? "Complete"
+          : level.status === "current"
+            ? "In progress"
+            : "Locked"}
+      </div>
+    </div>
+  );
+}
+
+/** A column of items (topics / case studies / games) inside a course card. */
+function ItemColumn({
+  label,
+  items,
+  dimmed,
+}: {
+  label: string;
+  items: { id: string; name: string; status: string }[];
+  dimmed?: boolean;
+}) {
+  return (
+    <div className="cc-topic-block">
+      <div className="ctb-label">{label}</div>
+      {items.length === 0 && (
+        <div className="ctb-item">
+          <div className="ctb-dot todo">·</div>
+          <span style={{ color: "var(--ink-4)" }}>—</span>
+        </div>
+      )}
+      {items.map((it) => {
+        const dot = itemDot(it.status);
+        const active = dot.cls === "active";
+        return (
+          <div className="ctb-item" key={it.id}>
+            <div className={`ctb-dot ${dot.cls}`}>{dot.glyph}</div>
+            <span
+              style={
+                active && !dimmed
+                  ? { color: "var(--accent)", fontWeight: 600 }
+                  : undefined
+              }
+            >
+              {it.name}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/** A full course card for one level. */
+function CourseCard({ level }: { level: CourseLevel }) {
+  const pct = Math.max(0, Math.min(100, level.progress_percent));
+  const color = statusColor(level.status);
+  const locked = level.status === "locked";
+  const complete = level.status === "complete";
+  const current = level.status === "current";
+
+  const issued = level.completed_at
+    ? new Date(level.completed_at).toLocaleDateString(undefined, {
+        month: "long",
+        year: "numeric",
+      })
+    : null;
+
+  let statusPill: string;
+  let pillColor: string;
+  if (complete) {
+    statusPill = issued ? `✓ Completed · ${issued}` : "✓ Completed";
+    pillColor = "var(--green)";
+  } else if (current) {
+    statusPill = `● In progress — ${pct}% done`;
+    pillColor = "var(--accent)";
+  } else {
+    statusPill = `🔒 Locked — complete Level ${level.level_number - 1} first`;
+    pillColor = "var(--ink-4)";
+  }
+
+  const pctColor = complete ? "var(--green)" : current ? "var(--navy)" : "var(--ink-4)";
+  const fillColor = complete ? "var(--green)" : current ? "var(--navy)" : "var(--ink-4)";
+
+  return (
+    <div
+      className={`course-card${current ? " current" : ""}${locked ? " locked" : ""}`}
+      data-status={level.status}
+    >
+      <div className="cc-bar" style={{ background: color }} />
+      <div className="cc-body">
+        <div className="cc-top">
+          <div>
+            <div className="cc-meta">
+              <span
+                className="cc-level-pill"
+                style={
+                  complete
+                    ? { background: "var(--green-pale)", color: "var(--green)" }
+                    : current
+                      ? { background: "#E8ECF4", color: "#1E3560" }
+                      : { background: "#E8ECF4", color: "#5A6880" }
+                }
+              >
+                Level {level.level_number}
+                {current ? " · Current" : ""}
+              </span>
+              <span className="cc-status-pill" style={{ color: pillColor }}>
+                {statusPill}
+              </span>
+            </div>
+            <div
+              className="cc-title"
+              style={locked ? { color: "var(--ink-3)" } : undefined}
+            >
+              {level.course_name}
+            </div>
+            <div className="cc-desc">{level.description}</div>
+          </div>
+          <div className="cc-right">
+            <div className="cc-pct-big" style={{ color: pctColor }}>
+              {pct}%
+            </div>
+            <div className="cc-pct-label">
+              {complete ? "Complete" : current ? "In progress" : "Locked"}
+            </div>
+          </div>
+        </div>
+
+        <div className="cc-progress-row">
+          <div className="cc-bar-wrap">
+            <div
+              className="cc-bar-fill"
+              style={{ width: `${pct}%`, background: fillColor }}
+            />
+          </div>
+          <span
+            style={{
+              fontFamily: "var(--f-display)",
+              fontSize: 13,
+              fontWeight: 900,
+              color: pctColor,
+              flexShrink: 0,
+            }}
+          >
+            {pct}%
+          </span>
+        </div>
+
+        <div className="cc-topics-row" style={locked ? { opacity: 0.5 } : undefined}>
+          <ItemColumn label="Topics" items={level.topics} dimmed={locked} />
+          <ItemColumn label="Case Study" items={level.case_studies} dimmed={locked} />
+          <ItemColumn
+            label="Games &amp; Activities"
+            items={level.games}
+            dimmed={locked}
+          />
+        </div>
+      </div>
+      <div className="cc-footer">
+        <div className="cc-footer-info">
+          {complete && issued && <span>📅 Completed {issued}</span>}
+          {current && <span>● {pct}% complete</span>}
+          {locked && (
+            <span>🔒 Unlocks when Level {level.level_number - 1} is complete</span>
+          )}
+          {level.estimated_hours > 0 && <span>⏱ ~{level.estimated_hours} hrs</span>}
+        </div>
+        <div className="cc-actions">
+          {complete && (
+            <>
+              <a className="cc-btn outline" href="/learn/my-courses">
+                Review level →
+              </a>
+              <a className="cc-btn primary" href="#cert-section">
+                View certificate →
+              </a>
+            </>
+          )}
+          {current && (
+            <a className="cc-btn accent" href="/learn/my-courses">
+              Continue learning →
+            </a>
+          )}
+          {locked && <span className="cc-btn disabled">🔒 Locked</span>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function MyCoursesContent() {
   const [navOpen, setNavOpen] = useState(false);
   const [filter, setFilter] = useState("all");
   const [currentCertId, setCurrentCertId] = useState<string | null>(null);
 
-  // LIVE MODE state (preview defaults, overwritten only when a token + API
-  // succeed — exactly like the original IIFE).
-  const [bannerHidden, setBannerHidden] = useState(false);
-  const [userName, setUserName] = useState("Ada Okonkwo");
-  const [userInitials, setUserInitials] = useState("AO");
-  const [statCompleted, setStatCompleted] = useState<string | number>(1);
-  const [statProgress, setStatProgress] = useState("75%");
+  const authed = useAuth((s) => !!s.token);
+  const { data: coursesData, isLoading, isError, error, refetch } = useCourses();
+  const { data: me } = useMe();
+  const meUser = me?.user;
+
+  const levels: CourseLevel[] = coursesData?.levels ?? [];
+
+  const userName = meUser?.display_name || "there";
+  const userInitials = meUser ? initialsOf(meUser.display_name) : "?";
+
+  // Header stats derived from live levels.
+  const statCompleted = levels.filter((l) => l.status === "complete").length;
+  const currentLevel = levels.find((l) => l.status === "current");
+  const statProgress = currentLevel ? `${currentLevel.progress_percent}%` : "—";
+  const statLocked = levels.filter((l) => l.status === "locked").length;
 
   function viewCert(certKey: string) {
     setCurrentCertId(certKey);
@@ -553,105 +826,20 @@ export default function MyCoursesContent() {
     }
   }, [currentCertId]);
 
-  // LIVE API MODE — activates only when a token exists.
-  useEffect(() => {
-    const token = localStorage.getItem("hrph_token");
-    if (!token) return; // No token = stay in preview mode, nothing breaks
-
-    const base = LIVE_CONFIG.SITE_URL + "/wp-json";
-
-    function apiFetch(endpoint: string) {
-      return fetch(base + endpoint, {
-        headers: {
-          Authorization: "Bearer " + token,
-          "Content-Type": "application/json",
-        },
-      }).then((r) => {
-        if (!r.ok) throw new Error(String(r.status));
-        return r.json();
-      });
-    }
-
-    function ini(name: string) {
-      return (name || "?")
-        .split(" ")
-        .map((w) => w[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2);
-    }
-
-    Promise.all([
-      apiFetch("/wp/v2/users/me?context=edit"),
-      apiFetch("/tutor/v1/course-progress/" + LIVE_CONFIG.COURSE_IDS.L1),
-      apiFetch("/tutor/v1/course-progress/" + LIVE_CONFIG.COURSE_IDS.L2),
-      apiFetch("/tutor/v1/course-progress/" + LIVE_CONFIG.COURSE_IDS.L3),
-      apiFetch("/tutor/v1/course-progress/" + LIVE_CONFIG.COURSE_IDS.L4),
-    ])
-      .then((results) => {
-        const user = results[0];
-        const progL1 = results[1];
-        const progL2 = results[2];
-        const progL3 = results[3];
-        const progL4 = results[4];
-
-        const name =
-          user.name ||
-          ((user.first_name || "") + " " + (user.last_name || "")).trim() ||
-          user.username;
-        const initials = ini(name);
-
-        setUserInitials(initials);
-        setUserName(name);
-        setBannerHidden(true);
-
-        const pct1 = Math.round((progL1 || {}).completed_percent || 0);
-        const pct2 = Math.round((progL2 || {}).completed_percent || 0);
-        const pct3 = Math.round((progL3 || {}).completed_percent || 0);
-        const pct4 = Math.round((progL4 || {}).completed_percent || 0);
-
-        const completed = [pct1, pct2, pct3, pct4].filter(
-          (p) => p >= 100,
-        ).length;
-        const curPct = pct2 < 100 ? pct2 : pct3 < 100 ? pct3 : pct4;
-        setStatCompleted(completed);
-        setStatProgress(curPct + "%");
-
-        console.log(
-          "HR Playhouse Hub: Live data loaded for",
-          name,
-          "| L1:",
-          pct1 + "%",
-          "| L2:",
-          pct2 + "%",
-          "| L3:",
-          pct3 + "%",
-          "| L4:",
-          pct4 + "%",
-        );
-      })
-      .catch((err) => {
-        console.warn(
-          "HR Playhouse Hub: API load failed, showing preview data.",
-          err,
-        );
-      });
-  }, []);
-
   const showCard = (status: string) => filter === "all" || filter === status;
 
   const cert = currentCertId ? CERTS[currentCertId] : null;
 
   return (
     <>
-      {/* DEMO BANNER */}
-      {!bannerHidden && (
+      {/* SIGN-IN PROMPT — courses are public, but personal progress needs auth */}
+      {!authed && (
         <div className="demo-banner">
-          <span>👆</span>
+          <span>🔑</span>
           <span>
-            <strong>Design Preview Mode</strong> — showing sample data. Stephen:
-            connect TutorLMS API and remove this banner. Full instructions in
-            the &lt;script&gt; block.
+            <strong>You&rsquo;re not signed in</strong> — course content is shown
+            below. <Link href="/login">Sign in</Link> to see your personal
+            progress, certificates and stats.
           </span>
         </div>
       )}
@@ -818,11 +1006,17 @@ export default function MyCoursesContent() {
           {/* PAGE HEADER */}
           <div className="page-header">
             <div>
-              <div className="ph-eyebrow">{userName} · HR Business Partner</div>
+              <div className="ph-eyebrow">
+                {userName}
+                {meUser?.job_title ? ` · ${meUser.job_title}` : ""}
+              </div>
               <div className="ph-title">My Courses 🎓</div>
               <div className="ph-sub">
-                4 levels · Level 1 complete · Level 2 in progress · 75% of your
-                journey done
+                {levels.length} level{levels.length === 1 ? "" : "s"} ·{" "}
+                {statCompleted} complete ·{" "}
+                {currentLevel
+                  ? `Level ${currentLevel.level_number} in progress`
+                  : "no level in progress"}
               </div>
             </div>
             <div className="ph-stats">
@@ -837,162 +1031,20 @@ export default function MyCoursesContent() {
               </div>
               <div className="ph-div" />
               <div className="ph-stat">
-                <div className="ph-stat-n">2</div>
+                <div className="ph-stat-n">{statLocked}</div>
                 <div className="ph-stat-l">Locked</div>
               </div>
             </div>
           </div>
 
           {/* PROGRESS RING STRIP */}
-          <div className="progress-strip">
-            {/* L1 Complete */}
-            <div className="ps-item">
-              <div className="ps-ring-wrap">
-                <svg width="64" height="64" viewBox="0 0 64 64">
-                  <circle
-                    fill="none"
-                    stroke="var(--mist)"
-                    strokeWidth="5"
-                    cx="32"
-                    cy="32"
-                    r="27"
-                  />
-                  <circle
-                    fill="none"
-                    stroke="var(--green)"
-                    strokeWidth="5"
-                    strokeLinecap="round"
-                    cx="32"
-                    cy="32"
-                    r="27"
-                    strokeDasharray="169.6"
-                    strokeDashoffset="0"
-                  />
-                </svg>
-                <div
-                  className="ps-ring-label"
-                  style={{ color: "var(--green)" }}
-                >
-                  ✓
-                </div>
-              </div>
-              <div className="ps-level">Level 1</div>
-              <div className="ps-name">HR Foundations</div>
-              <div
-                className="ps-status"
-                style={{ color: "var(--green)", fontWeight: 600 }}
-              >
-                Complete
-              </div>
+          {!isLoading && !isError && levels.length > 0 && (
+            <div className="progress-strip">
+              {levels.map((lvl) => (
+                <ProgressRing key={lvl.id} level={lvl} />
+              ))}
             </div>
-
-            {/* L2 In Progress */}
-            <div className="ps-item">
-              <div className="ps-ring-wrap">
-                <svg width="64" height="64" viewBox="0 0 64 64">
-                  <circle
-                    fill="none"
-                    stroke="var(--mist)"
-                    strokeWidth="5"
-                    cx="32"
-                    cy="32"
-                    r="27"
-                  />
-                  <circle
-                    fill="none"
-                    stroke="var(--navy)"
-                    strokeWidth="5"
-                    strokeLinecap="round"
-                    cx="32"
-                    cy="32"
-                    r="27"
-                    strokeDasharray="169.6"
-                    strokeDashoffset="42.4"
-                  />
-                </svg>
-                <div
-                  className="ps-ring-label"
-                  style={{ color: "var(--navy)" }}
-                >
-                  75%
-                </div>
-              </div>
-              <div className="ps-level">Level 2 · Current</div>
-              <div className="ps-name">Operational HR</div>
-              <div
-                className="ps-status"
-                style={{ color: "var(--accent)", fontWeight: 600 }}
-              >
-                In progress
-              </div>
-            </div>
-
-            {/* L3 Locked */}
-            <div className="ps-item" style={{ opacity: 0.4 }}>
-              <div className="ps-ring-wrap">
-                <svg width="64" height="64" viewBox="0 0 64 64">
-                  <circle
-                    fill="none"
-                    stroke="var(--mist)"
-                    strokeWidth="5"
-                    cx="32"
-                    cy="32"
-                    r="27"
-                  />
-                  <circle
-                    fill="none"
-                    stroke="var(--ink-4)"
-                    strokeWidth="5"
-                    strokeLinecap="round"
-                    cx="32"
-                    cy="32"
-                    r="27"
-                    strokeDasharray="169.6"
-                    strokeDashoffset="169.6"
-                  />
-                </svg>
-                <div className="ps-ring-label" style={{ fontSize: 16 }}>
-                  🔒
-                </div>
-              </div>
-              <div className="ps-level">Level 3</div>
-              <div className="ps-name">Strategic HR</div>
-              <div className="ps-status">Locked</div>
-            </div>
-
-            {/* L4 Locked */}
-            <div className="ps-item" style={{ opacity: 0.4 }}>
-              <div className="ps-ring-wrap">
-                <svg width="64" height="64" viewBox="0 0 64 64">
-                  <circle
-                    fill="none"
-                    stroke="var(--mist)"
-                    strokeWidth="5"
-                    cx="32"
-                    cy="32"
-                    r="27"
-                  />
-                  <circle
-                    fill="none"
-                    stroke="var(--ink-4)"
-                    strokeWidth="5"
-                    strokeLinecap="round"
-                    cx="32"
-                    cy="32"
-                    r="27"
-                    strokeDasharray="169.6"
-                    strokeDashoffset="169.6"
-                  />
-                </svg>
-                <div className="ps-ring-label" style={{ fontSize: 16 }}>
-                  🔒
-                </div>
-              </div>
-              <div className="ps-level">Level 4</div>
-              <div className="ps-name">Future-Forward HR</div>
-              <div className="ps-status">Locked</div>
-            </div>
-          </div>
+          )}
 
           {/* FILTER TABS */}
           <div className="filter-bar">
@@ -1023,563 +1075,49 @@ export default function MyCoursesContent() {
           </div>
 
           {/* COURSE CARDS */}
-          <div className="courses-stack">
-            {/* LEVEL 1 — COMPLETE */}
-            <div
-              className="course-card"
-              data-status="complete"
-              style={{ display: showCard("complete") ? "block" : "none" }}
-            >
-              <div className="cc-bar" style={{ background: "var(--green)" }} />
-              <div className="cc-body">
-                <div className="cc-top">
-                  <div>
-                    <div className="cc-meta">
-                      <span
-                        className="cc-level-pill"
-                        style={{
-                          background: "var(--green-pale)",
-                          color: "var(--green)",
-                        }}
-                      >
-                        Level 1
-                      </span>
-                      <span
-                        className="cc-status-pill"
-                        style={{ color: "var(--green)" }}
-                      >
-                        ✓ Completed · March 2026
-                      </span>
-                    </div>
-                    <div className="cc-title">HR Foundations</div>
-                    <div className="cc-desc">
-                      Build the mindset, vocabulary and toolkit of a confident
-                      HR professional. Covers the HR function, employment
-                      relationships, workplace culture and engagement from the
-                      ground up.
-                    </div>
-                  </div>
-                  <div className="cc-right">
-                    <div
-                      className="cc-pct-big"
-                      style={{ color: "var(--green)" }}
-                    >
-                      100%
-                    </div>
-                    <div className="cc-pct-label">Complete</div>
-                  </div>
-                </div>
-
-                <div className="cc-progress-row">
-                  <div className="cc-bar-wrap">
-                    <div
-                      className="cc-bar-fill"
-                      style={{ width: "100%", background: "var(--green)" }}
-                    />
-                  </div>
-                  <span
-                    style={{
-                      fontFamily: "var(--f-display)",
-                      fontSize: 13,
-                      fontWeight: 900,
-                      color: "var(--green)",
-                      flexShrink: 0,
-                    }}
-                  >
-                    100%
-                  </span>
-                </div>
-
-                <div className="cc-topics-row">
-                  <div className="cc-topic-block">
-                    <div className="ctb-label">Topics</div>
-                    <div className="ctb-item">
-                      <div className="ctb-dot done">✓</div>
-                      <span>The HR Mindset &amp; Function</span>
-                    </div>
-                    <div className="ctb-item">
-                      <div className="ctb-dot done">✓</div>
-                      <span>Employment Relationships</span>
-                    </div>
-                    <div className="ctb-item">
-                      <div className="ctb-dot done">✓</div>
-                      <span>Culture &amp; Engagement</span>
-                    </div>
-                  </div>
-                  <div className="cc-topic-block">
-                    <div className="ctb-label">Case Study</div>
-                    <div className="ctb-item">
-                      <div className="ctb-dot done">✓</div>
-                      <span>TechStart Culture Clash</span>
-                    </div>
-                    <div className="ctb-item">
-                      <div className="ctb-dot done">✓</div>
-                      <span>Reflection submitted</span>
-                    </div>
-                  </div>
-                  <div className="cc-topic-block">
-                    <div className="ctb-label">Games &amp; Activities</div>
-                    <div className="ctb-item">
-                      <div className="ctb-dot done">✓</div>
-                      <span>HR Role Matcher</span>
-                    </div>
-                    <div className="ctb-item">
-                      <div className="ctb-dot done">✓</div>
-                      <span>Culture Builder Game</span>
-                    </div>
-                    <div className="ctb-item">
-                      <div className="ctb-dot done">✓</div>
-                      <span>Engagement Audit</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="cc-footer">
-                <div className="cc-footer-info">
-                  <span>📅 Completed March 2026</span>
-                  <span>⏱ ~6 hrs total</span>
-                  <span>🏅 Badge earned</span>
-                </div>
-                <div className="cc-actions">
-                  <a
-                    className="cc-btn outline"
-                    href="/learn/my-courses"
-                  >
-                    Review level →
-                  </a>
-                  <a className="cc-btn primary" href="#cert-section">
-                    View certificate →
-                  </a>
-                </div>
+          {/* COURSE CARDS */}
+          {isLoading && (
+            <div className="courses-stack">
+              <div className="mc-loading">
+                <span className="mc-spinner" />
+                <span>Loading your courses…</span>
               </div>
             </div>
+          )}
 
-            {/* LEVEL 2 — CURRENT */}
-            <div
-              className="course-card current"
-              data-status="current"
-              style={{ display: showCard("current") ? "block" : "none" }}
-            >
-              <div className="cc-bar" style={{ background: "var(--navy)" }} />
-              <div className="cc-body">
-                <div className="cc-top">
-                  <div>
-                    <div className="cc-meta">
-                      <span
-                        className="cc-level-pill"
-                        style={{ background: "#E8ECF4", color: "#1E3560" }}
-                      >
-                        Level 2 · Current
-                      </span>
-                      <span
-                        className="cc-status-pill"
-                        style={{ color: "var(--accent)" }}
-                      >
-                        ● In progress — 75% done
-                      </span>
-                    </div>
-                    <div className="cc-title">Operational HR</div>
-                    <div className="cc-desc">
-                      The day-to-day engine of HR practice. Covers the full
-                      hiring lifecycle, performance management, retention
-                      strategy and employee wellbeing — with real cases from
-                      Nigerian and Commonwealth organisations.
-                    </div>
-                  </div>
-                  <div className="cc-right">
-                    <div
-                      className="cc-pct-big"
-                      style={{ color: "var(--navy)" }}
-                    >
-                      75%
-                    </div>
-                    <div className="cc-pct-label">In progress</div>
-                  </div>
+          {isError && (
+            <div className="courses-stack">
+              <div className="mc-error">
+                <div className="mc-error-title">Could not load your courses</div>
+                <div className="mc-error-body">
+                  {error instanceof ApiError
+                    ? error.message
+                    : "Something went wrong. Please try again."}
                 </div>
-
-                <div className="cc-progress-row">
-                  <div className="cc-bar-wrap">
-                    <div
-                      className="cc-bar-fill"
-                      style={{ width: "75%", background: "var(--navy)" }}
-                    />
-                  </div>
-                  <span
-                    style={{
-                      fontFamily: "var(--f-display)",
-                      fontSize: 13,
-                      fontWeight: 900,
-                      color: "var(--navy)",
-                      flexShrink: 0,
-                    }}
-                  >
-                    75%
-                  </span>
-                </div>
-
-                <div className="cc-topics-row">
-                  <div className="cc-topic-block">
-                    <div className="ctb-label">Topics</div>
-                    <div className="ctb-item">
-                      <div className="ctb-dot done">✓</div>
-                      <span>Recruitment &amp; Selection</span>
-                    </div>
-                    <div className="ctb-item">
-                      <div className="ctb-dot done">✓</div>
-                      <span>Performance Management</span>
-                    </div>
-                    <div className="ctb-item">
-                      <div className="ctb-dot active">→</div>
-                      <span style={{ color: "var(--accent)", fontWeight: 600 }}>
-                        Retention &amp; Wellbeing
-                      </span>
-                    </div>
-                  </div>
-                  <div className="cc-topic-block">
-                    <div className="ctb-label">Case Study</div>
-                    <div className="ctb-item">
-                      <div className="ctb-dot done">✓</div>
-                      <span>HealthCo Retention Crisis</span>
-                    </div>
-                    <div className="ctb-item">
-                      <div className="ctb-dot active">→</div>
-                      <span style={{ color: "var(--ink-3)" }}>
-                        Reflection pending
-                      </span>
-                    </div>
-                  </div>
-                  <div className="cc-topic-block">
-                    <div className="ctb-label">Games &amp; Activities</div>
-                    <div className="ctb-item">
-                      <div className="ctb-dot done">✓</div>
-                      <span>Hiring Decision Game</span>
-                    </div>
-                    <div className="ctb-item">
-                      <div className="ctb-dot done">✓</div>
-                      <span>Burnout Detective</span>
-                    </div>
-                    <div className="ctb-item">
-                      <div className="ctb-dot todo">·</div>
-                      <span>Wellbeing Sprint</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Next up */}
-                <div className="next-up-box">
-                  <div
-                    style={{ display: "flex", alignItems: "center", gap: 10 }}
-                  >
-                    <div
-                      style={{
-                        width: 34,
-                        height: 34,
-                        borderRadius: 9,
-                        background: "var(--accent-pale)",
-                        border: "1px solid rgba(201,80,30,.2)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: 16,
-                        flexShrink: 0,
-                      }}
-                    >
-                      📖
-                    </div>
-                    <div>
-                      <div
-                        style={{
-                          fontFamily: "var(--f-body)",
-                          fontSize: 10,
-                          fontWeight: 700,
-                          textTransform: "uppercase",
-                          letterSpacing: ".07em",
-                          color: "var(--ink-4)",
-                          marginBottom: 2,
-                        }}
-                      >
-                        Next up
-                      </div>
-                      <div
-                        style={{
-                          fontFamily: "var(--f-display)",
-                          fontSize: 14,
-                          fontWeight: 800,
-                          color: "var(--ink)",
-                        }}
-                      >
-                        Topic 3: Retention &amp; Employee Well-being
-                      </div>
-                    </div>
-                  </div>
-                  <a
-                    className="cc-btn accent"
-                    href="/learn/my-courses"
-                  >
-                    Continue →
-                  </a>
-                </div>
-              </div>
-              <div className="cc-footer">
-                <div className="cc-footer-info">
-                  <span>📅 Started Feb 2026</span>
-                  <span>⏱ ~4.5 hrs remaining</span>
-                  <span>🎯 2 of 3 topics done</span>
-                </div>
-                <div className="cc-actions">
-                  <a
-                    className="cc-btn outline"
-                    href="/learn/my-courses"
-                  >
-                    View all lessons
-                  </a>
-                  <a
-                    className="cc-btn accent"
-                    href="/learn/my-courses"
-                  >
-                    Continue learning →
-                  </a>
-                </div>
+                <button className="cc-btn primary" onClick={() => refetch()}>
+                  Retry
+                </button>
               </div>
             </div>
+          )}
 
-            {/* LEVEL 3 — LOCKED */}
-            <div
-              className="course-card locked"
-              data-status="locked"
-              style={{ display: showCard("locked") ? "block" : "none" }}
-            >
-              <div className="cc-bar" style={{ background: "var(--mist)" }} />
-              <div className="cc-body">
-                <div className="cc-top">
-                  <div>
-                    <div className="cc-meta">
-                      <span
-                        className="cc-level-pill"
-                        style={{ background: "#E8ECF4", color: "#5A6880" }}
-                      >
-                        Level 3
-                      </span>
-                      <span
-                        className="cc-status-pill"
-                        style={{ color: "var(--ink-4)" }}
-                      >
-                        🔒 Locked — complete Level 2 first
-                      </span>
-                    </div>
-                    <div className="cc-title" style={{ color: "var(--ink-3)" }}>
-                      Strategic HR
-                    </div>
-                    <div className="cc-desc">
-                      Move from managing HR to shaping it. Analytics-driven
-                      people decisions, talent management frameworks, HR
-                      strategy design, and presenting a compelling people case
-                      to leadership.
-                    </div>
-                  </div>
-                  <div className="cc-right">
-                    <div
-                      className="cc-pct-big"
-                      style={{ color: "var(--ink-4)" }}
-                    >
-                      0%
-                    </div>
-                    <div className="cc-pct-label">Locked</div>
+          {!isLoading && !isError && (
+            <div className="courses-stack">
+              {levels.length === 0 && (
+                <div className="mc-error">
+                  <div className="mc-error-title">No courses yet</div>
+                  <div className="mc-error-body">
+                    There are no levels to show right now.
                   </div>
                 </div>
-                <div className="cc-progress-row">
-                  <div className="cc-bar-wrap">
-                    <div
-                      className="cc-bar-fill"
-                      style={{ width: "0%", background: "var(--ink-4)" }}
-                    />
-                  </div>
-                  <span
-                    style={{
-                      fontFamily: "var(--f-display)",
-                      fontSize: 13,
-                      fontWeight: 900,
-                      color: "var(--ink-4)",
-                      flexShrink: 0,
-                    }}
-                  >
-                    0%
-                  </span>
-                </div>
-                <div className="cc-topics-row" style={{ opacity: 0.5 }}>
-                  <div className="cc-topic-block">
-                    <div className="ctb-label">Topics</div>
-                    <div className="ctb-item">
-                      <div className="ctb-dot todo">·</div>
-                      <span>HR Analytics &amp; Metrics</span>
-                    </div>
-                    <div className="ctb-item">
-                      <div className="ctb-dot todo">·</div>
-                      <span>Talent Management</span>
-                    </div>
-                    <div className="ctb-item">
-                      <div className="ctb-dot todo">·</div>
-                      <span>HR Strategy &amp; Business</span>
-                    </div>
-                  </div>
-                  <div className="cc-topic-block">
-                    <div className="ctb-label">Case Study</div>
-                    <div className="ctb-item">
-                      <div className="ctb-dot todo">·</div>
-                      <span>RetailCo Talent Pipeline</span>
-                    </div>
-                    <div className="ctb-item">
-                      <div className="ctb-dot todo">·</div>
-                      <span>Reflection exercise</span>
-                    </div>
-                  </div>
-                  <div className="cc-topic-block">
-                    <div className="ctb-label">Games &amp; Activities</div>
-                    <div className="ctb-item">
-                      <div className="ctb-dot todo">·</div>
-                      <span>Analytics Challenge</span>
-                    </div>
-                    <div className="ctb-item">
-                      <div className="ctb-dot todo">·</div>
-                      <span>Talent Board Simulator</span>
-                    </div>
-                    <div className="ctb-item">
-                      <div className="ctb-dot todo">·</div>
-                      <span>Strategy Pitch</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="cc-footer">
-                <div className="cc-footer-info">
-                  <span>🔒 Unlocks when Level 2 is complete</span>
-                  <span>⏱ ~8 hrs estimated</span>
-                </div>
-                <div className="cc-actions">
-                  <span className="cc-btn disabled">🔒 Locked</span>
-                </div>
-              </div>
+              )}
+              {levels
+                .filter((lvl) => showCard(lvl.status))
+                .map((lvl) => (
+                  <CourseCard key={lvl.id} level={lvl} />
+                ))}
             </div>
-
-            {/* LEVEL 4 — LOCKED */}
-            <div
-              className="course-card locked"
-              data-status="locked"
-              style={{ display: showCard("locked") ? "block" : "none" }}
-            >
-              <div className="cc-bar" style={{ background: "var(--mist)" }} />
-              <div className="cc-body">
-                <div className="cc-top">
-                  <div>
-                    <div className="cc-meta">
-                      <span
-                        className="cc-level-pill"
-                        style={{ background: "#E8ECF4", color: "#5A6880" }}
-                      >
-                        Level 4
-                      </span>
-                      <span
-                        className="cc-status-pill"
-                        style={{ color: "var(--ink-4)" }}
-                      >
-                        🔒 Locked — complete Level 3 first
-                      </span>
-                    </div>
-                    <div className="cc-title" style={{ color: "var(--ink-3)" }}>
-                      Future-Forward HR
-                    </div>
-                    <div className="cc-desc">
-                      The frontier of HR practice. AI ethics in hiring,
-                      gamification in L&amp;D, the future of work, and your
-                      final HR Strategy Proposal — a real portfolio piece you
-                      own and keep.
-                    </div>
-                  </div>
-                  <div className="cc-right">
-                    <div
-                      className="cc-pct-big"
-                      style={{ color: "var(--ink-4)" }}
-                    >
-                      0%
-                    </div>
-                    <div className="cc-pct-label">Locked</div>
-                  </div>
-                </div>
-                <div className="cc-progress-row">
-                  <div className="cc-bar-wrap">
-                    <div
-                      className="cc-bar-fill"
-                      style={{ width: "0%", background: "var(--ink-4)" }}
-                    />
-                  </div>
-                  <span
-                    style={{
-                      fontFamily: "var(--f-display)",
-                      fontSize: 13,
-                      fontWeight: 900,
-                      color: "var(--ink-4)",
-                      flexShrink: 0,
-                    }}
-                  >
-                    0%
-                  </span>
-                </div>
-                <div className="cc-topics-row" style={{ opacity: 0.5 }}>
-                  <div className="cc-topic-block">
-                    <div className="ctb-label">Topics</div>
-                    <div className="ctb-item">
-                      <div className="ctb-dot todo">·</div>
-                      <span>AI Ethics in HR</span>
-                    </div>
-                    <div className="ctb-item">
-                      <div className="ctb-dot todo">·</div>
-                      <span>Gamification &amp; L&amp;D Design</span>
-                    </div>
-                    <div className="ctb-item">
-                      <div className="ctb-dot todo">·</div>
-                      <span>Future of Work</span>
-                    </div>
-                  </div>
-                  <div className="cc-topic-block">
-                    <div className="ctb-label">Case Study</div>
-                    <div className="ctb-item">
-                      <div className="ctb-dot todo">·</div>
-                      <span>FintechNG AI Hiring Audit</span>
-                    </div>
-                    <div className="ctb-item">
-                      <div className="ctb-dot todo">·</div>
-                      <span>Reflection exercise</span>
-                    </div>
-                  </div>
-                  <div className="cc-topic-block">
-                    <div className="ctb-label">Final Project</div>
-                    <div className="ctb-item">
-                      <div className="ctb-dot todo">·</div>
-                      <span>HR Strategy Proposal</span>
-                    </div>
-                    <div className="ctb-item">
-                      <div className="ctb-dot todo">·</div>
-                      <span>Peer review round</span>
-                    </div>
-                    <div className="ctb-item">
-                      <div className="ctb-dot todo">·</div>
-                      <span>Final certificate</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="cc-footer">
-                <div className="cc-footer-info">
-                  <span>🔒 Unlocks when Level 3 is complete</span>
-                  <span>⏱ ~10 hrs estimated</span>
-                  <span>🏆 Final certificate on completion</span>
-                </div>
-                <div className="cc-actions">
-                  <span className="cc-btn disabled">🔒 Locked</span>
-                </div>
-              </div>
-            </div>
-          </div>
+          )}
           {/* /courses-stack */}
 
           {/* CERTIFICATES */}
@@ -1957,7 +1495,7 @@ export default function MyCoursesContent() {
                 >
                   <CertificatePreview
                     certKey={currentCertId}
-                    userName="Ada Okonkwo"
+                    userName={meUser?.display_name || "Ada Okonkwo"}
                   />
                 </div>
               </div>
