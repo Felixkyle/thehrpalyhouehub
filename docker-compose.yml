@@ -4,7 +4,9 @@
 
 services:
   mongo:
-    image: mongo:7
+    # 4.4 is the last MongoDB that runs WITHOUT AVX CPU support.
+    # The VPS CPU lacks AVX, so 5.0+ crashes with "Illegal instruction".
+    image: mongo:4.4
     restart: unless-stopped
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
@@ -15,11 +17,12 @@ services:
     ports:
       - "127.0.0.1:27017:27017"
     healthcheck:
+      # mongo:4.4 ships the legacy `mongo` shell (not `mongosh`).
       # Authenticate — root creds are set above, so an unauthenticated ping is rejected.
       test:
         [
           "CMD",
-          "mongosh",
+          "mongo",
           "--quiet",
           "-u", "${MONGO_INITDB_ROOT_USERNAME}",
           "-p", "${MONGO_INITDB_ROOT_PASSWORD}",
