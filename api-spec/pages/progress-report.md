@@ -1,7 +1,7 @@
 # Page — Progress Report
 
 **Frontend file:** `frontend/src/app/progress-report/progress-report-content.tsx`
-**Page route:** `/progress-report`
+**Page route:** `/learn/progress-report`
 **Auth required:** Yes
 
 A printable/downloadable summary of the user's learning journey. Used for CPD evidence and employer sharing.

@@ -1,7 +1,7 @@
 # Page — ClockIQ
 
 **Frontend file:** `frontend/src/app/clockiq/clockiq-content.tsx`
-**Page route:** `/clockiq`
+**Page route:** `/learn/clockiq`
 **Auth required:** No (marketing page)
 
 ---

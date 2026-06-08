@@ -428,23 +428,23 @@ export default function ResourcesContent() {
         <div className={`nav-links${navOpen ? " open" : ""}`}>
           <a
             className="nav-link"
-            href="/courses/"
+            href="/learn/my-courses"
           >
             Courses
           </a>
-          <Link className="nav-link" href="/case-study-vault">
+          <Link className="nav-link" href="/learn/case-study-vault">
             Case Studies
           </Link>
-          <Link className="nav-link" href="/playbook">
+          <Link className="nav-link" href="/learn/playbook">
             Playbook
           </Link>
-          <Link className="nav-link active" href="/resources">
+          <Link className="nav-link active" href="/learn/resources">
             Resources
           </Link>
-          <Link className="nav-link" href="/innovation-lab">
+          <Link className="nav-link" href="/learn/innovation-lab">
             Innovation Lab
           </Link>
-          <Link className="nav-link" href="/ai-support">
+          <Link className="nav-link" href="/learn/ai-support">
             AI Support
           </Link>
         </div>
@@ -495,7 +495,7 @@ export default function ResourcesContent() {
         <div className="nav-right">
           <a
             className="nav-cta"
-            href="/courses/"
+            href="/learn/my-courses"
           >
             Start Learning
           </a>
@@ -730,7 +730,7 @@ export default function ResourcesContent() {
             >
               Submit a Resource →
             </a>
-            <Link className="feat-btn secondary" href="/innovation-lab">
+            <Link className="feat-btn secondary" href="/learn/innovation-lab">
               Visit Innovation Lab
             </Link>
           </div>

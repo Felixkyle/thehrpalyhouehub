@@ -26,19 +26,19 @@ export default function Nav() {
         <div className="nav-logo-text">Hub</div>
       </a>
       <div className={`nav-links${open ? " open" : ""}`} id="nav-links">
-        <a className="nl" href="/courses/">
+        <a className="nl" href="/learn/my-courses">
           Courses
         </a>
-        <Link className="nl" href="/case-study-vault">
+        <Link className="nl" href="/learn/case-study-vault">
           Case Studies
         </Link>
-        <Link className="nl" href="/playbook">
+        <Link className="nl" href="/learn/playbook">
           Playbook
         </Link>
-        <Link className="nl" href="/innovation-lab">
+        <Link className="nl" href="/learn/innovation-lab">
           Innovation Lab
         </Link>
-        <Link className="nl" href="/ai-support">
+        <Link className="nl" href="/learn/ai-support">
           AI Support
         </Link>
       </div>
@@ -53,7 +53,7 @@ export default function Nav() {
       </button>
       <a
         className="nav-cta"
-        href="/courses/"
+        href="/learn/my-courses"
       >
         Start Learning →
       </a>

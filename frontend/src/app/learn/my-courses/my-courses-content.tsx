@@ -663,28 +663,28 @@ export default function MyCoursesContent() {
           <div className="nav-logo-text">Hub</div>
         </a>
         <div className={`topnav-links${navOpen ? " open" : ""}`}>
-          <Link className="tnl" href="/dashboard">
+          <Link className="tnl" href="/learn/dashboard">
             Dashboard
           </Link>
-          <Link className="tnl active" href="/my-courses">
+          <Link className="tnl active" href="/learn/my-courses">
             My Courses
           </Link>
           <a
             className="tnl"
-            href="/case-study-vault/"
+            href="/learn/case-study-vault/"
           >
             Case Studies
           </a>
           <a
             className="tnl"
-            href="/playbook/"
+            href="/learn/playbook/"
           >
             Playbook
           </a>
-          <Link className="tnl" href="/innovation-lab">
+          <Link className="tnl" href="/learn/innovation-lab">
             Innovation Lab
           </Link>
-          <Link className="tnl" href="/ai-support">
+          <Link className="tnl" href="/learn/ai-support">
             AI Support
           </Link>
         </div>
@@ -751,13 +751,13 @@ export default function MyCoursesContent() {
           </div>
 
           <div className="side-nav">
-            <Link className="sn-item" href="/dashboard">
+            <Link className="sn-item" href="/learn/dashboard">
               <div className="sn-icon" style={{ background: "#E8ECF4" }}>
                 📊
               </div>
               My Dashboard
             </Link>
-            <Link className="sn-item active" href="/my-courses">
+            <Link className="sn-item active" href="/learn/my-courses">
               <div className="sn-icon" style={{ background: "#E8ECF4" }}>
                 🎓
               </div>
@@ -765,7 +765,7 @@ export default function MyCoursesContent() {
             </Link>
             <a
               className="sn-item"
-              href="/case-study-vault/"
+              href="/learn/case-study-vault/"
             >
               <div className="sn-icon" style={{ background: "#FDF4DD" }}>
                 📚
@@ -775,20 +775,20 @@ export default function MyCoursesContent() {
             </a>
             <a
               className="sn-item"
-              href="/playbook/"
+              href="/learn/playbook/"
             >
               <div className="sn-icon" style={{ background: "#E8ECF4" }}>
                 📖
               </div>
               HR Playbook
             </a>
-            <Link className="sn-item" href="/innovation-lab">
+            <Link className="sn-item" href="/learn/innovation-lab">
               <div className="sn-icon" style={{ background: "#FAF0EB" }}>
                 🔬
               </div>
               Innovation Lab
             </Link>
-            <Link className="sn-item" href="/ai-support">
+            <Link className="sn-item" href="/learn/ai-support">
               <div className="sn-icon" style={{ background: "#e8f7ee" }}>
                 🤖
               </div>
@@ -1143,7 +1143,7 @@ export default function MyCoursesContent() {
                 <div className="cc-actions">
                   <a
                     className="cc-btn outline"
-                    href="/courses/"
+                    href="/learn/my-courses"
                   >
                     Review level →
                   </a>
@@ -1314,7 +1314,7 @@ export default function MyCoursesContent() {
                   </div>
                   <a
                     className="cc-btn accent"
-                    href="/courses/"
+                    href="/learn/my-courses"
                   >
                     Continue →
                   </a>
@@ -1329,13 +1329,13 @@ export default function MyCoursesContent() {
                 <div className="cc-actions">
                   <a
                     className="cc-btn outline"
-                    href="/courses/"
+                    href="/learn/my-courses"
                   >
                     View all lessons
                   </a>
                   <a
                     className="cc-btn accent"
-                    href="/courses/"
+                    href="/learn/my-courses"
                   >
                     Continue learning →
                   </a>
@@ -1979,7 +1979,7 @@ export default function MyCoursesContent() {
             </div>
             <a
               className="nsb-btn"
-              href="/courses/"
+              href="/learn/my-courses"
             >
               Continue →
             </a>

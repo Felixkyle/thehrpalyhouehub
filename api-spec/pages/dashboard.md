@@ -1,7 +1,7 @@
 # Page — Dashboard
 
 **Frontend file:** `frontend/src/app/dashboard/dashboard-content.tsx`
-**Page route:** `/dashboard`
+**Page route:** `/learn/dashboard`
 **Auth required:** Yes
 
 This is the landing page after login. It shows the user's progress, recent activity, badges, and quick links.

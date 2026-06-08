@@ -1,7 +1,7 @@
 # Page — My Courses
 
 **Frontend file:** `frontend/src/app/my-courses/my-courses-content.tsx`
-**Page route:** `/my-courses`
+**Page route:** `/learn/my-courses`
 **Auth required:** Yes
 
 Deep view of the 4 learning levels with filter tabs (All / Completed / In progress / Locked) and a certificate strip.

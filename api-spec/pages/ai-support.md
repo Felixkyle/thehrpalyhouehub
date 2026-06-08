@@ -1,7 +1,7 @@
 # Page — AI Support
 
 **Frontend file:** `frontend/src/app/ai-support/ai-support-content.tsx`
-**Page route:** `/ai-support`
+**Page route:** `/learn/ai-support`
 **Auth required:** Yes
 
 Chat interface backed by **Google Gemini**. The user asks HR questions, optionally attaches a document (policy, contract, job spec) for the assistant to reference.

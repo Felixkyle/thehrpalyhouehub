@@ -6,7 +6,7 @@ Endpoints in this spec rely on the backend wiring up these external services. Ke
 
 ## Google Gemini — for `/api/ai/chat`
 
-- **Used by:** AI Support page (`/ai-support`).
+- **Used by:** AI Support page (`/learn/ai-support`).
 - **Model:** latest Gemini Pro tier (e.g. `gemini-2.5-pro`). Env-configurable via `GEMINI_MODEL`.
 - **Auth:** `GEMINI_API_KEY` env var. Get a key from https://aistudio.google.com/apikey.
 - **SDK:** `@google/genai` (`npm install @google/genai`).

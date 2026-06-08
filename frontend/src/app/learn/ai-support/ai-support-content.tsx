@@ -372,16 +372,16 @@ export default function AiSupportContent() {
         </a>
         <div className="nav-title">AI HR Support</div>
         <div className="nav-links">
-          <Link className="tnl" href="/dashboard">
+          <Link className="tnl" href="/learn/dashboard">
             Dashboard
           </Link>
           <a
             className="tnl"
-            href="/courses/"
+            href="/learn/my-courses"
           >
             Courses
           </a>
-          <Link className="tnl" href="/playbook">
+          <Link className="tnl" href="/learn/playbook">
             Playbook
           </Link>
         </div>

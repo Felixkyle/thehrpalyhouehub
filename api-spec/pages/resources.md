@@ -1,7 +1,7 @@
 # Page — Resources Library
 
 **Frontend file:** `frontend/src/app/resources/resources-content.tsx`
-**Page route:** `/resources`
+**Page route:** `/learn/resources`
 **Auth required:** Yes
 
 A catalog of 8 downloadable resources (toolkits, reports, workshops, templates).

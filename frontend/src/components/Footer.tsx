@@ -28,20 +28,20 @@ export default function Footer() {
             <div className="f-col-title">Platform</div>
             <a
               className="f-link"
-              href="/courses/"
+              href="/learn/my-courses"
             >
               Courses
             </a>
-            <Link className="f-link" href="/case-study-vault">
+            <Link className="f-link" href="/learn/case-study-vault">
               Case Studies
             </Link>
-            <Link className="f-link" href="/playbook">
+            <Link className="f-link" href="/learn/playbook">
               HR Playbook
             </Link>
-            <Link className="f-link" href="/innovation-lab">
+            <Link className="f-link" href="/learn/innovation-lab">
               Innovation Lab
             </Link>
-            <Link className="f-link" href="/ai-support">
+            <Link className="f-link" href="/learn/ai-support">
               AI Support
             </Link>
           </div>

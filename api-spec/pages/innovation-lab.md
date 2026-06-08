@@ -1,7 +1,7 @@
 # Page — Innovation Lab
 
 **Frontend file:** `frontend/src/app/innovation-lab/innovation-lab-content.tsx`
-**Page route:** `/innovation-lab`
+**Page route:** `/learn/innovation-lab`
 **Auth required:** Yes
 
 A community forum with 4 boards (New Members, Ideas, Feedback, Mentorship), an Idea Impact Calculator, and a mentorship request flow.

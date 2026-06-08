@@ -173,7 +173,7 @@ export default function SignupContent() {
         </a>
         <a
           className="nav-back"
-          href="/courses/"
+          href="/learn/my-courses"
         >
           ← Already have an account? Sign in
         </a>
@@ -261,7 +261,7 @@ export default function SignupContent() {
                 <div className="form-title">Create your account</div>
                 <div className="form-sub">
                   Already registered?{" "}
-                  <a href="/sign-in/">
+                  <a href="/login">
                     Sign in here
                   </a>
                 </div>
@@ -576,7 +576,7 @@ export default function SignupContent() {
             </div>
             <a
               className="success-cta"
-              href="/register-2/"
+              href="/signup"
               target="_blank"
               rel="noreferrer"
             >

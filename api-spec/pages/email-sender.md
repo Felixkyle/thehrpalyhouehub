@@ -1,7 +1,7 @@
 # Page — Email Sender (Admin Tool)
 
 **Frontend file:** `frontend/src/app/email-sender/email-sender-content.tsx`
-**Page route:** `/email-sender`
+**Page route:** `/learn/email-sender`
 **Auth required:** Admin only
 
 An internal admin tool for sending templated emails (announcements, completion congratulations, nudges, programme intros) to learners. Today it's a password-gated client-side tool that opens `mailto:` links.

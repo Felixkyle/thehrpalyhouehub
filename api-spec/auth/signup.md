@@ -58,7 +58,7 @@ Creates a new user account. On success, returns a JWT and the user object so the
 ### Notes for backend
 
 - The frontend currently submits via EmailJS as a stopgap; replace that flow entirely with this endpoint.
-- The success screen has a link to `/register-2/` — that page does not exist in the new frontend yet. For now, after signup the frontend will redirect to `/dashboard`.
+- The success screen has a link to `/register-2/` — that page does not exist in the new frontend yet. For now, after signup the frontend will redirect to `/learn/dashboard`.
 - Email verification is **not** blocking — the user can use the app immediately, but mark `email_verified=false` on the User record so we can enforce verification later if needed.
 
 ---

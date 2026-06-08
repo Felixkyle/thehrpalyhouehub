@@ -1,7 +1,7 @@
 # Page — Certificate Verify
 
 **Frontend file:** `frontend/src/app/certificate-verify/certificate-verify-content.tsx`
-**Page route:** `/certificate-verify`
+**Page route:** `/learn/certificate-verify`
 **Auth required:** No (public — designed for employers to verify a learner's certificate)
 
 ---

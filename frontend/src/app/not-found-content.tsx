@@ -49,7 +49,7 @@ export default function NotFoundContent() {
               </Link>
               <a
                 className="btn btn-outline-white"
-                href="/courses/"
+                href="/learn/my-courses"
               >
                 Go to Courses
               </a>
@@ -71,17 +71,17 @@ export default function NotFoundContent() {
               <div className="err-chips">
                 <a
                   className="err-chip"
-                  href="/courses/"
+                  href="/learn/my-courses"
                 >
                   Courses
                 </a>
-                <Link className="err-chip" href="/dashboard">
+                <Link className="err-chip" href="/learn/dashboard">
                   My Dashboard
                 </Link>
-                <Link className="err-chip" href="/case-study-vault">
+                <Link className="err-chip" href="/learn/case-study-vault">
                   Case Studies
                 </Link>
-                <Link className="err-chip" href="/innovation-lab">
+                <Link className="err-chip" href="/learn/innovation-lab">
                   Innovation Lab
                 </Link>
                 <Link className="err-chip" href="/partner-register">

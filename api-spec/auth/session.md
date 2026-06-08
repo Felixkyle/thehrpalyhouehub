@@ -32,7 +32,7 @@ Returns the authenticated user's profile + stats. Called on every authenticated 
 
 ## PATCH `/api/users/me`
 
-Updates the editable profile fields. Used by the Personal Info tab on `/learner-profile`.
+Updates the editable profile fields. Used by the Personal Info tab on `/learn/learner-profile`.
 
 ### Request
 

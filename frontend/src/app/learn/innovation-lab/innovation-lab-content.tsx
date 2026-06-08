@@ -481,9 +481,9 @@ export default function InnovationLabContent() {
         <div className="nav-sep" />
         <div className="nav-title">Virtual Innovation Lab</div>
         <div className="nav-links">
-          <a className="tnl" href="/dashboard">Dashboard</a>
-          <a className="tnl" href="/courses/">Courses</a>
-          <a className="tnl" href="/ai-support">AI Support</a>
+          <a className="tnl" href="/learn/dashboard">Dashboard</a>
+          <a className="tnl" href="/learn/my-courses">Courses</a>
+          <a className="tnl" href="/learn/ai-support">AI Support</a>
         </div>
         <a
           className="nav-cta"
@@ -1535,7 +1535,7 @@ function JoinModal({
               <button className="forum-submit-btn" onClick={onSubmit}>Create account &amp; join →</button>
               <div style={{ textAlign: "center", fontFamily: "var(--f-body)", fontSize: "13px", color: "var(--ink-4)" }}>
                 Already have an account?{" "}
-                <a href="/sign-in/" target="_blank" rel="noopener noreferrer" style={{ color: "var(--accent)", fontWeight: 600, textDecoration: "none" }}>
+                <a href="/login" target="_blank" rel="noopener noreferrer" style={{ color: "var(--accent)", fontWeight: 600, textDecoration: "none" }}>
                   Sign in →
                 </a>
               </div>

@@ -119,7 +119,7 @@ export default function PasswordResetContent() {
                   Send reset link →
                 </button>
                 <div className="auth-divider">
-                  <a href="/sign-in/">
+                  <a href="/login">
                     ← Back to sign in
                   </a>
                 </div>
@@ -167,7 +167,7 @@ export default function PasswordResetContent() {
                   .
                 </div>
                 <div className="auth-divider">
-                  <a href="/sign-in/">
+                  <a href="/login">
                     ← Back to sign in
                   </a>
                 </div>

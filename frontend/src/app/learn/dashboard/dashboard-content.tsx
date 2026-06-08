@@ -45,25 +45,25 @@ export default function DashboardContent() {
           className="topnav-links"
           style={linksDisplay ? { display: linksDisplay } : undefined}
         >
-          <Link className="tnl active" href="/dashboard">
+          <Link className="tnl active" href="/learn/dashboard">
             Dashboard
           </Link>
           <a
             className="tnl"
-            href="/courses/"
+            href="/learn/my-courses"
           >
             Courses
           </a>
-          <Link className="tnl" href="/case-study-vault">
+          <Link className="tnl" href="/learn/case-study-vault">
             Case Studies
           </Link>
-          <Link className="tnl" href="/playbook">
+          <Link className="tnl" href="/learn/playbook">
             Playbook
           </Link>
-          <Link className="tnl" href="/innovation-lab">
+          <Link className="tnl" href="/learn/innovation-lab">
             Innovation Lab
           </Link>
-          <Link className="tnl" href="/ai-support">
+          <Link className="tnl" href="/learn/ai-support">
             AI Support
           </Link>
         </div>
@@ -132,7 +132,7 @@ export default function DashboardContent() {
           </div>
 
           <div className="side-nav">
-            <Link className="sn-item active" href="/dashboard">
+            <Link className="sn-item active" href="/learn/dashboard">
               <div className="sn-icon" style={{ background: "#E8ECF4" }}>
                 📊
               </div>{" "}
@@ -140,33 +140,33 @@ export default function DashboardContent() {
             </Link>
             <a
               className="sn-item"
-              href="/courses/"
+              href="/learn/my-courses"
             >
               <div className="sn-icon" style={{ background: "#E8ECF4" }}>
                 🎓
               </div>{" "}
               My Courses
             </a>
-            <Link className="sn-item" href="/case-study-vault">
+            <Link className="sn-item" href="/learn/case-study-vault">
               <div className="sn-icon" style={{ background: "#FDF4DD" }}>
                 📚
               </div>{" "}
               Case Studies
               <span className="sn-badge">32</span>
             </Link>
-            <Link className="sn-item" href="/playbook">
+            <Link className="sn-item" href="/learn/playbook">
               <div className="sn-icon" style={{ background: "#E8ECF4" }}>
                 📖
               </div>{" "}
               HR Playbook
             </Link>
-            <Link className="sn-item" href="/innovation-lab">
+            <Link className="sn-item" href="/learn/innovation-lab">
               <div className="sn-icon" style={{ background: "#FAF0EB" }}>
                 🔬
               </div>{" "}
               Innovation Lab
             </Link>
-            <Link className="sn-item" href="/ai-support">
+            <Link className="sn-item" href="/learn/ai-support">
               <div className="sn-icon" style={{ background: "#e8f7ee" }}>
                 🤖
               </div>{" "}
@@ -209,7 +209,7 @@ export default function DashboardContent() {
             </div>
             <a
               className="wh-next-btn"
-              href="/courses/"
+              href="/learn/my-courses"
             >
               Continue learning →
             </a>
@@ -253,7 +253,7 @@ export default function DashboardContent() {
                 <div className="lc-action">
                   <a
                     className="lc-btn outline"
-                    href="/courses/"
+                    href="/learn/my-courses"
                   >
                     Review →
                   </a>
@@ -297,7 +297,7 @@ export default function DashboardContent() {
                 <div className="lc-action">
                   <a
                     className="lc-btn primary"
-                    href="/courses/"
+                    href="/learn/my-courses"
                   >
                     Continue →
                   </a>
@@ -396,7 +396,7 @@ export default function DashboardContent() {
             </div>
             <a
               className="nsb-btn"
-              href="/courses/"
+              href="/learn/my-courses"
             >
               Continue →
             </a>
@@ -491,28 +491,28 @@ export default function DashboardContent() {
             <div className="quick-access">
               <div className="section-title">Quick Access</div>
               <div className="qa-grid">
-                <Link className="qa-item" href="/case-study-vault">
+                <Link className="qa-item" href="/learn/case-study-vault">
                   <div className="qa-icon" style={{ background: "#FDF4DD" }}>
                     📚
                   </div>
                   <div className="qa-label">Case Study Vault</div>
                   <div className="qa-arrow">→</div>
                 </Link>
-                <Link className="qa-item" href="/playbook">
+                <Link className="qa-item" href="/learn/playbook">
                   <div className="qa-icon" style={{ background: "#E8ECF4" }}>
                     📖
                   </div>
                   <div className="qa-label">Everyday HR Playbook</div>
                   <div className="qa-arrow">→</div>
                 </Link>
-                <Link className="qa-item" href="/ai-support">
+                <Link className="qa-item" href="/learn/ai-support">
                   <div className="qa-icon" style={{ background: "#e8f7ee" }}>
                     🤖
                   </div>
                   <div className="qa-label">AI HR Support</div>
                   <div className="qa-arrow">→</div>
                 </Link>
-                <Link className="qa-item" href="/innovation-lab">
+                <Link className="qa-item" href="/learn/innovation-lab">
                   <div className="qa-icon" style={{ background: "#FAF0EB" }}>
                     🔬
                   </div>

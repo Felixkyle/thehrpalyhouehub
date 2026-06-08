@@ -535,7 +535,7 @@ export default function ProgressReportContent() {
             <strong style={{ color: "var(--ink)" }}>Ada Okonkwo</strong> ·
             Generated April 2026 ·{" "}
             <Link
-              href="/certificate-verify"
+              href="/learn/certificate-verify"
               style={{ color: "var(--accent)", fontWeight: 600 }}
             >
               Verify certificates →

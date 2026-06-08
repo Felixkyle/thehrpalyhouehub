@@ -126,17 +126,17 @@ export default function PricingContent() {
         <div className="nav-links">
           <a
             className="nav-link"
-            href="/courses/"
+            href="/learn/my-courses"
           >
             Courses
           </a>
           <a
             className="nav-link"
-            href="/case-study-vault/"
+            href="/learn/case-study-vault/"
           >
             Case Studies
           </a>
-          <Link className="nav-link" href="/resources">
+          <Link className="nav-link" href="/learn/resources">
             Resources
           </Link>
           <Link className="nav-link active" href="/pricing">
@@ -146,7 +146,7 @@ export default function PricingContent() {
         <div className="nav-right">
           <a
             className="nav-cta"
-            href="/sign-up/"
+            href="/signup"
           >
             Start Free →
           </a>
@@ -346,7 +346,7 @@ export default function PricingContent() {
             </ul>
             <a
               className="plan-cta cta-ol"
-              href="/sign-up/"
+              href="/signup"
             >
               Start for free
             </a>
@@ -396,7 +396,7 @@ export default function PricingContent() {
             </ul>
             <a
               className="plan-cta cta-nv"
-              href="/sign-up/"
+              href="/signup"
             >
               Start Professional
             </a>
@@ -914,7 +914,7 @@ export default function PricingContent() {
           <div className="fbtns">
             <a
               className="btn-lg btn-ac"
-              href="/sign-up/"
+              href="/signup"
             >
               Start free now →
             </a>

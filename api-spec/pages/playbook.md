@@ -1,7 +1,7 @@
 # Page — Everyday HR Playbook
 
 **Frontend file:** `frontend/src/app/playbook/playbook-content.tsx`
-**Page route:** `/playbook`
+**Page route:** `/learn/playbook`
 **Auth required:** Yes
 
 A reference library of 10 common HR situations (difficult conversations, mental health, redundancy, etc.) with step-by-step guidance, templates, jurisdiction-aware legal notes, and downloadable checklists.

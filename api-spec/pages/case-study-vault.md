@@ -1,7 +1,7 @@
 # Page — Case Study Vault
 
 **Frontend file:** `frontend/src/app/case-study-vault/case-study-vault-content.tsx`
-**Page route:** `/case-study-vault`
+**Page route:** `/learn/case-study-vault`
 **Auth required:** Yes
 
 Searchable library of 32 HR case studies. Filtering, modal detail view, plus a "Download Case Summary" action that generates a TXT file client-side.

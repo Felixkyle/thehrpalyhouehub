@@ -325,25 +325,25 @@ export default function CaseStudyVaultContent() {
           Case Study Vault
         </div>
         <div className="bn-links">
-          <Link className="bn-link" href="/dashboard">
+          <Link className="bn-link" href="/learn/dashboard">
             Dashboard
           </Link>
           <a
             className="bn-link"
-            href="/courses/"
+            href="/learn/my-courses"
           >
             Courses
           </a>
-          <Link className="bn-link" href="/case-study-vault">
+          <Link className="bn-link" href="/learn/case-study-vault">
             Case Studies
           </Link>
-          <Link className="bn-link" href="/playbook">
+          <Link className="bn-link" href="/learn/playbook">
             Playbook
           </Link>
-          <Link className="bn-link" href="/innovation-lab">
+          <Link className="bn-link" href="/learn/innovation-lab">
             Innovation Lab
           </Link>
-          <Link className="bn-link" href="/ai-support">
+          <Link className="bn-link" href="/learn/ai-support">
             AI Support
           </Link>
         </div>

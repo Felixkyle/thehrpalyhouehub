@@ -1,7 +1,7 @@
 # Page — Learner Profile
 
 **Frontend file:** `frontend/src/app/learner-profile/learner-profile-content.tsx`
-**Page route:** `/learner-profile`
+**Page route:** `/learn/learner-profile`
 **Auth required:** Yes
 
 User account settings: personal info, password, notification prefs, privacy prefs, avatar, account deletion.

@@ -128,20 +128,20 @@ export default function HomeContent() {
             </a>
             <a
               className="nav-link"
-              href="/courses/"
+              href="/learn/my-courses"
             >
               Courses
             </a>
-            <Link className="nav-link" href="/case-study-vault">
+            <Link className="nav-link" href="/learn/case-study-vault">
               Case Studies
             </Link>
-            <Link className="nav-link" href="/playbook">
+            <Link className="nav-link" href="/learn/playbook">
               Playbook
             </Link>
-            <Link className="nav-link" href="/resources">
+            <Link className="nav-link" href="/learn/resources">
               Resources
             </Link>
-            <Link className="nav-link" href="/ai-support">
+            <Link className="nav-link" href="/learn/ai-support">
               AI Support
             </Link>
             <a className="nav-link" href="#consulting">
@@ -197,7 +197,7 @@ export default function HomeContent() {
           </button>
           <a
             className="nav-cta"
-            href="/courses/"
+            href="/learn/my-courses"
           >
             Start Learning <span>→</span>
           </a>
@@ -545,7 +545,7 @@ export default function HomeContent() {
             >
               <a
                 className="btn-cream"
-                href="/courses/"
+                href="/learn/my-courses"
               >
                 Begin your journey →
               </a>
@@ -1144,7 +1144,7 @@ export default function HomeContent() {
                     proceed on its original date.
                   </div>
                   <a
-                    href="/courses/"
+                    href="/learn/my-courses"
                     style={{
                       display: "inline-flex",
                       alignItems: "center",
@@ -1201,7 +1201,7 @@ export default function HomeContent() {
                     grievance itself.
                   </div>
                   <a
-                    href="/courses/"
+                    href="/learn/my-courses"
                     style={{
                       display: "inline-flex",
                       alignItems: "center",
@@ -1348,7 +1348,7 @@ export default function HomeContent() {
             <div className="cta-right">
               <a
                 className="btn-terra"
-                href="/courses/"
+                href="/learn/my-courses"
               >
                 Begin your journey →
               </a>
@@ -1487,20 +1487,20 @@ export default function HomeContent() {
               <div className="f-links">
                 <a
                   className="f-link"
-                  href="/courses/"
+                  href="/learn/my-courses"
                 >
                   Courses
                 </a>
-                <Link className="f-link" href="/case-study-vault">
+                <Link className="f-link" href="/learn/case-study-vault">
                   Case Study Vault
                 </Link>
-                <Link className="f-link" href="/playbook">
+                <Link className="f-link" href="/learn/playbook">
                   HR Playbook
                 </Link>
-                <Link className="f-link" href="/ai-support">
+                <Link className="f-link" href="/learn/ai-support">
                   AI HR Support
                 </Link>
-                <Link className="f-link" href="/innovation-lab">
+                <Link className="f-link" href="/learn/innovation-lab">
                   Innovation Lab
                 </Link>
               </div>
@@ -1510,31 +1510,31 @@ export default function HomeContent() {
               <div className="f-links">
                 <a
                   className="f-link"
-                  href="/courses/"
+                  href="/learn/my-courses"
                 >
                   L1 — Foundations
                 </a>
                 <a
                   className="f-link"
-                  href="/courses/"
+                  href="/learn/my-courses"
                 >
                   L2 — Operational
                 </a>
                 <a
                   className="f-link"
-                  href="/courses/"
+                  href="/learn/my-courses"
                 >
                   L3 — Strategic
                 </a>
                 <a
                   className="f-link"
-                  href="/courses/"
+                  href="/learn/my-courses"
                 >
                   L4 — Innovation
                 </a>
                 <a
                   className="f-link"
-                  href="/courses/"
+                  href="/learn/my-courses"
                 >
                   Final Project
                 </a>
@@ -1558,7 +1558,7 @@ export default function HomeContent() {
                 >
                   Contact
                 </a>
-                <Link className="f-link" href="/dashboard">
+                <Link className="f-link" href="/learn/dashboard">
                   Dashboard
                 </Link>
               </div>
@@ -1861,7 +1861,7 @@ function LearnerJourneySection() {
                   </div>
                 </div>
                 <a
-                  href="/courses/"
+                  href="/learn/my-courses"
                   style={lv.ctaStyle}
                 >
                   {lv.ctaLabel}
@@ -2035,7 +2035,7 @@ function LearnerJourneySection() {
           </div>
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
             <a
-              href="/courses/"
+              href="/learn/my-courses"
               style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -2054,7 +2054,7 @@ function LearnerJourneySection() {
               Start Level 1 free →
             </a>
             <Link
-              href="/ai-support"
+              href="/learn/ai-support"
               style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -2735,7 +2735,7 @@ function SnapResultPanel({ result }: { result: SnapResult }) {
         ))}
       </div>
       <a
-        href="/courses/"
+        href="/learn/my-courses"
         style={{
           display: "inline-flex",
           alignItems: "center",
@@ -3217,7 +3217,7 @@ function CareerJourneySection() {
           </div>
           <a
             className="btn-cream"
-            href="/courses/"
+            href="/learn/my-courses"
           >
             Find your level →
           </a>
@@ -3572,7 +3572,7 @@ function ClockiqStrip() {
             }}
           />
           <Link
-            href="/clockiq"
+            href="/learn/clockiq"
             style={{
               display: "inline-flex",
               alignItems: "center",
@@ -3972,7 +3972,7 @@ function MythBustingSection() {
               style={{ display: "flex", flexDirection: "column", gap: 8 }}
             >
               <Link
-                href="/case-study-vault"
+                href="/learn/case-study-vault"
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
@@ -3992,7 +3992,7 @@ function MythBustingSection() {
                 Explore the Case Study Vault →
               </Link>
               <a
-                href="/courses/"
+                href="/learn/my-courses"
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
@@ -4152,7 +4152,7 @@ function ClockiqFullSection() {
             </div>
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
               <Link
-                href="/clockiq"
+                href="/learn/clockiq"
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
