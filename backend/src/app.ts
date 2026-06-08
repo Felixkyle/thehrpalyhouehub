@@ -21,7 +21,17 @@ import adminEmailRoutes from "./routes/admin-email.js";
 export function createApp() {
   const app = express();
 
-  app.use(cors({ origin: env.frontendUrl }));
+  // FRONTEND_URL may be a comma-separated list (e.g. apex + www + localhost).
+  const allowedOrigins = env.frontendUrl.split(",").map((o) => o.trim()).filter(Boolean);
+  app.use(
+    cors({
+      origin(origin, cb) {
+        // Allow non-browser clients (curl, server-to-server) with no Origin header.
+        if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+        cb(new Error(`Origin not allowed by CORS: ${origin}`));
+      },
+    }),
+  );
   app.use(express.json({ limit: "20mb" }));
 
   app.use("/uploads", express.static(path.resolve(process.cwd(), "uploads")));
