@@ -54,22 +54,11 @@ services:
       EMAIL_FROM: ${EMAIL_FROM}
     volumes:
       - backend-uploads:/app/uploads
-    # Exposed only to nginx on the internal network; not published to host.
-    expose:
-      - "4000"
-
-  nginx:
-    image: nginx:1.27-alpine
-    restart: unless-stopped
-    depends_on:
-      - backend
+    # Published to the host loopback only. The VPS's own nginx/apache
+    # reverse-proxies api.thehrplayhousehub.org -> http://127.0.0.1:4000.
+    # Not exposed to the public internet directly.
     ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/conf.d:/etc/nginx/conf.d:ro
-      - ./nginx/certbot/conf:/etc/letsencrypt:ro
-      - ./nginx/certbot/www:/var/www/certbot:ro
+      - "127.0.0.1:4000:4000"
 
 volumes:
   mongo-data:
