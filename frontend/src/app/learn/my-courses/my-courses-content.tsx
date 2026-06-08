@@ -793,11 +793,21 @@ export default function MyCoursesContent() {
   const userName = meUser?.display_name || "there";
   const userInitials = meUser ? initialsOf(meUser.display_name) : "?";
 
+  // Sidebar profile line: "<job title> · <country>" from the real user.
+  const userRole = meUser
+    ? [meUser.job_title, meUser.country].filter(Boolean).join(" · ") || meUser.role
+    : "";
+
   // Header stats derived from live levels.
   const statCompleted = levels.filter((l) => l.status === "complete").length;
   const currentLevel = levels.find((l) => l.status === "current");
   const statProgress = currentLevel ? `${currentLevel.progress_percent}%` : "—";
   const statLocked = levels.filter((l) => l.status === "locked").length;
+
+  // Sidebar level badge + the three sidebar stat counts (from the live user stats).
+  const sideLevel = currentLevel ?? levels.find((l) => l.status === "complete");
+  const sideLevelLabel = sideLevel ? `Level ${sideLevel.level_number} — ${sideLevel.title}` : null;
+  const sideStats = me?.stats;
 
   function viewCert(certKey: string) {
     setCurrentCertId(certKey);
@@ -916,23 +926,25 @@ export default function MyCoursesContent() {
           <div className="user-card">
             <div className="uc-avatar">{userInitials}</div>
             <div className="uc-name">{userName}</div>
-            <div className="uc-role">HR Business Partner · Lagos, Nigeria</div>
-            <div className="uc-level-badge">
-              <div className="uc-level-dot" />
-              <span>Level 2 — Operational HR</span>
-            </div>
+            {userRole && <div className="uc-role">{userRole}</div>}
+            {sideLevelLabel && (
+              <div className="uc-level-badge">
+                <div className="uc-level-dot" />
+                <span>{sideLevelLabel}</span>
+              </div>
+            )}
             <div className="uc-divider" />
             <div className="uc-stat-row">
               <div className="uc-stat">
-                <div className="uc-stat-n">1</div>
+                <div className="uc-stat-n">{sideStats?.levels_completed ?? 0}</div>
                 <div className="uc-stat-l">Completed</div>
               </div>
               <div className="uc-stat">
-                <div className="uc-stat-n">12</div>
+                <div className="uc-stat-n">{sideStats?.cases_read ?? 0}</div>
                 <div className="uc-stat-l">Cases Read</div>
               </div>
               <div className="uc-stat">
-                <div className="uc-stat-n">3</div>
+                <div className="uc-stat-n">{sideStats?.badges_earned ?? 0}</div>
                 <div className="uc-stat-l">Badges</div>
               </div>
             </div>
