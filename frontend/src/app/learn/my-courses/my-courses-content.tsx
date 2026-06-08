@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useCourses, useMe } from "@/lib/hooks";
+import { useCourses, useMe, useCertificates } from "@/lib/hooks";
 import { useAuth } from "@/lib/stores/auth";
 import { ApiError } from "@/lib/api/client";
-import type { CourseLevel } from "@/lib/api/types";
+import type { CourseLevel, Certificate } from "@/lib/api/types";
 import "./my-courses.css";
 
 /**
@@ -786,9 +786,47 @@ export default function MyCoursesContent() {
   const authed = useAuth((s) => !!s.token);
   const { data: coursesData, isLoading, isError, error, refetch } = useCourses();
   const { data: me } = useMe();
+  const { data: certsData } = useCertificates();
   const meUser = me?.user;
 
   const levels: CourseLevel[] = coursesData?.levels ?? [];
+
+  // ── Certificates: map API records to the CERTS template keys ──────────
+  // API `level` (1|2|3|4|"full") → CERTS key ("l1"|"l2"|"l3"|"l4"|"programme").
+  const certLevelToKey = (lvl: Certificate["level"]): string =>
+    lvl === "full" ? "programme" : `l${lvl}`;
+
+  // Lookup keyed by CERTS key → { status, issued_at } from the API.
+  const certStatusByKey: Record<string, { status: Certificate["status"]; issued_at: string | null }> = {};
+  for (const c of certsData?.certificates ?? []) {
+    certStatusByKey[certLevelToKey(c.level)] = {
+      status: c.status,
+      issued_at: c.issued_at,
+    };
+  }
+
+  // Earned-of-total count for the header pill. Falls back to the static
+  // CERTS table size (5) when the API hasn't loaded yet.
+  const certTotal = certsData?.certificates.length ?? Object.keys(CERTS).length;
+  const certEarned = (certsData?.certificates ?? []).filter(
+    (c) => c.status === "earned",
+  ).length;
+
+  // Format an ISO issued_at as "Month YYYY"; falls back to the CERTS date.
+  const fmtIssued = (key: string): string => {
+    const iso = certStatusByKey[key]?.issued_at;
+    if (iso) {
+      const d = new Date(iso);
+      if (!Number.isNaN(d.getTime())) {
+        return d.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+      }
+    }
+    return CERTS[key]?.date || "";
+  };
+
+  // Is a given CERTS key earned per the API? (defaults to locked).
+  const isCertEarned = (key: string): boolean =>
+    certStatusByKey[key]?.status === "earned";
 
   const userName = meUser?.display_name || "there";
   const userInitials = meUser ? initialsOf(meUser.display_name) : "?";
@@ -808,6 +846,25 @@ export default function MyCoursesContent() {
   const sideLevel = currentLevel ?? levels.find((l) => l.status === "complete");
   const sideLevelLabel = sideLevel ? `Level ${sideLevel.level_number} — ${sideLevel.title}` : null;
   const sideStats = me?.stats;
+
+  // ── "Your Next Step" banner — derived from the current level's topics ──
+  const isTopicDone = (status: string) => {
+    const s = (status || "").toLowerCase();
+    return s === "complete" || s === "completed";
+  };
+  const nextStepTopic = currentLevel
+    ? currentLevel.topics.find((t) => !isTopicDone(t.status))
+    : undefined;
+  const nextStep =
+    currentLevel && nextStepTopic
+      ? {
+          label: `Your next step — Level ${currentLevel.level_number}`,
+          title: nextStepTopic.name,
+          sub: `${currentLevel.title} · Pick up where you left off — ${
+            100 - Math.max(0, Math.min(100, currentLevel.progress_percent))
+          }% of this level remaining`,
+        }
+      : null;
 
   function viewCert(certKey: string) {
     setCurrentCertId(certKey);
@@ -1179,229 +1236,231 @@ export default function MyCoursesContent() {
                     background: "var(--green)",
                   }}
                 />
-                1 of 5 earned
+                {certEarned} of {certTotal} earned
               </div>
             </div>
 
             {/* Level certificates — 2 col grid */}
             <div className="cert-grid" style={{ marginBottom: 14 }}>
-              {/* L1 EARNED */}
-              <div className="cert-item earned" onClick={() => viewCert("l1")}>
-                <div
-                  className="cert-icon"
-                  style={{ background: "var(--green-pale)" }}
-                >
-                  🏅
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div
-                    style={{
-                      fontFamily: "var(--f-body)",
-                      fontSize: 10,
-                      fontWeight: 700,
-                      textTransform: "uppercase",
-                      letterSpacing: ".07em",
-                      color: "var(--green)",
-                      marginBottom: 3,
-                    }}
-                  >
-                    ✓ Earned · March 2026
+              {(["l1", "l2", "l3", "l4"] as const).map((key) => {
+                const tmpl = CERTS[key];
+                const levelNum = key.slice(1); // "1".."4"
+                const earned = isCertEarned(key);
+                const cardTitle = `${tmpl.level} — ${tmpl.title}`;
+                if (earned) {
+                  const issued = fmtIssued(key);
+                  return (
+                    <div
+                      className="cert-item earned"
+                      key={key}
+                      onClick={() => viewCert(key)}
+                    >
+                      <div
+                        className="cert-icon"
+                        style={{ background: "var(--green-pale)" }}
+                      >
+                        🏅
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div
+                          style={{
+                            fontFamily: "var(--f-body)",
+                            fontSize: 10,
+                            fontWeight: 700,
+                            textTransform: "uppercase",
+                            letterSpacing: ".07em",
+                            color: "var(--green)",
+                            marginBottom: 3,
+                          }}
+                        >
+                          ✓ Earned{issued ? ` · ${issued}` : ""}
+                        </div>
+                        <div className="cert-title">{cardTitle}</div>
+                        <div className="cert-date">
+                          Issued automatically on completion
+                        </div>
+                      </div>
+                      <div
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 6,
+                          alignItems: "flex-end",
+                          flexShrink: 0,
+                        }}
+                      >
+                        <div className="cert-action">View →</div>
+                        <div
+                          style={{
+                            fontFamily: "var(--f-body)",
+                            fontSize: 11,
+                            color: "var(--ink-4)",
+                            cursor: "pointer",
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            printCert(key);
+                          }}
+                        >
+                          Print / Save
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+                return (
+                  <div className="cert-item locked-cert" key={key}>
+                    <div className="cert-icon" style={{ background: "#E8ECF4" }}>
+                      🏅
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div
+                        style={{
+                          fontFamily: "var(--f-body)",
+                          fontSize: 10,
+                          fontWeight: 700,
+                          textTransform: "uppercase",
+                          letterSpacing: ".07em",
+                          color: "var(--ink-4)",
+                          marginBottom: 3,
+                        }}
+                      >
+                        🔒 Locked
+                      </div>
+                      <div className="cert-title">{cardTitle}</div>
+                      <div className="cert-date">
+                        Auto-issued when Level {levelNum} is complete
+                      </div>
+                    </div>
                   </div>
-                  <div className="cert-title">Level 1 — HR Foundations</div>
-                  <div className="cert-date">
-                    Issued automatically on completion
-                  </div>
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 6,
-                    alignItems: "flex-end",
-                    flexShrink: 0,
-                  }}
-                >
-                  <div className="cert-action">View →</div>
-                  <div
-                    style={{
-                      fontFamily: "var(--f-body)",
-                      fontSize: 11,
-                      color: "var(--ink-4)",
-                      cursor: "pointer",
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      printCert("l1");
-                    }}
-                  >
-                    Print / Save
-                  </div>
-                </div>
-              </div>
-
-              {/* L2 LOCKED */}
-              <div className="cert-item locked-cert">
-                <div className="cert-icon" style={{ background: "#E8ECF4" }}>
-                  🏅
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div
-                    style={{
-                      fontFamily: "var(--f-body)",
-                      fontSize: 10,
-                      fontWeight: 700,
-                      textTransform: "uppercase",
-                      letterSpacing: ".07em",
-                      color: "var(--ink-4)",
-                      marginBottom: 3,
-                    }}
-                  >
-                    🔒 Locked
-                  </div>
-                  <div className="cert-title">Level 2 — Operational HR</div>
-                  <div className="cert-date">
-                    Auto-issued when Level 2 is complete
-                  </div>
-                </div>
-              </div>
-
-              {/* L3 LOCKED */}
-              <div className="cert-item locked-cert">
-                <div className="cert-icon" style={{ background: "#E8ECF4" }}>
-                  🏅
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div
-                    style={{
-                      fontFamily: "var(--f-body)",
-                      fontSize: 10,
-                      fontWeight: 700,
-                      textTransform: "uppercase",
-                      letterSpacing: ".07em",
-                      color: "var(--ink-4)",
-                      marginBottom: 3,
-                    }}
-                  >
-                    🔒 Locked
-                  </div>
-                  <div className="cert-title">Level 3 — Strategic HR</div>
-                  <div className="cert-date">
-                    Auto-issued when Level 3 is complete
-                  </div>
-                </div>
-              </div>
-
-              {/* L4 LOCKED */}
-              <div className="cert-item locked-cert">
-                <div className="cert-icon" style={{ background: "#E8ECF4" }}>
-                  🏅
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div
-                    style={{
-                      fontFamily: "var(--f-body)",
-                      fontSize: 10,
-                      fontWeight: 700,
-                      textTransform: "uppercase",
-                      letterSpacing: ".07em",
-                      color: "var(--ink-4)",
-                      marginBottom: 3,
-                    }}
-                  >
-                    🔒 Locked
-                  </div>
-                  <div className="cert-title">Level 4 — Future-Forward HR</div>
-                  <div className="cert-date">
-                    Auto-issued when Level 4 is complete
-                  </div>
-                </div>
-              </div>
+                );
+              })}
             </div>
 
             {/* PROGRAMME CERTIFICATE — full width, special treatment */}
-            <div
-              style={{
-                borderRadius: 14,
-                border: "2px dashed rgba(10,22,40,.15)",
-                padding: "20px 24px",
-                display: "flex",
-                alignItems: "center",
-                gap: 18,
-                background:
-                  "linear-gradient(135deg,rgba(13,31,60,.02),rgba(201,80,30,.02))",
-                opacity: 0.5,
-              }}
-            >
-              <div
-                style={{
-                  width: 52,
-                  height: 52,
-                  borderRadius: 14,
-                  background: "#E8ECF4",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 24,
-                  flexShrink: 0,
-                }}
-              >
-                🏆
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
+            {(() => {
+              const progEarned = isCertEarned("programme");
+              const progIssued = fmtIssued("programme");
+              return (
                 <div
+                  onClick={progEarned ? () => viewCert("programme") : undefined}
                   style={{
-                    fontFamily: "var(--f-body)",
-                    fontSize: 10,
-                    fontWeight: 700,
-                    textTransform: "uppercase",
-                    letterSpacing: ".08em",
-                    color: "var(--ink-4)",
-                    marginBottom: 5,
+                    borderRadius: 14,
+                    border: progEarned
+                      ? "2px solid rgba(196,131,10,.4)"
+                      : "2px dashed rgba(10,22,40,.15)",
+                    padding: "20px 24px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 18,
+                    background:
+                      "linear-gradient(135deg,rgba(13,31,60,.02),rgba(201,80,30,.02))",
+                    opacity: progEarned ? 1 : 0.5,
+                    cursor: progEarned ? "pointer" : "default",
                   }}
                 >
-                  🔒 Programme Certificate — Locked
+                  <div
+                    style={{
+                      width: 52,
+                      height: 52,
+                      borderRadius: 14,
+                      background: progEarned ? "#FDF4DD" : "#E8ECF4",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: 24,
+                      flexShrink: 0,
+                    }}
+                  >
+                    🏆
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div
+                      style={{
+                        fontFamily: "var(--f-body)",
+                        fontSize: 10,
+                        fontWeight: 700,
+                        textTransform: "uppercase",
+                        letterSpacing: ".08em",
+                        color: progEarned ? "var(--gold, #C4830A)" : "var(--ink-4)",
+                        marginBottom: 5,
+                      }}
+                    >
+                      {progEarned
+                        ? `✓ Programme Certificate — Earned${progIssued ? ` · ${progIssued}` : ""}`
+                        : "🔒 Programme Certificate — Locked"}
+                    </div>
+                    <div
+                      style={{
+                        fontFamily: "var(--f-display)",
+                        fontSize: 17,
+                        fontWeight: 900,
+                        color: "var(--ink)",
+                        marginBottom: 4,
+                        letterSpacing: "-.3px",
+                      }}
+                    >
+                      HR Playhouse Hub — Full Programme Certificate
+                    </div>
+                    <div
+                      style={{
+                        fontFamily: "var(--f-body)",
+                        fontSize: 13,
+                        color: "var(--ink-3)",
+                        lineHeight: 1.55,
+                      }}
+                    >
+                      Awarded on completion of all 4 levels, all case studies, all
+                      games, and the final HR Strategy Proposal. This is the highest
+                      credential issued by HR Playhouse Hub — recognised across the
+                      Commonwealth.
+                    </div>
+                  </div>
+                  {progEarned ? (
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 6,
+                        alignItems: "flex-end",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <div className="cert-action">View →</div>
+                      <div
+                        style={{
+                          fontFamily: "var(--f-body)",
+                          fontSize: 11,
+                          color: "var(--ink-4)",
+                          cursor: "pointer",
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          printCert("programme");
+                        }}
+                      >
+                        Print / Save
+                      </div>
+                    </div>
+                  ) : (
+                    <div
+                      style={{
+                        fontFamily: "var(--f-body)",
+                        fontSize: 12,
+                        color: "var(--ink-4)",
+                        flexShrink: 0,
+                        textAlign: "right",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      Complete all 4
+                      <br />
+                      levels to unlock
+                    </div>
+                  )}
                 </div>
-                <div
-                  style={{
-                    fontFamily: "var(--f-display)",
-                    fontSize: 17,
-                    fontWeight: 900,
-                    color: "var(--ink)",
-                    marginBottom: 4,
-                    letterSpacing: "-.3px",
-                  }}
-                >
-                  HR Playhouse Hub — Full Programme Certificate
-                </div>
-                <div
-                  style={{
-                    fontFamily: "var(--f-body)",
-                    fontSize: 13,
-                    color: "var(--ink-3)",
-                    lineHeight: 1.55,
-                  }}
-                >
-                  Awarded on completion of all 4 levels, all case studies, all
-                  games, and the final HR Strategy Proposal. This is the highest
-                  credential issued by HR Playhouse Hub — recognised across the
-                  Commonwealth.
-                </div>
-              </div>
-              <div
-                style={{
-                  fontFamily: "var(--f-body)",
-                  fontSize: 12,
-                  color: "var(--ink-4)",
-                  flexShrink: 0,
-                  textAlign: "right",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                Complete all 4
-                <br />
-                levels to unlock
-              </div>
-            </div>
+              );
+            })()}
           </div>
 
           {/* CERTIFICATE VIEWER MODAL */}
@@ -1515,25 +1574,19 @@ export default function MyCoursesContent() {
           )}
 
           {/* NEXT STEP BANNER */}
-          <div className="next-step-banner">
-            <div className="nsb-icon">📖</div>
-            <div className="nsb-body">
-              <div className="nsb-label">Your next step — Level 2</div>
-              <div className="nsb-title">
-                Topic 3: Retention &amp; Employee Well-being
+          {nextStep && (
+            <div className="next-step-banner">
+              <div className="nsb-icon">📖</div>
+              <div className="nsb-body">
+                <div className="nsb-label">{nextStep.label}</div>
+                <div className="nsb-title">{nextStep.title}</div>
+                <div className="nsb-sub">{nextStep.sub}</div>
               </div>
-              <div className="nsb-sub">
-                Operational HR · Pick up where you left off — 25% of this level
-                remaining
-              </div>
+              <a className="nsb-btn" href="/learn/my-courses">
+                Continue →
+              </a>
             </div>
-            <a
-              className="nsb-btn"
-              href="/learn/my-courses"
-            >
-              Continue →
-            </a>
-          </div>
+          )}
         </main>
       </div>
     </>
