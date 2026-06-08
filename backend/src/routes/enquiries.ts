@@ -4,6 +4,7 @@ import { Enquiry } from "../models/Enquiry.js";
 import { validateBody } from "../middleware/validate.js";
 import { asyncHandler } from "../utils/async-handler.js";
 import { uploadPartnerAttachment } from "../utils/upload.js";
+import { sendEnquiryNotification } from "../utils/email.js";
 
 const router = Router();
 
@@ -21,6 +22,12 @@ router.post(
     const b = req.body as z.infer<typeof cpdSchema>;
     await Enquiry.create({
       kind: "cpd",
+      name: b.name,
+      email: b.email,
+      organisation: b.organisation,
+      message: b.message,
+    });
+    void sendEnquiryNotification("CPD", {
       name: b.name,
       email: b.email,
       organisation: b.organisation,
@@ -57,6 +64,18 @@ router.post(
       attachment_url: req.file ? `/uploads/${req.file.filename}` : null,
     });
 
+    void sendEnquiryNotification("Partnership", {
+      name: `${b.first_name} ${b.last_name}`,
+      email: b.email,
+      organisation: b.organisation,
+      phone: b.phone,
+      country: b.country,
+      job_title: b.job_title,
+      org_type: b.org_type,
+      track: b.track,
+      message: b.message,
+    });
+
     res.json({ ok: true });
   }),
 );
@@ -80,6 +99,13 @@ router.post(
       email: b.email,
       organisation: b.organisation ?? null,
       message: `[Team size: ${b.team_size ?? "n/a"}]\n\n${b.message}`,
+    });
+    void sendEnquiryNotification("ClockIQ", {
+      name: b.name,
+      email: b.email,
+      organisation: b.organisation,
+      team_size: b.team_size,
+      message: b.message,
     });
     res.json({ ok: true });
   }),

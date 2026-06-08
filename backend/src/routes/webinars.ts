@@ -8,6 +8,7 @@ import { requireAdmin } from "../middleware/admin.js";
 import { validateBody } from "../middleware/validate.js";
 import { asyncHandler } from "../utils/async-handler.js";
 import { conflict, notFound, unauthenticated } from "../utils/errors.js";
+import { sendWebinarConfirmationEmail } from "../utils/email.js";
 
 const router = Router();
 router.use(requireAuth);
@@ -74,15 +75,24 @@ router.post(
     const existing = await WebinarRegistration.findOne({ webinar_id: webinar._id, user_id: user._id });
     if (existing) throw conflict("Already registered for this webinar");
 
+    const regFirstName = b.first_name ?? user.first_name;
+    const regEmail = b.email ?? user.email;
     await WebinarRegistration.create({
       webinar_id: webinar._id,
       user_id: user._id,
-      first_name: b.first_name ?? user.first_name,
+      first_name: regFirstName,
       last_name: b.last_name ?? user.last_name,
-      email: b.email ?? user.email,
+      email: regEmail,
       organisation: b.organisation ?? user.organisation ?? null,
       hr_level: b.hr_level ?? user.role,
     });
+
+    void sendWebinarConfirmationEmail(
+      regEmail,
+      regFirstName,
+      webinar.title,
+      webinar.scheduled_at ? webinar.scheduled_at.toISOString() : null,
+    );
 
     const serialized = await serializeWebinar(webinar, req.user!.sub);
     res.json({ ok: true, webinar: serialized });

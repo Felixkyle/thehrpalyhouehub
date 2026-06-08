@@ -7,6 +7,8 @@ import { signToken } from "../utils/jwt.js";
 import { conflict, notFound, unauthenticated } from "../utils/errors.js";
 import { asyncHandler } from "../utils/async-handler.js";
 import { validateBody } from "../middleware/validate.js";
+import { env } from "../config/env.js";
+import { sendPasswordResetEmail, sendSignupConfirmationEmail } from "../utils/email.js";
 
 const router = Router();
 
@@ -44,6 +46,8 @@ router.post(
       how_heard: body.how_heard ?? null,
       consent_accepted_at: new Date(),
     });
+
+    void sendSignupConfirmationEmail(user.email, user.first_name);
 
     const { token, expiresAt } = signToken({ sub: String(user._id), email: user.email });
     res.status(201).json({ token, expires_at: expiresAt, user: user.toPublic() });
@@ -88,8 +92,8 @@ router.post(
         token_hash,
         expires_at: new Date(Date.now() + 60 * 60 * 1000),
       });
-      // TODO: send email with link: /password-reset/confirm?token=${raw}
-      console.log(`[dev] password reset token for ${user.email}: ${raw}`);
+      const resetUrl = `${env.frontendUrl}/password-reset/confirm?token=${raw}`;
+      void sendPasswordResetEmail(user.email, resetUrl);
     }
 
     res.json({ ok: true });

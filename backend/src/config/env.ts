@@ -13,6 +13,10 @@ export const env = {
   jwtSecret: req("JWT_SECRET"),
   jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? "7d",
   bcryptRounds: Number(process.env.BCRYPT_ROUNDS ?? 10),
+  geminiApiKey: process.env.GEMINI_API_KEY ?? "",
+  geminiModel: process.env.GEMINI_MODEL ?? "gemini-2.5-pro",
+  resendApiKey: process.env.RESEND_API_KEY ?? "",
+  emailFrom: process.env.EMAIL_FROM ?? "The HR Playhouse Hub <contact@thehrplayhousehub.org>",
 };
 
 if (env.jwtSecret.length < 32) {
