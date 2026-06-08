@@ -55,6 +55,7 @@ export default function SignupContent() {
   const [consentError, setConsentError] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showErrorBanner, setShowErrorBanner] = useState(false);
+  const [bannerMsg, setBannerMsg] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
 
   function setFieldError(id: FieldId, condition: boolean): boolean {
@@ -98,6 +99,7 @@ export default function SignupContent() {
     // Loading state
     setLoading(true);
     setShowErrorBanner(false);
+    setBannerMsg(null);
 
     try {
       await signup.mutateAsync({
@@ -113,9 +115,12 @@ export default function SignupContent() {
       // Account created + session stored by the useSignup hook.
       setSubmitted(true);
     } catch (err) {
-      // Surface a field-level error for a duplicate email, else a banner.
-      if (err instanceof ApiError && err.fields?.email) {
-        setFieldError("email", false);
+      // Show the real API error; flag the email field on a duplicate.
+      if (err instanceof ApiError) {
+        if (err.fields?.email) setFieldError("email", false);
+        setBannerMsg(err.message || "Something went wrong. Please try again.");
+      } else {
+        setBannerMsg("Something went wrong. Please check your connection and try again.");
       }
       setShowErrorBanner(true);
       setLoading(false);
@@ -478,9 +483,9 @@ export default function SignupContent() {
                       showErrorBanner ? " show" : ""
                     }`}
                     id="error-banner"
+                    role="alert"
                   >
-                    ⚠ Something went wrong. Please try again or contact{" "}
-                    <strong>contact@thehrplayhousehub.org</strong>
+                    ⚠ {bannerMsg ?? "Something went wrong. Please try again."}
                   </div>
 
                   <button
