@@ -8,7 +8,8 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "lint": "tsc --noEmit",
-    "seed:courses": "tsx src/scripts/seed-courses.ts"
+    "seed:courses": "tsx src/scripts/seed-courses.ts",
+    "seed:courses:prod": "node dist/scripts/seed-courses.js"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

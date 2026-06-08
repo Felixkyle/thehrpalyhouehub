@@ -102,12 +102,17 @@ The LMS needs the 4 course levels in the database, or `/learn/my-courses`
 shows "No courses yet". Run the seed inside the backend container:
 
 ```bash
-docker compose exec backend npm run seed:courses
+# Inside the container, using the COMPILED seed (the prod image has no tsx/src):
+docker compose exec backend npm run seed:courses:prod
 # → ✓ seeded Level 1 … Level 4 …  "4 course level(s) in the database."
 ```
 
+> Must run **inside the container** (`docker compose exec backend …`) — the
+> MONGODB_URI host `mongo` only resolves on the Docker network, not the VPS host.
+> Use `seed:courses:prod` (compiled `node dist/...`), not `seed:courses` (which
+> needs `tsx`/`src`, stripped from the production image).
+
 It's idempotent (upserts by level) — safe to re-run after content changes.
-Re-run it whenever you redeploy with updated seed content.
 
 ---
 
