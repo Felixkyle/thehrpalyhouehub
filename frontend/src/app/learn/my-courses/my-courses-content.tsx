@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useCourses, useMe, useCertificates } from "@/lib/hooks";
+import { useCourses, useMe, useCertificates, useStartLevel } from "@/lib/hooks";
 import { useAuth } from "@/lib/stores/auth";
 import { ApiError } from "@/lib/api/client";
 import type { CourseLevel, Certificate } from "@/lib/api/types";
@@ -641,12 +641,15 @@ function ItemColumn({
 }
 
 /** A full course card for one level. */
-function CourseCard({ level }: { level: CourseLevel }) {
+function CourseCard({ level, isNextUp }: { level: CourseLevel; isNextUp: boolean }) {
+  const startLevel = useStartLevel();
   const pct = Math.max(0, Math.min(100, level.progress_percent));
   const color = statusColor(level.status);
   const locked = level.status === "locked";
   const complete = level.status === "complete";
   const current = level.status === "current";
+  // A locked level that is the immediate next one can be started.
+  const canStart = locked && isNextUp;
 
   const issued = level.completed_at
     ? new Date(level.completed_at).toLocaleDateString(undefined, {
@@ -767,11 +770,24 @@ function CourseCard({ level }: { level: CourseLevel }) {
             </>
           )}
           {current && (
-            <a className="cc-btn accent" href="/learn/my-courses">
-              Continue learning →
+            <a className="cc-btn accent" href="/learn/learning-module">
+              {pct > 0 ? "Continue learning →" : "Start level →"}
             </a>
           )}
-          {locked && <span className="cc-btn disabled">🔒 Locked</span>}
+          {canStart && (
+            <button
+              className="cc-btn accent"
+              disabled={startLevel.isPending}
+              onClick={() => startLevel.mutate(level.level_number)}
+            >
+              {startLevel.isPending ? "Starting…" : "Start level →"}
+            </button>
+          )}
+          {locked && !canStart && (
+            <span className="cc-btn disabled">
+              🔒 Unlocks after Level {level.level_number - 1}
+            </span>
+          )}
         </div>
       </div>
     </div>
@@ -790,6 +806,16 @@ export default function MyCoursesContent() {
   const meUser = me?.user;
 
   const levels: CourseLevel[] = coursesData?.levels ?? [];
+
+  // The level a user can start next: if nothing is in progress, it's the
+  // lowest-numbered not-yet-complete level (so a fresh user can start Level 1).
+  const hasCurrent = levels.some((l) => l.status === "current");
+  const nextUpLevel = hasCurrent
+    ? -1
+    : levels
+        .filter((l) => l.status !== "complete")
+        .map((l) => l.level_number)
+        .sort((a, b) => a - b)[0] ?? -1;
 
   // ── Certificates: map API records to the CERTS template keys ──────────
   // API `level` (1|2|3|4|"full") → CERTS key ("l1"|"l2"|"l3"|"l4"|"programme").
@@ -1183,7 +1209,11 @@ export default function MyCoursesContent() {
               {levels
                 .filter((lvl) => showCard(lvl.status))
                 .map((lvl) => (
-                  <CourseCard key={lvl.id} level={lvl} />
+                  <CourseCard
+                    key={lvl.id}
+                    level={lvl}
+                    isNextUp={lvl.level_number === nextUpLevel}
+                  />
                 ))}
             </div>
           )}

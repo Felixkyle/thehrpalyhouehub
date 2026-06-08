@@ -7,6 +7,7 @@ import {
   resources,
   webinars,
   ai,
+  courses,
 } from "@/lib/api/endpoints";
 import { useAuth } from "@/lib/stores/auth";
 import { qk } from "./queryKeys";
@@ -85,6 +86,37 @@ export function useUnregisterWebinar() {
   return useMutation({
     mutationFn: (id: string) => webinars.unregister(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["webinars"] }),
+  });
+}
+
+// ── Courses (start / progress) ─────────────────────────────────────
+
+/** Invalidate everything a progress change can affect. */
+function useInvalidateLearning() {
+  const qc = useQueryClient();
+  return () => {
+    qc.invalidateQueries({ queryKey: qk.courses });
+    qc.invalidateQueries({ queryKey: qk.dashboard });
+    qc.invalidateQueries({ queryKey: qk.progressReport });
+    qc.invalidateQueries({ queryKey: qk.certificates });
+    qc.invalidateQueries({ queryKey: qk.me });
+  };
+}
+
+export function useStartLevel() {
+  const invalidate = useInvalidateLearning();
+  return useMutation({
+    mutationFn: (level: number) => courses.start(level),
+    onSuccess: invalidate,
+  });
+}
+
+export function useCompleteItem() {
+  const invalidate = useInvalidateLearning();
+  return useMutation({
+    mutationFn: ({ level, kind, itemId }: { level: number; kind: "topic" | "case_study" | "game"; itemId: string }) =>
+      courses.complete(level, { kind, item_id: itemId }),
+    onSuccess: invalidate,
   });
 }
 

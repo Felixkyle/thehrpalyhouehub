@@ -96,7 +96,22 @@ docker compose ps        # all three services should be "running"/"healthy"
 
 ---
 
-## 5. Verify
+## 5. Seed the course content (one time)
+
+The LMS needs the 4 course levels in the database, or `/learn/my-courses`
+shows "No courses yet". Run the seed inside the backend container:
+
+```bash
+docker compose exec backend npm run seed:courses
+# → ✓ seeded Level 1 … Level 4 …  "4 course level(s) in the database."
+```
+
+It's idempotent (upserts by level) — safe to re-run after content changes.
+Re-run it whenever you redeploy with updated seed content.
+
+---
+
+## 6. Verify
 
 ```bash
 curl -s https://api.thehrplayhousehub.org/api/health

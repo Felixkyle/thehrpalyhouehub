@@ -85,6 +85,12 @@ export const dashboard = {
 
 export const courses = {
   list: () => api<{ levels: CourseLevel[] }>("/api/courses"),
+
+  start: (level: number) =>
+    api<{ levels: CourseLevel[] }>(`/api/courses/${level}/start`, { method: "POST" }),
+
+  complete: (level: number, body: { kind: "topic" | "case_study" | "game"; item_id: string }) =>
+    api<{ levels: CourseLevel[] }>(`/api/courses/${level}/complete`, { method: "POST", body }),
 };
 
 export const certificates = {
