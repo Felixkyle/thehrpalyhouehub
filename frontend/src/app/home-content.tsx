@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { usePartnershipEnquiry } from "@/lib/hooks";
+import { ApiError } from "@/lib/api/client";
 import "./home.css";
 
 /**
@@ -5295,14 +5297,15 @@ const SERVICE_OPTIONS = [
 ];
 
 function ConsultingSection() {
+  const partnership = usePartnershipEnquiry();
   const [submitted, setSubmitted] = useState(false);
   const [submittedEmail, setSubmittedEmail] = useState("");
   const [errorShown, setErrorShown] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+  const loading = partnership.isPending;
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setLoading(true);
     setErrorShown(false);
 
     const form = e.currentTarget;
@@ -5316,21 +5319,32 @@ function ConsultingSection() {
     const service = String(data.get("cs-service") ?? "");
     const message = String(data.get("cs-message") ?? "").trim();
 
-    // EmailJS is not loaded on this static marketing page, so we go straight
-    // to the mailto fallback that the original script also used in its catch
-    // branch. The user is informed via the success panel.
+    // Map the consulting form onto the partnership-enquiry endpoint, which
+    // stores the enquiry and emails contact@thehrplayhousehub.org.
+    const [firstName, ...rest] = name.split(" ");
+    const lastName = rest.join(" ") || firstName;
+    const fd = new FormData();
+    fd.append("first_name", firstName);
+    fd.append("last_name", lastName);
+    fd.append("job_title", title);
+    fd.append("organisation", org);
+    fd.append("org_type", orgtype || "Not specified");
+    fd.append("email", email);
+    fd.append("track", service || "Consulting enquiry");
+    fd.append("message", message);
+    if (country) fd.append("country", country);
+
     try {
-      const body = encodeURIComponent(
-        `Name: ${name}\nTitle: ${title}\nEmail: ${email}\nOrganisation: ${org} (${orgtype || "Not specified"})\nCountry: ${country || "Not specified"}\nService: ${service || "Not specified"}\n\n${message}`,
-      );
-      window.location.href = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(`New Consulting Enquiry — ${name} / ${org}`)}&body=${body}`;
+      await partnership.mutateAsync(fd);
       setSubmittedEmail(email);
       setSubmitted(true);
     } catch (err) {
-      console.error("Consulting form error:", err);
+      setErrorMsg(
+        err instanceof ApiError
+          ? err.message
+          : "Something went wrong. Please try again or email contact@thehrplayhousehub.org.",
+      );
       setErrorShown(true);
-    } finally {
-      setLoading(false);
     }
   }
 
@@ -5567,8 +5581,7 @@ function ConsultingSection() {
                         color: "#fca5a5",
                       }}
                     >
-                      Something went wrong. Please try again or email us
-                      directly.
+                      {errorMsg || "Something went wrong. Please try again or email us directly."}
                     </div>
                   )}
                   <button
