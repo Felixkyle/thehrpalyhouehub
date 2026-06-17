@@ -19,14 +19,24 @@ const LEARN_ROUTES = [
   "email-sender",
 ];
 
+// `learning-module` has static game assets in public/learning-module/games/*.
+// A nested redirect would wrongly catch those files, so it only gets an
+// exact-path redirect (no `:path*`).
+const NO_NESTED_REDIRECT = new Set(["learning-module"]);
+
 const nextConfig: NextConfig = {
   async redirects() {
-    return LEARN_ROUTES.flatMap((route) => [
-      // Exact old path -> new /learn path
-      { source: `/${route}`, destination: `/learn/${route}`, permanent: true },
-      // Any nested sub-paths (e.g. /learning-module/123)
-      { source: `/${route}/:path*`, destination: `/learn/${route}/:path*`, permanent: true },
-    ]);
+    return LEARN_ROUTES.flatMap((route) => {
+      const rules = [
+        // Exact old path -> new /learn path
+        { source: `/${route}`, destination: `/learn/${route}`, permanent: true },
+      ];
+      if (!NO_NESTED_REDIRECT.has(route)) {
+        // Any nested sub-paths (e.g. /case-study-vault/123)
+        rules.push({ source: `/${route}/:path*`, destination: `/learn/${route}/:path*`, permanent: true });
+      }
+      return rules;
+    });
   },
 };
 
