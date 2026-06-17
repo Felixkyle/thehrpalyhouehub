@@ -8,9 +8,9 @@ services:
     # The VPS CPU lacks AVX, so 5.0+ crashes with "Illegal instruction".
     image: mongo:4.4
     restart: unless-stopped
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+    # All config (incl. Mongo root creds) lives in backend/.env.
+    env_file:
+      - ./backend/.env
     volumes:
       - mongo-data:/data/db
     # Bound to loopback only — never exposed to the public internet.
@@ -41,20 +41,9 @@ services:
     depends_on:
       mongo:
         condition: service_healthy
-    environment:
-      PORT: 4000
-      FRONTEND_URL: ${FRONTEND_URL}
-      MONGODB_URI: ${MONGODB_URI}
-      JWT_SECRET: ${JWT_SECRET}
-      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
-      BCRYPT_ROUNDS: ${BCRYPT_ROUNDS:-10}
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
-      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o}
-      GEMINI_API_KEY: ${GEMINI_API_KEY}
-      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-pro}
-      RESEND_API_KEY: ${RESEND_API_KEY}
-      EMAIL_FROM: ${EMAIL_FROM}
-      CONTACT_INBOX: ${CONTACT_INBOX:-contact@thehrplayhousehub.org}
+    # All backend config + secrets live in backend/.env (one source of truth).
+    env_file:
+      - ./backend/.env
     volumes:
       - backend-uploads:/app/uploads
     # Published to the host loopback only. The VPS's own nginx/apache
