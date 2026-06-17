@@ -48,10 +48,13 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
       BCRYPT_ROUNDS: ${BCRYPT_ROUNDS:-10}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o}
       GEMINI_API_KEY: ${GEMINI_API_KEY}
       GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-pro}
       RESEND_API_KEY: ${RESEND_API_KEY}
       EMAIL_FROM: ${EMAIL_FROM}
+      CONTACT_INBOX: ${CONTACT_INBOX:-contact@thehrplayhousehub.org}
     volumes:
       - backend-uploads:/app/uploads
     # Published to the host loopback only. The VPS's own nginx/apache
