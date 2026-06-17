@@ -15,6 +15,8 @@ export const env = {
   bcryptRounds: Number(process.env.BCRYPT_ROUNDS ?? 10),
   geminiApiKey: process.env.GEMINI_API_KEY ?? "",
   geminiModel: process.env.GEMINI_MODEL ?? "gemini-2.5-pro",
+  openaiApiKey: process.env.OPENAI_API_KEY ?? "",
+  openaiModel: process.env.OPENAI_MODEL ?? "gpt-4o",
   resendApiKey: process.env.RESEND_API_KEY ?? "",
   emailFrom: process.env.EMAIL_FROM ?? "The HR Playhouse Hub <contact@thehrplayhousehub.org>",
   // Where form/enquiry notifications are sent. Defaults to the real inbox, but

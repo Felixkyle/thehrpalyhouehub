@@ -1,10 +1,11 @@
 import { Router } from "express";
-import { GoogleGenAI } from "@google/genai";
+import OpenAI from "openai";
 import { z } from "zod";
 import { requireAuth } from "../middleware/auth.js";
 import { validateBody } from "../middleware/validate.js";
 import { asyncHandler } from "../utils/async-handler.js";
 import { ApiError } from "../utils/errors.js";
+import { env } from "../config/env.js";
 
 const router = Router();
 router.use(requireAuth);
@@ -36,51 +37,83 @@ const chatSchema = z.object({
   messages: z.array(messageSchema).min(1).max(40),
 });
 
+let client: OpenAI | null = null;
+function getClient(): OpenAI | null {
+  if (!env.openaiApiKey) return null;
+  if (!client) client = new OpenAI({ apiKey: env.openaiApiKey });
+  return client;
+}
+
+/** Build an OpenAI chat message from a normalised message. Text blocks pass
+ *  through; document blocks become text parts (inline plain text, or a noted
+ *  attachment for binary types) so the model has the context. */
+function toOpenAIContent(
+  content: string | z.infer<typeof contentBlockSchema>[],
+): string {
+  if (typeof content === "string") return content;
+
+  const parts: string[] = [];
+  for (const block of content) {
+    if (block.type === "text") {
+      parts.push(block.text);
+    } else {
+      if (!ALLOWED_MIME.includes(block.source.media_type)) {
+        throw new ApiError(400, "VALIDATION_ERROR", `Unsupported media type: ${block.source.media_type}`);
+      }
+      if (block.source.media_type === "text/plain") {
+        // Plain text can be decoded and inlined directly.
+        const decoded = Buffer.from(block.source.data, "base64").toString("utf-8");
+        parts.push(`[Attached document${block.title ? ` "${block.title}"` : ""}]\n${decoded}`);
+      } else {
+        // Binary docs (pdf/doc) — note the attachment so the model can ask for
+        // the relevant text rather than silently ignoring it.
+        parts.push(
+          `[The user attached a document${block.title ? ` "${block.title}"` : ""} (${block.source.media_type}). Ask them to paste the relevant text if you need its contents.]`,
+        );
+      }
+    }
+  }
+  return parts.join("\n\n");
+}
+
 router.post(
   "/chat",
   validateBody(chatSchema),
   asyncHandler(async (req, res) => {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) throw new ApiError(502, "AI_UNAVAILABLE", "AI service not configured");
+    const openai = getClient();
+    if (!openai) throw new ApiError(502, "AI_UNAVAILABLE", "AI service not configured");
 
     const { messages } = req.body as z.infer<typeof chatSchema>;
 
-    const contents = messages.map((m) => {
-      const parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = [];
-      if (typeof m.content === "string") {
-        parts.push({ text: m.content });
-      } else {
-        for (const block of m.content) {
-          if (block.type === "text") {
-            parts.push({ text: block.text });
-          } else {
-            if (!ALLOWED_MIME.includes(block.source.media_type)) {
-              throw new ApiError(400, "VALIDATION_ERROR", `Unsupported media type: ${block.source.media_type}`);
-            }
-            parts.push({ inlineData: { mimeType: block.source.media_type, data: block.source.data } });
-          }
-        }
-      }
-      return { role: m.role === "assistant" ? "model" : "user", parts };
-    });
+    const openaiMessages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+      { role: "system", content: SYSTEM_PROMPT },
+      ...messages.map((m) => ({
+        role: m.role,
+        content: toOpenAIContent(m.content),
+      })),
+    ];
 
     try {
-      const ai = new GoogleGenAI({ apiKey });
-      const result = await ai.models.generateContent({
-        model: process.env.GEMINI_MODEL ?? "gemini-2.5-pro",
-        contents,
-        config: { systemInstruction: SYSTEM_PROMPT },
+      const completion = await openai.chat.completions.create({
+        model: env.openaiModel,
+        messages: openaiMessages,
       });
 
-      const text = result.text ?? "";
-      if (!text) throw new ApiError(502, "AI_BLOCKED", "This conversation can't be answered automatically — please contact your HR team or our support.");
+      const text = completion.choices[0]?.message?.content ?? "";
+      if (!text) {
+        throw new ApiError(
+          502,
+          "AI_BLOCKED",
+          "This conversation can't be answered automatically — please contact your HR team or our support.",
+        );
+      }
 
       res.json({
         message: { role: "assistant", content: [{ type: "text", text }] },
       });
     } catch (err) {
       if (err instanceof ApiError) throw err;
-      console.error("Gemini error:", err);
+      console.error("OpenAI error:", err);
       throw new ApiError(502, "AI_UNAVAILABLE", "AI service temporarily unavailable");
     }
   }),
