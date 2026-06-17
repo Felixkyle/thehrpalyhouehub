@@ -17,6 +17,10 @@ export const env = {
   geminiModel: process.env.GEMINI_MODEL ?? "gemini-2.5-pro",
   resendApiKey: process.env.RESEND_API_KEY ?? "",
   emailFrom: process.env.EMAIL_FROM ?? "The HR Playhouse Hub <contact@thehrplayhousehub.org>",
+  // Where form/enquiry notifications are sent. Defaults to the real inbox, but
+  // can be overridden (e.g. to your Resend account email while the domain is
+  // still unverified and resend.dev only delivers to your own address).
+  contactInbox: process.env.CONTACT_INBOX ?? "contact@thehrplayhousehub.org",
 };
 
 if (env.jwtSecret.length < 32) {

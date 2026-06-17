@@ -40,7 +40,7 @@ export async function sendEmail({ to, subject, html, replyTo }: SendArgs): Promi
   }
 }
 
-const FORM_INBOX = "contact@thehrplayhousehub.org";
+const FORM_INBOX = env.contactInbox;
 
 function layout(body: string): string {
   return `<div style="font-family:system-ui,Segoe UI,Roboto,sans-serif;max-width:560px;margin:0 auto;color:#1a1a1a;line-height:1.6">${body}<hr style="border:none;border-top:1px solid #eee;margin:24px 0"><p style="font-size:12px;color:#888">The HR Playhouse Hub</p></div>`;
