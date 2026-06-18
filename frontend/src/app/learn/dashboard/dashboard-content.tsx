@@ -6,6 +6,7 @@ import { useDashboard } from "@/lib/hooks";
 import { useAuth } from "@/lib/stores/auth";
 import { ApiError } from "@/lib/api/client";
 import type { CourseLevel } from "@/lib/api/types";
+import UserMenu from "../UserMenu";
 import "./dashboard.css";
 
 /**
@@ -185,11 +186,7 @@ export default function DashboardContent() {
         />
       </button>
       <div className="topnav-right">
-        {headerInitials ? (
-          <div className="user-avatar" title={headerName}>
-            {headerInitials}
-          </div>
-        ) : null}
+        {headerInitials ? <UserMenu initials={headerInitials} name={headerName} /> : null}
       </div>
     </nav>
   );

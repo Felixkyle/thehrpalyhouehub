@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useCourses, useMe, useCertificates, useStartLevel } from "@/lib/hooks";
+import UserMenu from "../UserMenu";
 import { useAuth } from "@/lib/stores/auth";
 import { ApiError } from "@/lib/api/client";
 import type { CourseLevel, Certificate } from "@/lib/api/types";
@@ -999,7 +1000,7 @@ export default function MyCoursesContent() {
           />
         </button>
         <div className="topnav-right">
-          <div className="user-avatar">{userInitials}</div>
+          <UserMenu initials={userInitials} name={userName} />
         </div>
       </nav>
 
