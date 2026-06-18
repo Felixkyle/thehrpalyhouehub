@@ -3,6 +3,8 @@
 /* eslint-disable react/no-unescaped-entities */
 
 import { useEffect, useRef, useState } from "react";
+import { useSubmitFinalProject } from "@/lib/hooks";
+import { ApiError } from "@/lib/api/client";
 import "./learning-module.css";
 
 type TabId = "home" | "l1" | "l2" | "l3" | "l4" | "fp";
@@ -80,6 +82,9 @@ export default function LearningModuleContent() {
   }
 
   // ─────── Final-project file upload (was initUpload in the original) ───────
+  const submitFinalProject = useSubmitFinalProject();
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const uploadZoneRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const filePreviewRef = useRef<HTMLDivElement | null>(null);
@@ -125,6 +130,8 @@ export default function LearningModuleContent() {
       doc: "📝",
       docx: "📝",
     };
+    setSelectedFile(file);
+    setUploadError(null);
     if (fileCardIconRef.current) fileCardIconRef.current.textContent = icons[ext] || "📎";
     if (fileCardNameRef.current) fileCardNameRef.current.textContent = file.name;
     if (fileCardSizeRef.current) fileCardSizeRef.current.textContent = size;
@@ -135,21 +142,30 @@ export default function LearningModuleContent() {
       currentFileExtRef.current.textContent = ext.toUpperCase();
   }
   function handleRemove() {
+    setSelectedFile(null);
+    setUploadError(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
     if (filePreviewRef.current) filePreviewRef.current.style.display = "none";
     if (uploadZoneRef.current) uploadZoneRef.current.style.display = "block";
     if (submitBtnRef.current) submitBtnRef.current.disabled = true;
   }
-  function handleSubmit() {
+  async function handleSubmit() {
     const btn = submitBtnRef.current;
-    if (!btn || btn.disabled) return;
+    if (!btn || btn.disabled || !selectedFile) return;
+    setUploadError(null);
     btn.textContent = "⏳ Submitting...";
     btn.disabled = true;
-    setTimeout(() => {
-      if (submitSuccessRef.current)
-        submitSuccessRef.current.style.display = "block";
+    try {
+      await submitFinalProject.mutateAsync(selectedFile);
+      if (submitSuccessRef.current) submitSuccessRef.current.style.display = "block";
       btn.style.display = "none";
-    }, 1800);
+    } catch (err) {
+      setUploadError(
+        err instanceof ApiError ? err.message : "Upload failed. Please try again.",
+      );
+      btn.textContent = "📤 Submit Final Project";
+      btn.disabled = false;
+    }
   }
 
   return (
@@ -3069,6 +3085,12 @@ export default function LearningModuleContent() {
             <button id="submit-btn" className="submit-btn"  ref={submitBtnRef} onClick={handleSubmit} disabled>
               📤 Submit Final Project
             </button>
+
+            {uploadError && (
+              <div role="alert" style={{ marginTop: 10, padding: "10px 14px", background: "#fef2f0", border: "1px solid #fca5a5", borderRadius: 8, color: "#991b1b", fontSize: 13 }}>
+                ⚠ {uploadError}
+              </div>
+            )}
 
             <div id="submit-success" className="submit-success" ref={submitSuccessRef}>
               <div style={{ "fontSize": "48px", "marginBottom": "8px" }}>🎉</div>

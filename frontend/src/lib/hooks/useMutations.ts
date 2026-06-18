@@ -120,6 +120,14 @@ export function useCompleteItem() {
   });
 }
 
+export function useSubmitFinalProject() {
+  const invalidate = useInvalidateLearning();
+  return useMutation({
+    mutationFn: (file: File) => courses.submitFinalProject(file),
+    onSuccess: invalidate,
+  });
+}
+
 // ── AI chat ────────────────────────────────────────────────────────
 
 export function useAiChat() {

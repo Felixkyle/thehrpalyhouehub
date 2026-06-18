@@ -91,6 +91,20 @@ export const courses = {
 
   complete: (level: number, body: { kind: "topic" | "case_study" | "game"; item_id: string }) =>
     api<{ levels: CourseLevel[] }>(`/api/courses/${level}/complete`, { method: "POST", body }),
+
+  submitFinalProject: (file: File) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    return api<{ ok: true; submission: { original_name: string; file_url: string; submitted_at: string } }>(
+      "/api/courses/final-project",
+      { method: "POST", formData: fd },
+    );
+  },
+
+  finalProject: () =>
+    api<{ submission: { original_name: string; file_url: string; submitted_at: string } | null }>(
+      "/api/courses/final-project",
+    ),
 };
 
 export const certificates = {
