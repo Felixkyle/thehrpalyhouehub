@@ -2,6 +2,16 @@
 
 import { useMemo, useState, useEffect, useCallback } from "react";
 import "./innovation-lab.css";
+import {
+  useForumPosts,
+  useForumPost,
+  useForumMentors,
+  useCreateForumPost,
+  useReplyToPost,
+  useMentorshipRequest,
+} from "@/lib/hooks";
+import { ApiError } from "@/lib/api/client";
+import type { ForumPost, ForumReply } from "@/lib/api/types";
 
 type BoardKey = "new-members" | "ideas" | "feedback" | "mentorship";
 
@@ -14,32 +24,14 @@ type Board = {
   avbg: string;
 };
 
-type Reply = {
-  author: string;
-  initials?: string;
-  avbg?: string;
-  body: string;
-  ts?: string;
-};
-
-type Post = {
-  id: number;
-  board: BoardKey;
-  author: string;
-  initials: string;
-  avbg: string;
-  title: string;
-  pinned: boolean;
-  body: string;
-  ts: string;
-  replies: Reply[];
-};
-
 type FilterKey = "all" | BoardKey;
 
 type Grade = { min: number; label: string; sub: string; color: string };
 
 type Dim = "reach" | "urgency" | "feasibility" | "innovation" | "evidence";
+
+// The 4 backend board values map 1:1 to the page's board keys.
+const ALL_BOARDS: BoardKey[] = ["new-members", "ideas", "feedback", "mentorship"];
 
 const BOARDS: Record<BoardKey, Board> = {
   "new-members": { key: "new-members", label: "New Members Area", emoji: "👋", bg: "#E8ECF4", col: "#1E3560", avbg: "#1E3560" },
@@ -55,63 +47,9 @@ const BOARD_LABEL_TO_KEY: Record<string, BoardKey> = Object.fromEntries(
   ])
 ) as Record<string, BoardKey>;
 
-function boardByLabel(label: string): Board {
-  const key = BOARD_LABEL_TO_KEY[label] ?? BOARD_LABEL_TO_KEY[label.replace("&", "and")];
-  return key ? BOARDS[key] : BOARDS["new-members"];
+function keyByLabel(label: string): BoardKey {
+  return BOARD_LABEL_TO_KEY[label] ?? BOARD_LABEL_TO_KEY[label.replace("&", "and")] ?? "new-members";
 }
-
-const SEED_POSTS: Post[] = [
-  {
-    id: 1,
-    board: "new-members",
-    author: "Dr. Marvellous Gberevbie",
-    initials: "MA",
-    avbg: "#C9501E",
-    title: "Welcome to the HR Playhouse Hub Innovation Lab 👋",
-    pinned: true,
-    body: "Welcome to our community space for HR professionals. Introduce yourself below — tell us your name, where you are in your HR career, and one thing you're working on or thinking about right now. This is a space for genuine exchange, not corporate speak. Looking forward to meeting you all.",
-    ts: "Just now",
-    replies: [
-      { author: "Innovation Lab", initials: "IL", avbg: "#0D1F3C", body: "This is a pinned welcome post. Reply below to introduce yourself to the community!", ts: "Just now" },
-    ],
-  },
-  {
-    id: 2,
-    board: "ideas",
-    author: "Innovation Lab",
-    initials: "IL",
-    avbg: "#C9501E",
-    title: "AI in HR: Opportunities & Risks",
-    pinned: false,
-    body: "What are the most exciting opportunities you see for AI in HR practice — and what are the biggest risks? Share your perspective, experience, or a case you have encountered. This board is for ideas that challenge the status quo.",
-    ts: "Just now",
-    replies: [],
-  },
-  {
-    id: 3,
-    board: "feedback",
-    author: "Innovation Lab",
-    initials: "IL",
-    avbg: "#C4830A",
-    title: "Ethical Dilemmas in HR Practice",
-    pinned: false,
-    body: "Share an ethical dilemma you have faced in HR — or one you have seen handled well (or badly). What was the situation? What did you decide? What would you do differently? No names or identifying details — just the learning.",
-    ts: "Just now",
-    replies: [],
-  },
-  {
-    id: 4,
-    board: "mentorship",
-    author: "Innovation Lab",
-    initials: "IL",
-    avbg: "#1a7a4a",
-    title: "Career Transition into HR",
-    pinned: false,
-    body: "Are you transitioning into HR from another career? Or have you made that journey already? Share your experience, your challenges, and what you wish you had known. This board connects those asking with those who have been there.",
-    ts: "Just now",
-    replies: [],
-  },
-];
 
 const GRADES: Grade[] = [
   { min: 0, label: "Early-stage Idea", sub: "More development needed before sharing", color: "#9BABC0" },
@@ -138,36 +76,6 @@ const DIM_LABELS: Record<Dim, { label: string; question: string }> = {
   innovation: { label: "Innovation", question: "How innovative is the approach?" },
   evidence: { label: "Evidence", question: "Is it evidence-based or tested?" },
 };
-
-const MENTORS = [
-  {
-    name: "Dr. Marvellous Gberevbie",
-    displayName: "Dr. Marvellous Gberevbie",
-    role: "Founder & CEO, HR Playhouse Hub",
-    roleDisplay: "Founder & CEO · HR Playhouse Hub",
-    initials: "MA",
-    color: "#C9501E",
-    tags: ["HR in HE", "Career development", "Academic HR"],
-  },
-  {
-    name: "Senior HR Practitioner",
-    displayName: "Senior Practitioner",
-    role: "HR Business Partner · Nigeria",
-    roleDisplay: "HR Business Partner · 12 years experience",
-    initials: "SP",
-    color: "#1E3560",
-    tags: ["Employee relations", "Disciplinary", "HRBP"],
-  },
-  {
-    name: "HR Director",
-    displayName: "HR Director",
-    role: "Multinational · UK & Nigeria",
-    roleDisplay: "Multinational · UK & Nigeria · 20 years",
-    initials: "HD",
-    color: "#C4830A",
-    tags: ["Leadership", "Strategy", "Global HR"],
-  },
-];
 
 const BOARD_OPTIONS: { value: string; label: string }[] = [
   { value: "New Members Area", label: "👋 New Members Area" },
@@ -208,29 +116,115 @@ function gradeForScore(score: number): Grade {
   return [...GRADES].reverse().find((g) => score >= g.min) ?? GRADES[0];
 }
 
-function openMail(subject: string, body: string) {
-  window.open(`mailto:contact@thehrplayhousehub.org?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
+function relativeTime(iso: string): string {
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return "";
+  const secs = Math.floor((Date.now() - then) / 1000);
+  if (secs < 60) return "Just now";
+  const mins = Math.floor(secs / 60);
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 30) return `${days}d ago`;
+  return new Date(iso).toLocaleDateString();
+}
+
+function errMessage(err: unknown): string {
+  if (err instanceof ApiError) return err.message;
+  if (err instanceof Error) return err.message;
+  return "Something went wrong. Please try again.";
+}
+
+const AVATAR_COLORS = ["#C9501E", "#1E3560", "#C4830A", "#1a7a4a", "#4c3a8a"];
+function colorForName(name: string): string {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
+  return AVATAR_COLORS[hash % AVATAR_COLORS.length];
 }
 
 export default function InnovationLabContent() {
-  const [posts, setPosts] = useState<Post[]>(SEED_POSTS);
   const [filter, setFilter] = useState<FilterKey>("all");
-  const [currentThread, setCurrentThread] = useState<number | null>(null);
-  const [threadReplies, setThreadReplies] = useState<Record<number, Reply[]>>({});
+  const [currentThread, setCurrentThread] = useState<string | null>(null);
+
+  // Live forum data: fetch all 4 boards so we can offer an "All boards" feed
+  // and accurate per-board counts. React Query dedups/caches each board.
+  const newMembersQ = useForumPosts("new-members");
+  const ideasQ = useForumPosts("ideas");
+  const feedbackQ = useForumPosts("feedback");
+  const mentorshipQ = useForumPosts("mentorship");
+
+  const boardQueries = useMemo(
+    () => ({
+      "new-members": newMembersQ,
+      ideas: ideasQ,
+      feedback: feedbackQ,
+      mentorship: mentorshipQ,
+    }),
+    [newMembersQ, ideasQ, feedbackQ, mentorshipQ]
+  );
+
+  const postsLoading =
+    newMembersQ.isLoading || ideasQ.isLoading || feedbackQ.isLoading || mentorshipQ.isLoading;
+  const postsError =
+    newMembersQ.isError || ideasQ.isError || feedbackQ.isError || mentorshipQ.isError;
+
+  // Per-board post counts (from API pagination.total) for the board cards.
+  const boardCounts = useMemo(() => {
+    const counts: Record<BoardKey, number> = {
+      "new-members": 0,
+      ideas: 0,
+      feedback: 0,
+      mentorship: 0,
+    };
+    for (const key of ALL_BOARDS) {
+      const q = boardQueries[key];
+      counts[key] = q.data?.pagination.total ?? q.data?.data.length ?? 0;
+    }
+    return counts;
+  }, [boardQueries]);
+
+  const allPosts = useMemo<ForumPost[]>(() => {
+    const merged = ALL_BOARDS.flatMap((key) => boardQueries[key].data?.data ?? []);
+    return merged
+      .slice()
+      .sort((a, b) => {
+        if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      });
+  }, [boardQueries]);
+
+  const visiblePosts = useMemo(
+    () => (filter === "all" ? allPosts : allPosts.filter((p) => p.board === filter)),
+    [filter, allPosts]
+  );
+
+  // Single-thread view: pull the full post (with replies) from the API.
+  const threadQuery = useForumPost(currentThread);
+  const threadPost = threadQuery.data?.post ?? null;
+  const threadBoard = threadPost ? BOARDS[threadPost.board] : null;
+  const threadReplies: ForumReply[] = threadPost?.replies ?? [];
+
+  // Mutations
+  const createPost = useCreateForumPost();
+  const replyToPost = useReplyToPost();
+  const mentorshipRequest = useMentorshipRequest();
+
+  // Mentors from the live API.
+  const mentorsQuery = useForumMentors();
+  const mentors = mentorsQuery.data?.mentors ?? [];
 
   // Compose modal state
   const [composeOpen, setComposeOpen] = useState(false);
   const [composeSent, setComposeSent] = useState(false);
-  const [cmName, setCmName] = useState("");
-  const [cmEmail, setCmEmail] = useState("");
+  const [composeError, setComposeError] = useState<string | null>(null);
   const [cmBoard, setCmBoard] = useState(BOARD_OPTIONS[0].value);
   const [cmTitle, setCmTitle] = useState("");
   const [cmBody, setCmBody] = useState("");
 
   // Thread reply state
-  const [trName, setTrName] = useState("");
-  const [trEmail, setTrEmail] = useState("");
   const [trBody, setTrBody] = useState("");
+  const [trError, setTrError] = useState<string | null>(null);
 
   // Join modal state
   const [joinOpen, setJoinOpen] = useState(false);
@@ -243,9 +237,8 @@ export default function InnovationLabContent() {
   // Mentor modal state
   const [mentorOpen, setMentorOpen] = useState(false);
   const [mentorSent, setMentorSent] = useState(false);
-  const [currentMentor, setCurrentMentor] = useState({ name: "", role: "" });
-  const [mrName, setMrName] = useState("");
-  const [mrEmail, setMrEmail] = useState("");
+  const [mentorError, setMentorError] = useState<string | null>(null);
+  const [currentMentor, setCurrentMentor] = useState<{ id?: string; name: string; role: string }>({ name: "", role: "" });
   const [mrRole, setMrRole] = useState("");
   const [mrTopic, setMrTopic] = useState("");
   const [mrMessage, setMrMessage] = useState("");
@@ -267,11 +260,6 @@ export default function InnovationLabContent() {
   const grade = useMemo(() => gradeForScore(score), [score]);
   const ringCircumference = 2 * Math.PI * 50;
   const ringOffset = ringCircumference - (score / 100) * ringCircumference;
-
-  const visiblePosts = useMemo(
-    () => (filter === "all" ? posts : posts.filter((p) => p.board === filter)),
-    [filter, posts]
-  );
 
   const setDim = useCallback((dim: Dim, value: number) => {
     setDimValues((prev) => ({ ...prev, [dim]: value }));
@@ -303,19 +291,14 @@ export default function InnovationLabContent() {
   }, []);
 
   // Thread open/close ----
-  const openThread = useCallback(
-    (postId: number) => {
-      if (!posts.some((p) => p.id === postId)) return;
-      setCurrentThread(postId);
-    },
-    [posts]
-  );
+  const openThread = useCallback((postId: string) => {
+    setCurrentThread(postId);
+  }, []);
 
   const closeThread = useCallback(() => {
     setCurrentThread(null);
-    setTrName("");
-    setTrEmail("");
     setTrBody("");
+    setTrError(null);
   }, []);
 
   // Filter ---- (closes thread if open)
@@ -335,78 +318,54 @@ export default function InnovationLabContent() {
       if (match) setCmBoard(match.value);
     }
     setComposeSent(false);
+    setComposeError(null);
     setComposeOpen(true);
   }, []);
 
   const closeCompose = useCallback(() => {
     setComposeOpen(false);
-    setCmName("");
-    setCmEmail("");
     setCmTitle("");
     setCmBody("");
+    setComposeError(null);
   }, []);
 
-  const submitPost = useCallback(() => {
-    const name = cmName.trim();
-    const email = cmEmail.trim();
-    const board = cmBoard;
+  const submitPost = useCallback(async () => {
+    const board = keyByLabel(cmBoard);
     const title = cmTitle.trim();
     const body = cmBody.trim();
-    if (!name || !email || !body) {
-      alert("Please fill in your name, email and post content.");
+    if (!body) {
+      setComposeError("Please write your post content.");
       return;
     }
-    const b = boardByLabel(board);
-    const newPost: Post = {
-      id: Date.now(),
-      board: b.key,
-      author: name,
-      initials: initialsFromName(name),
-      avbg: b.avbg,
-      title: title || `${board} post`,
-      pinned: false,
-      body,
-      ts: "Just now",
-      replies: [],
-    };
-    setPosts((prev) => [newPost, ...prev]);
-    openMail(
-      `Innovation Lab Post: ${title || board} [${board}]`,
-      `Name: ${name}\nEmail: ${email}\nBoard: ${board}\nTitle: ${title || "—"}\n\nPost:\n${body}`
-    );
-    setComposeSent(true);
-  }, [cmName, cmEmail, cmBoard, cmTitle, cmBody]);
+    setComposeError(null);
+    try {
+      await createPost.mutateAsync({
+        board,
+        title: title || `${BOARDS[board].label} post`,
+        body,
+      });
+      setComposeSent(true);
+    } catch (err) {
+      setComposeError(errMessage(err));
+    }
+  }, [cmBoard, cmTitle, cmBody, createPost]);
 
   // Thread reply ----
-  const submitReply = useCallback(() => {
+  const submitReply = useCallback(async () => {
     if (currentThread === null) return;
-    const name = trName.trim();
-    const email = trEmail.trim();
     const body = trBody.trim();
-    if (!name || !email || !body) {
-      alert("Please fill in your name, email and reply.");
+    if (!body) {
+      setTrError("Please write your reply.");
       return;
     }
-    const reply: Reply = {
-      author: name,
-      initials: initialsFromName(name),
-      avbg: "#5A6880",
-      body,
-      ts: "Just now",
-    };
-    setThreadReplies((prev) => ({
-      ...prev,
-      [currentThread]: [...(prev[currentThread] ?? []), reply],
-    }));
-    const post = posts.find((p) => p.id === currentThread);
-    openMail(
-      `Lab Reply: ${post ? post.title : "Post"}`,
-      `Name: ${name}\nEmail: ${email}\nThread: ${post ? post.title : ""}\n\nReply:\n${body}`
-    );
-    setTrName("");
-    setTrEmail("");
-    setTrBody("");
-  }, [currentThread, trName, trEmail, trBody, posts]);
+    setTrError(null);
+    try {
+      await replyToPost.mutateAsync({ postId: currentThread, body });
+      setTrBody("");
+    } catch (err) {
+      setTrError(errMessage(err));
+    }
+  }, [currentThread, trBody, replyToPost]);
 
   // Join ----
   const openJoin = useCallback(() => {
@@ -418,58 +377,46 @@ export default function InnovationLabContent() {
     const first = jnFirst.trim();
     const email = jnEmail.trim();
     if (!first || !email) {
-      alert("Please enter your name and email.");
+      setJoinSent(false);
       return;
     }
-    openMail(
-      `Innovation Lab Join Request: ${first} ${jnLast.trim()}`,
-      `Name: ${first} ${jnLast.trim()}\nEmail: ${email}\nRole: ${jnRole.trim()}`
-    );
     setJoinSent(true);
     setTimeout(() => setCalcUnlocked(true), 500);
-  }, [jnFirst, jnLast, jnEmail, jnRole]);
+  }, [jnFirst, jnEmail]);
 
   // Mentor ----
-  const openMentor = useCallback((name: string, role: string) => {
-    setCurrentMentor({ name, role });
-    setMrName("");
-    setMrEmail("");
+  const openMentor = useCallback((mentor: { id?: string; name: string; role: string }) => {
+    setCurrentMentor(mentor);
     setMrRole("");
     setMrTopic("");
     setMrMessage("");
     setMentorSent(false);
+    setMentorError(null);
     setMentorOpen(true);
   }, []);
   const closeMentor = useCallback(() => setMentorOpen(false), []);
-  const submitMentor = useCallback(() => {
-    const name = mrName.trim();
-    const email = mrEmail.trim();
+  const submitMentor = useCallback(async () => {
     const message = mrMessage.trim();
-    if (!name || !email || !message) {
-      alert("Please fill in your name, email and your mentorship question.");
+    const topic = mrTopic.trim() || currentMentor.role || "General mentorship";
+    if (!message) {
+      setMentorError("Please describe what you would like mentorship on.");
       return;
     }
-    const subject = `Mentorship Request: ${mrTopic} to ${currentMentor.name}`;
-    const bodyLines = [
-      `Mentor requested: ${currentMentor.name} (${currentMentor.role})`,
-      `Your name: ${name}`,
-      `Email: ${email}`,
-      `Your role: ${mrRole.trim() || "Not specified"}`,
-      `Topic: ${mrTopic || "Not specified"}`,
-      "",
-      "Message:",
-      message,
-    ];
-    openMail(subject, bodyLines.join("\n"));
-    setMentorSent(true);
-  }, [mrName, mrEmail, mrRole, mrTopic, mrMessage, currentMentor]);
+    setMentorError(null);
+    try {
+      await mentorshipRequest.mutateAsync({
+        mentor_id: currentMentor.id,
+        topic,
+        message,
+        hr_role: mrRole.trim() || undefined,
+      });
+      setMentorSent(true);
+    } catch (err) {
+      setMentorError(errMessage(err));
+    }
+  }, [mrMessage, mrTopic, mrRole, currentMentor, mentorshipRequest]);
 
   // ────────────────── RENDER ────────────────────────────────────────────────
-  const threadPost = currentThread !== null ? posts.find((p) => p.id === currentThread) ?? null : null;
-  const threadBoard = threadPost ? BOARDS[threadPost.board] : null;
-  const threadAllReplies = threadPost
-    ? [...threadPost.replies, ...(threadReplies[threadPost.id] ?? [])]
-    : [];
 
   return (
     <>
@@ -566,7 +513,13 @@ export default function InnovationLabContent() {
         </div>
       </section>
 
-      <BoardsSection openCompose={openCompose} openMentor={openMentor} />
+      <BoardsSection
+        openCompose={openCompose}
+        openMentor={openMentor}
+        boardCounts={boardCounts}
+        mentors={mentors}
+        mentorsLoading={mentorsQuery.isLoading}
+      />
 
       <section className="forum-section" id="forum">
         <div className="forum-inner">
@@ -603,109 +556,139 @@ export default function InnovationLabContent() {
               <button className="forum-post-btn" onClick={() => openCompose(null, null)}>+ Post in Lab</button>
             </div>
 
-            {threadPost && threadBoard ? (
-              <div>
-                <div className="thread-back-bar">
-                  <button className="thread-back-btn" onClick={closeThread}>← Back to forum</button>
-                  <span
-                    className="thread-board-pill"
-                    style={{ background: threadBoard.bg, color: threadBoard.col }}
-                  >
-                    {threadBoard.emoji} {threadBoard.label}
-                  </span>
+            {currentThread !== null ? (
+              threadQuery.isLoading ? (
+                <div style={{ padding: "56px 40px", textAlign: "center", fontFamily: "var(--f-body)", fontSize: "13px", color: "var(--ink-3)" }}>
+                  <div className="thread-back-bar">
+                    <button className="thread-back-btn" onClick={closeThread}>← Back to forum</button>
+                  </div>
+                  Loading thread…
                 </div>
-                <div className="thread-content">
-                  <div className="thread-op">
-                    <div className="thread-op-meta">
-                      <div
-                        style={{
-                          width: "40px",
-                          height: "40px",
-                          borderRadius: "50%",
-                          background: threadPost.avbg,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          fontFamily: "var(--f-display)",
-                          fontSize: "13px",
-                          fontWeight: 900,
-                          color: "#fff",
-                          flexShrink: 0,
-                        }}
-                      >
-                        {threadPost.initials}
-                      </div>
-                      <div>
-                        <div className="thread-op-name">{threadPost.author}</div>
-                        <div style={{ fontSize: "11px", color: "var(--ink-4)" }}>
-                          {threadPost.ts}{threadPost.pinned ? " · 📌 pinned" : ""}
+              ) : threadPost && threadBoard ? (
+                <div>
+                  <div className="thread-back-bar">
+                    <button className="thread-back-btn" onClick={closeThread}>← Back to forum</button>
+                    <span
+                      className="thread-board-pill"
+                      style={{ background: threadBoard.bg, color: threadBoard.col }}
+                    >
+                      {threadBoard.emoji} {threadBoard.label}
+                    </span>
+                  </div>
+                  <div className="thread-content">
+                    <div className="thread-op">
+                      <div className="thread-op-meta">
+                        <div
+                          style={{
+                            width: "40px",
+                            height: "40px",
+                            borderRadius: "50%",
+                            background: colorForName(threadPost.author_name),
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontFamily: "var(--f-display)",
+                            fontSize: "13px",
+                            fontWeight: 900,
+                            color: "#fff",
+                            flexShrink: 0,
+                          }}
+                        >
+                          {initialsFromName(threadPost.author_name)}
+                        </div>
+                        <div>
+                          <div className="thread-op-name">{threadPost.author_name}</div>
+                          <div style={{ fontSize: "11px", color: "var(--ink-4)" }}>
+                            {relativeTime(threadPost.created_at)}{threadPost.pinned ? " · 📌 pinned" : ""}
+                          </div>
                         </div>
                       </div>
+                      <div className="thread-op-title">{threadPost.title}</div>
+                      <div className="thread-op-body">{threadPost.body}</div>
                     </div>
-                    <div className="thread-op-title">{threadPost.title}</div>
-                    <div className="thread-op-body">{threadPost.body}</div>
-                  </div>
-                  {threadAllReplies.length > 0 ? (
-                    <>
-                      <div style={{ fontFamily: "var(--f-body)", fontSize: "12px", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".07em", color: "var(--ink-4)", marginBottom: "12px" }}>
-                        {threadAllReplies.length} {threadAllReplies.length === 1 ? "reply" : "replies"}
-                      </div>
-                      {threadAllReplies.map((r, idx) => (
-                        <div className="thread-reply" key={idx}>
-                          <div className="tr-avatar" style={{ background: r.avbg || "#0D1F3C" }}>
-                            {r.initials || r.author.slice(0, 2).toUpperCase()}
-                          </div>
-                          <div className="tr-body">
-                            <div className="tr-name">
-                              {r.author}
-                              <span style={{ fontSize: "11px", color: "var(--ink-4)", fontWeight: 400, marginLeft: "8px" }}>
-                                {r.ts || "Just now"}
-                              </span>
+                    {threadReplies.length > 0 ? (
+                      <>
+                        <div style={{ fontFamily: "var(--f-body)", fontSize: "12px", fontWeight: 700, textTransform: "uppercase", letterSpacing: ".07em", color: "var(--ink-4)", marginBottom: "12px" }}>
+                          {threadReplies.length} {threadReplies.length === 1 ? "reply" : "replies"}
+                        </div>
+                        {threadReplies.map((r) => (
+                          <div className="thread-reply" key={r.id}>
+                            <div className="tr-avatar" style={{ background: colorForName(r.author_name) }}>
+                              {initialsFromName(r.author_name)}
                             </div>
-                            <div className="tr-text">{r.body}</div>
+                            <div className="tr-body">
+                              <div className="tr-name">
+                                {r.author_name}
+                                <span style={{ fontSize: "11px", color: "var(--ink-4)", fontWeight: 400, marginLeft: "8px" }}>
+                                  {relativeTime(r.created_at)}
+                                </span>
+                              </div>
+                              <div className="tr-text">{r.body}</div>
+                            </div>
                           </div>
-                        </div>
-                      ))}
-                    </>
-                  ) : (
-                    <div style={{ padding: "20px 0", textAlign: "center", fontFamily: "var(--f-body)", fontSize: "13px", color: "var(--ink-4)" }}>
-                      No replies yet — be the first to respond 👇
+                        ))}
+                      </>
+                    ) : (
+                      <div style={{ padding: "20px 0", textAlign: "center", fontFamily: "var(--f-body)", fontSize: "13px", color: "var(--ink-4)" }}>
+                        No replies yet — be the first to respond 👇
+                      </div>
+                    )}
+                  </div>
+                  <div className="thread-reply-bar">
+                    <div style={{ fontFamily: "var(--f-display)", fontSize: "15px", fontWeight: 800, color: "var(--ink)", marginBottom: "14px" }}>
+                      Leave a reply
                     </div>
-                  )}
-                </div>
-                <div className="thread-reply-bar">
-                  <div style={{ fontFamily: "var(--f-display)", fontSize: "15px", fontWeight: 800, color: "var(--ink)", marginBottom: "14px" }}>
-                    Leave a reply
+                    <textarea
+                      rows={3}
+                      placeholder="Write your reply..."
+                      className="forum-input"
+                      style={{ minHeight: "80px", resize: "vertical", lineHeight: 1.6, width: "100%", marginBottom: "10px" }}
+                      value={trBody}
+                      onChange={(e) => setTrBody(e.target.value)}
+                    />
+                    {trError && (
+                      <div style={{ fontFamily: "var(--f-body)", fontSize: "12px", color: "#C9501E", marginBottom: "10px" }}>{trError}</div>
+                    )}
+                    <button className="forum-submit-btn" onClick={submitReply} disabled={replyToPost.isPending}>
+                      {replyToPost.isPending ? "Posting…" : "Post reply →"}
+                    </button>
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "10px" }}>
-                    <input type="text" placeholder="Your name *" className="forum-input" value={trName} onChange={(e) => setTrName(e.target.value)} />
-                    <input type="email" placeholder="Your email *" className="forum-input" value={trEmail} onChange={(e) => setTrEmail(e.target.value)} />
-                  </div>
-                  <textarea
-                    rows={3}
-                    placeholder="Write your reply..."
-                    className="forum-input"
-                    style={{ minHeight: "80px", resize: "vertical", lineHeight: 1.6, width: "100%", marginBottom: "10px" }}
-                    value={trBody}
-                    onChange={(e) => setTrBody(e.target.value)}
-                  />
-                  <button className="forum-submit-btn" onClick={submitReply}>Post reply →</button>
                 </div>
-              </div>
+              ) : (
+                <div style={{ padding: "56px 40px", textAlign: "center" }}>
+                  <div className="thread-back-bar">
+                    <button className="thread-back-btn" onClick={closeThread}>← Back to forum</button>
+                  </div>
+                  <div style={{ fontFamily: "var(--f-body)", fontSize: "13px", color: "var(--ink-3)", marginTop: "16px" }}>
+                    This thread could not be loaded.
+                  </div>
+                </div>
+              )
             ) : (
               <div>
                 <div style={{ minHeight: "360px", maxHeight: "580px", overflowY: "auto" }}>
-                  {visiblePosts.length === 0 ? (
+                  {postsLoading ? (
+                    <div style={{ padding: "56px 40px", textAlign: "center" }}>
+                      <div style={{ fontSize: "36px", marginBottom: "12px" }}>⏳</div>
+                      <div style={{ fontFamily: "var(--f-display)", fontSize: "17px", fontWeight: 800, color: "var(--ink)", marginBottom: "7px" }}>Loading the forum…</div>
+                      <div style={{ fontFamily: "var(--f-body)", fontSize: "13px", color: "var(--ink-3)" }}>Fetching the latest posts.</div>
+                    </div>
+                  ) : postsError ? (
+                    <div style={{ padding: "56px 40px", textAlign: "center" }}>
+                      <div style={{ fontSize: "36px", marginBottom: "12px" }}>⚠️</div>
+                      <div style={{ fontFamily: "var(--f-display)", fontSize: "17px", fontWeight: 800, color: "var(--ink)", marginBottom: "7px" }}>Couldn&apos;t load posts</div>
+                      <div style={{ fontFamily: "var(--f-body)", fontSize: "13px", color: "var(--ink-3)", marginBottom: "18px" }}>Please check your connection and try again.</div>
+                    </div>
+                  ) : visiblePosts.length === 0 ? (
                     <div style={{ padding: "56px 40px", textAlign: "center" }}>
                       <div style={{ fontSize: "36px", marginBottom: "12px" }}>💬</div>
-                      <div style={{ fontFamily: "var(--f-display)", fontSize: "17px", fontWeight: 800, color: "var(--ink)", marginBottom: "7px" }}>Nothing here yet</div>
+                      <div style={{ fontFamily: "var(--f-display)", fontSize: "17px", fontWeight: 800, color: "var(--ink)", marginBottom: "7px" }}>No posts yet</div>
                       <div style={{ fontFamily: "var(--f-body)", fontSize: "13px", color: "var(--ink-3)", marginBottom: "18px" }}>Be the first to post in this board.</div>
                       <button className="forum-submit-btn" onClick={() => openCompose(null, null)}>Start the conversation →</button>
                     </div>
                   ) : (
                     visiblePosts.map((post) => {
                       const b = BOARDS[post.board];
-                      const replyCount = (threadReplies[post.id]?.length ?? 0) + post.replies.length;
                       const preview = post.body.length > 110 ? `${post.body.slice(0, 110)}…` : post.body;
                       return (
                         <ForumPostRow
@@ -713,7 +696,6 @@ export default function InnovationLabContent() {
                           post={post}
                           board={b}
                           preview={preview}
-                          replyCount={replyCount}
                           onOpen={() => openThread(post.id)}
                         />
                       );
@@ -741,13 +723,11 @@ export default function InnovationLabContent() {
         {composeOpen && (
           <ComposeModal
             sent={composeSent}
-            name={cmName}
-            email={cmEmail}
+            error={composeError}
+            submitting={createPost.isPending}
             board={cmBoard}
             title={cmTitle}
             body={cmBody}
-            setName={setCmName}
-            setEmail={setCmEmail}
             setBoard={setCmBoard}
             setTitle={setCmTitle}
             setBody={setCmBody}
@@ -849,14 +829,12 @@ export default function InnovationLabContent() {
       {mentorOpen && (
         <MentorModal
           sent={mentorSent}
+          error={mentorError}
+          submitting={mentorshipRequest.isPending}
           mentor={currentMentor}
-          name={mrName}
-          email={mrEmail}
           role={mrRole}
           topic={mrTopic}
           message={mrMessage}
-          setName={setMrName}
-          setEmail={setMrEmail}
           setRole={setMrRole}
           setTopic={setMrTopic}
           setMessage={setMrMessage}
@@ -876,13 +854,11 @@ function ForumPostRow({
   post,
   board,
   preview,
-  replyCount,
   onOpen,
 }: {
-  post: Post;
+  post: ForumPost;
   board: Board;
   preview: string;
-  replyCount: number;
   onOpen: () => void;
 }) {
   const [hover, setHover] = useState(false);
@@ -894,14 +870,14 @@ function ForumPostRow({
       onMouseOver={() => setHover(true)}
       onMouseOut={() => setHover(false)}
     >
-      <div className="fpr-avatar" style={{ background: post.avbg }}>{post.initials}</div>
+      <div className="fpr-avatar" style={{ background: colorForName(post.author_name) }}>{initialsFromName(post.author_name)}</div>
       <div className="fpr-body">
         <div className="fpr-meta">
-          <span className="fpr-name">{post.author}</span>
+          <span className="fpr-name">{post.author_name}</span>
           <span className="fpr-badge" style={{ background: board.bg, color: board.col }}>
             {board.emoji} {board.label}
           </span>
-          {post.pinned ? <span className="fpr-time">📌 pinned</span> : <span className="fpr-time">{post.ts}</span>}
+          {post.pinned ? <span className="fpr-time">📌 pinned</span> : <span className="fpr-time">{relativeTime(post.created_at)}</span>}
         </div>
         <div className="fpr-title">{post.title}</div>
         <div className="fpr-preview">{preview}</div>
@@ -915,19 +891,27 @@ function ForumPostRow({
           >
             💬 Reply
           </button>
-          <span className="fpr-replies">{replyCount} {replyCount === 1 ? "reply" : "replies"}</span>
+          <span className="fpr-replies">{post.reply_count} {post.reply_count === 1 ? "reply" : "replies"}</span>
         </div>
       </div>
     </div>
   );
 }
 
+type ApiMentor = { id: string; name: string; role: string; tags: string[]; bio: string };
+
 function BoardsSection({
   openCompose,
   openMentor,
+  boardCounts,
+  mentors,
+  mentorsLoading,
 }: {
   openCompose: (topic?: string | null, board?: string | null) => void;
-  openMentor: (name: string, role: string) => void;
+  openMentor: (mentor: { id?: string; name: string; role: string }) => void;
+  boardCounts: Record<BoardKey, number>;
+  mentors: ApiMentor[];
+  mentorsLoading: boolean;
 }) {
   const newMemberTopics = ["Introduce Yourself", "Forum Guidelines", "Forum FAQs", "Forum Announcements"];
   const ideaTopics = [
@@ -942,6 +926,10 @@ function BoardsSection({
     "Ethical Dilemmas in HR Practice",
     "Balancing Policy with Empathy",
   ];
+
+  const newMembersCount = boardCounts["new-members"];
+  const ideasCount = boardCounts.ideas;
+  const feedbackCount = boardCounts.feedback;
 
   return (
     <section className="boards-section">
@@ -972,7 +960,7 @@ function BoardsSection({
               </div>
             </div>
             <div className="bc-topics">
-              {newMemberTopics.map((t, i) => (
+              {newMemberTopics.map((t) => (
                 <a
                   key={t}
                   className="bc-topic"
@@ -984,12 +972,11 @@ function BoardsSection({
                 >
                   <div className="bt-dot" style={{ background: "#1E3560" }} />
                   <div className="bt-title">{t}</div>
-                  <div className="bt-count">{i === 0 ? "1 post" : "0 posts"}</div>
                 </a>
               ))}
             </div>
             <div className="bc-footer">
-              <div className="bc-footer-stat">4 topics · 1 post total</div>
+              <div className="bc-footer-stat">{newMembersCount} {newMembersCount === 1 ? "post" : "posts"} total</div>
               <a
                 className="bc-cta"
                 href="#"
@@ -1013,28 +1000,23 @@ function BoardsSection({
               </div>
             </div>
             <div className="bc-topics">
-              {ideaTopics.map((t) => {
-                const boardLabel = t === "AI in HR: Opportunities & Risks" ? "Innovation Lab" : "Idea Submission Board";
-                const topicArg = t === "AI in HR: Opportunities & Risks" ? "General Discussion" : t;
-                return (
-                  <a
-                    key={t}
-                    className="bc-topic"
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      openCompose(topicArg, boardLabel);
-                    }}
-                  >
-                    <div className="bt-dot" style={{ background: "var(--accent)" }} />
-                    <div className="bt-title">{t}</div>
-                    <div className="bt-count">0 posts</div>
-                  </a>
-                );
-              })}
+              {ideaTopics.map((t) => (
+                <a
+                  key={t}
+                  className="bc-topic"
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    openCompose(t, "Idea Submission Board");
+                  }}
+                >
+                  <div className="bt-dot" style={{ background: "var(--accent)" }} />
+                  <div className="bt-title">{t}</div>
+                </a>
+              ))}
             </div>
             <div className="bc-footer">
-              <div className="bc-footer-stat">4 topics · be the first to post</div>
+              <div className="bc-footer-stat">{ideasCount} {ideasCount === 1 ? "post" : "posts"} total</div>
               <a
                 className="bc-cta"
                 href="#"
@@ -1070,12 +1052,11 @@ function BoardsSection({
                 >
                   <div className="bt-dot" style={{ background: "var(--gold)" }} />
                   <div className="bt-title">{t}</div>
-                  <div className="bt-count">0 posts</div>
                 </a>
               ))}
             </div>
             <div className="bc-footer">
-              <div className="bc-footer-stat">4 topics · be the first to post</div>
+              <div className="bc-footer-stat">{feedbackCount} {feedbackCount === 1 ? "post" : "posts"} total</div>
               <a
                 className="bc-cta"
                 href="#"
@@ -1099,25 +1080,29 @@ function BoardsSection({
               </div>
             </div>
             <div style={{ padding: "12px 18px", display: "flex", flexDirection: "column", gap: 0 }}>
-              {MENTORS.map((m) => (
-                <div
-                  key={m.name}
-                  className="mentor-card"
-                  onClick={() => openMentor(m.name, m.role)}
-                >
-                  <div className="mentor-avatar" style={{ background: m.color }}>{m.initials}</div>
-                  <div className="mentor-info">
-                    <div className="mentor-name">{m.displayName}</div>
-                    <div className="mentor-role">{m.roleDisplay}</div>
-                    <div className="mentor-tags">
-                      {m.tags.map((tag) => (
-                        <span key={tag} className="mentor-tag">{tag}</span>
-                      ))}
+              {mentorsLoading ? (
+                <div style={{ padding: "16px 0", fontFamily: "var(--f-body)", fontSize: "13px", color: "var(--ink-4)" }}>Loading mentors…</div>
+              ) : (
+                mentors.map((m) => (
+                  <div
+                    key={m.id}
+                    className="mentor-card"
+                    onClick={() => openMentor({ id: m.id, name: m.name, role: m.role })}
+                  >
+                    <div className="mentor-avatar" style={{ background: colorForName(m.name) }}>{initialsFromName(m.name)}</div>
+                    <div className="mentor-info">
+                      <div className="mentor-name">{m.name}</div>
+                      <div className="mentor-role">{m.role}</div>
+                      <div className="mentor-tags">
+                        {m.tags.map((tag) => (
+                          <span key={tag} className="mentor-tag">{tag}</span>
+                        ))}
+                      </div>
                     </div>
+                    <button className="mentor-btn">Request →</button>
                   </div>
-                  <button className="mentor-btn">Request →</button>
-                </div>
-              ))}
+                ))
+              )}
               <div
                 className="mentor-card"
                 style={{ borderBottom: "none" }}
@@ -1137,7 +1122,7 @@ function BoardsSection({
               </div>
             </div>
             <div className="bc-footer">
-              <div className="bc-footer-stat">3 mentors available · responding within 5 days</div>
+              <div className="bc-footer-stat">{mentors.length} {mentors.length === 1 ? "mentor" : "mentors"} available · responding within 5 days</div>
               <a
                 className="bc-cta"
                 href="#"
@@ -1355,13 +1340,11 @@ function Calculator({
 
 function ComposeModal({
   sent,
-  name,
-  email,
+  error,
+  submitting,
   board,
   title,
   body,
-  setName,
-  setEmail,
   setBoard,
   setTitle,
   setBody,
@@ -1369,13 +1352,11 @@ function ComposeModal({
   onSubmit,
 }: {
   sent: boolean;
-  name: string;
-  email: string;
+  error: string | null;
+  submitting: boolean;
   board: string;
   title: string;
   body: string;
-  setName: (v: string) => void;
-  setEmail: (v: string) => void;
   setBoard: (v: string) => void;
   setTitle: (v: string) => void;
   setBody: (v: string) => void;
@@ -1401,24 +1382,14 @@ function ComposeModal({
         {sent ? (
           <div style={{ textAlign: "center", padding: "32px 20px" }}>
             <div style={{ fontSize: "42px", marginBottom: "14px" }}>🎉</div>
-            <div style={{ fontFamily: "var(--f-display)", fontSize: "20px", fontWeight: 900, color: "var(--ink)", marginBottom: "8px" }}>Post received!</div>
+            <div style={{ fontFamily: "var(--f-display)", fontSize: "20px", fontWeight: 900, color: "var(--ink)", marginBottom: "8px" }}>Post published!</div>
             <div style={{ fontFamily: "var(--f-body)", fontSize: "14px", color: "var(--ink-3)", lineHeight: 1.7, marginBottom: "20px" }}>
-              Your post will appear on the board shortly after a quick review by our team. Thank you for contributing.
+              Your post is now live on the board. Thank you for contributing to the community.
             </div>
             <button className="forum-submit-btn" onClick={onClose}>Back to Lab</button>
           </div>
         ) : (
           <div className="lab-modal-body">
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
-              <div className="field-wrap">
-                <label className="field-label">Your name <span className="req">*</span></label>
-                <input type="text" placeholder="e.g. Adaeze Okafor" className="forum-input" value={name} onChange={(e) => setName(e.target.value)} />
-              </div>
-              <div className="field-wrap">
-                <label className="field-label">Email <span className="req">*</span></label>
-                <input type="email" placeholder="you@work.com" className="forum-input" value={email} onChange={(e) => setEmail(e.target.value)} />
-              </div>
-            </div>
             <div className="field-wrap" style={{ marginBottom: "12px" }}>
               <label className="field-label">Board</label>
               <select className="forum-input" style={{ cursor: "pointer" }} value={board} onChange={(e) => setBoard(e.target.value)}>
@@ -1442,12 +1413,17 @@ function ComposeModal({
                 onChange={(e) => setBody(e.target.value)}
               />
             </div>
+            {error && (
+              <div style={{ fontFamily: "var(--f-body)", fontSize: "12px", color: "#C9501E", marginBottom: "12px" }}>{error}</div>
+            )}
             <div style={{ display: "flex", gap: "10px" }}>
-              <button className="forum-submit-btn" style={{ flex: 1 }} onClick={onSubmit}>Submit post →</button>
+              <button className="forum-submit-btn" style={{ flex: 1 }} onClick={onSubmit} disabled={submitting}>
+                {submitting ? "Posting…" : "Submit post →"}
+              </button>
               <button className="forum-cancel-btn" onClick={onClose}>Cancel</button>
             </div>
             <div style={{ fontFamily: "var(--f-body)", fontSize: "11px", color: "var(--ink-4)", textAlign: "center", marginTop: "10px" }}>
-              Sent to the HR Playhouse Hub team and published after a quick review.
+              Your post is published to the Lab under your account.
             </div>
           </div>
         )}
@@ -1549,14 +1525,12 @@ function JoinModal({
 
 function MentorModal({
   sent,
+  error,
+  submitting,
   mentor,
-  name,
-  email,
   role,
   topic,
   message,
-  setName,
-  setEmail,
   setRole,
   setTopic,
   setMessage,
@@ -1564,14 +1538,12 @@ function MentorModal({
   onSubmit,
 }: {
   sent: boolean;
-  mentor: { name: string; role: string };
-  name: string;
-  email: string;
+  error: string | null;
+  submitting: boolean;
+  mentor: { id?: string; name: string; role: string };
   role: string;
   topic: string;
   message: string;
-  setName: (v: string) => void;
-  setEmail: (v: string) => void;
   setRole: (v: string) => void;
   setTopic: (v: string) => void;
   setMessage: (v: string) => void;
@@ -1639,16 +1611,6 @@ function MentorModal({
                 <div style={{ fontFamily: "var(--f-body)", fontSize: "12px", color: "var(--ink-3)" }}>{mentor.role}</div>
               </div>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
-              <div className="field-wrap">
-                <label className="field-label">Your name <span className="req">*</span></label>
-                <input type="text" placeholder="e.g. Adaeze Okafor" className="forum-input" value={name} onChange={(e) => setName(e.target.value)} />
-              </div>
-              <div className="field-wrap">
-                <label className="field-label">Email <span className="req">*</span></label>
-                <input type="email" placeholder="you@work.com" className="forum-input" value={email} onChange={(e) => setEmail(e.target.value)} />
-              </div>
-            </div>
             <div className="field-wrap" style={{ marginBottom: "12px" }}>
               <label className="field-label">Your current HR role & experience</label>
               <input type="text" placeholder="e.g. HR Officer, 3 years, manufacturing sector" className="forum-input" value={role} onChange={(e) => setRole(e.target.value)} />
@@ -1673,8 +1635,13 @@ function MentorModal({
                 onChange={(e) => setMessage(e.target.value)}
               />
             </div>
+            {error && (
+              <div style={{ fontFamily: "var(--f-body)", fontSize: "12px", color: "#C9501E", marginBottom: "12px" }}>{error}</div>
+            )}
             <div style={{ display: "flex", gap: "10px" }}>
-              <button className="forum-submit-btn" style={{ flex: 1 }} onClick={onSubmit}>Send mentorship request →</button>
+              <button className="forum-submit-btn" style={{ flex: 1 }} onClick={onSubmit} disabled={submitting}>
+                {submitting ? "Sending…" : "Send mentorship request →"}
+              </button>
               <button className="forum-cancel-btn" onClick={onClose}>Cancel</button>
             </div>
             <div style={{ fontFamily: "var(--f-body)", fontSize: "11px", color: "var(--ink-4)", textAlign: "center", marginTop: "10px" }}>

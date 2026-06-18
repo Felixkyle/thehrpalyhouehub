@@ -8,6 +8,7 @@ import {
   webinars,
   ai,
   courses,
+  forum,
 } from "@/lib/api/endpoints";
 import { useAuth } from "@/lib/stores/auth";
 import { qk } from "./queryKeys";
@@ -125,6 +126,35 @@ export function useSubmitFinalProject() {
   return useMutation({
     mutationFn: (file: File) => courses.submitFinalProject(file),
     onSuccess: invalidate,
+  });
+}
+
+// ── Forum ──────────────────────────────────────────────────────────
+
+export function useCreateForumPost() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Parameters<typeof forum.createPost>[0]) => forum.createPost(body),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ["forum-posts", vars.board] });
+    },
+  });
+}
+
+export function useReplyToPost() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ postId, body }: { postId: string; body: string }) => forum.reply(postId, body),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ["forum-post", vars.postId] });
+      qc.invalidateQueries({ queryKey: ["forum-posts"] });
+    },
+  });
+}
+
+export function useMentorshipRequest() {
+  return useMutation({
+    mutationFn: (body: Parameters<typeof forum.mentorshipRequest>[0]) => forum.mentorshipRequest(body),
   });
 }
 

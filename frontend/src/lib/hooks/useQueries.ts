@@ -12,6 +12,7 @@ import {
   resources,
   webinars,
   admin,
+  forum,
 } from "@/lib/api/endpoints";
 import { useAuth } from "@/lib/stores/auth";
 import { qk } from "./queryKeys";
@@ -76,6 +77,26 @@ export function useResources(filters: Parameters<typeof resources.list>[0] = {})
 
 export function useWebinars(type?: Parameters<typeof webinars.list>[0]) {
   return useQuery({ queryKey: qk.webinars(type), queryFn: () => webinars.list(type) });
+}
+
+export function useForumPosts(board: string, opts: { limit?: number; offset?: number } = {}) {
+  return useQuery({
+    queryKey: ["forum-posts", board, opts],
+    queryFn: () => forum.posts(board, opts),
+    enabled: !!board,
+  });
+}
+
+export function useForumPost(id: string | null) {
+  return useQuery({
+    queryKey: ["forum-post", id ?? ""],
+    queryFn: () => forum.post(id as string),
+    enabled: !!id,
+  });
+}
+
+export function useForumMentors() {
+  return useQuery({ queryKey: ["forum-mentors"], queryFn: () => forum.mentors() });
 }
 
 export function useAdminFinalProjects() {
