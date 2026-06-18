@@ -17,6 +17,7 @@ import resourceRoutes from "./routes/resources.js";
 import webinarRoutes from "./routes/webinars.js";
 import forumRoutes from "./routes/forum.js";
 import adminEmailRoutes from "./routes/admin-email.js";
+import adminRoutes from "./routes/admin.js";
 
 export function createApp() {
   const app = express();
@@ -54,6 +55,7 @@ export function createApp() {
   app.use("/api/webinars", webinarRoutes);
   app.use("/api/forum", forumRoutes);
   app.use("/api/admin/email-sender", adminEmailRoutes);
+  app.use("/api/admin", adminRoutes);
 
   app.use((_req, res) => {
     res.status(404).json({ error: { code: "NOT_FOUND", message: "Route not found" } });

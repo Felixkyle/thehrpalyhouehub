@@ -207,3 +207,18 @@ export const forum = {
   mentors: () =>
     api<{ mentors: { id: string; name: string; role: string; tags: string[]; bio: string }[] }>("/api/forum/mentors"),
 };
+
+export interface FinalProjectSubmission {
+  id: string;
+  learner_name: string;
+  learner_email: string;
+  original_name: string;
+  file_url: string;
+  size_bytes: number;
+  submitted_at: string;
+}
+
+export const admin = {
+  finalProjects: () =>
+    api<{ submissions: FinalProjectSubmission[] }>("/api/admin/final-projects"),
+};
