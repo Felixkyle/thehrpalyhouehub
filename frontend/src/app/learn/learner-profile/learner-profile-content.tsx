@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
@@ -48,6 +49,12 @@ const PW_COLORS = [
 
 export default function LearnerProfileContent() {
   const token = useAuth((s) => s.token);
+  const clearSession = useAuth((s) => s.clear);
+  const router = useRouter();
+  function handleLogout() {
+    clearSession();
+    router.push("/");
+  }
   const me = useMe();
   const prefsQuery = usePreferences();
   const updateProfile = useUpdateProfile();
@@ -694,6 +701,20 @@ export default function LearnerProfileContent() {
                     >
                       Go to password reset →
                     </Link>
+                  </div>
+
+                  <div className="danger-zone" style={{ marginTop: 20 }}>
+                    <div className="danger-title">Sign out</div>
+                    <div className="danger-body">
+                      Sign out of your account on this device.
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-outline btn-sm"
+                      onClick={handleLogout}
+                    >
+                      ↪ Log out
+                    </button>
                   </div>
                 </div>
               )}
