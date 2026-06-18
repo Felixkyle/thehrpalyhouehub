@@ -3,12 +3,178 @@
 /* eslint-disable react/no-unescaped-entities */
 
 import { useEffect, useRef, useState } from "react";
-import { useSubmitFinalProject } from "@/lib/hooks";
+import { useSubmitFinalProject, useCourses, useCompleteItem } from "@/lib/hooks";
+import type { CourseLevel } from "@/lib/api/types";
 import { ApiError } from "@/lib/api/client";
 import "./learning-module.css";
 
 type TabId = "home" | "l1" | "l2" | "l3" | "l4" | "fp";
 const ALLOWED_TABS: TabId[] = ["home", "l1", "l2", "l3", "l4", "fp"];
+
+// ───────── Backend-wired progress panel (added — does not alter lesson content) ─────────
+
+type ProgressKind = "topic" | "case_study" | "game";
+
+const progressPanelStyle: React.CSSProperties = {
+  background: "#fff",
+  border: "1px solid #e2e8f0",
+  borderRadius: "14px",
+  padding: "20px",
+  margin: "24px 0",
+  boxShadow: "0 1px 2px rgba(15,23,42,0.04)",
+};
+const progressHeaderStyle: React.CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "flex-start",
+  gap: "16px",
+  marginBottom: "12px",
+};
+const progressBarTrackStyle: React.CSSProperties = {
+  height: "8px",
+  background: "#e2e8f0",
+  borderRadius: "999px",
+  overflow: "hidden",
+};
+const progressBarFillStyle: React.CSSProperties = {
+  height: "100%",
+  background: "linear-gradient(90deg,#0f766e,#14b8a6)",
+  borderRadius: "999px",
+  transition: "width .3s ease",
+};
+const progressRowStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: "12px",
+  padding: "10px 12px",
+  background: "#f8fafc",
+  border: "1px solid #eef2f6",
+  borderRadius: "10px",
+};
+const progressDotStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "22px",
+  height: "22px",
+  borderRadius: "999px",
+  border: "2px solid",
+  fontSize: "12px",
+  fontWeight: 700,
+  flexShrink: 0,
+};
+const progressBtnStyle: React.CSSProperties = {
+  background: "#0f766e",
+  color: "#fff",
+  border: "none",
+  borderRadius: "8px",
+  padding: "7px 14px",
+  fontSize: "12.5px",
+  fontWeight: 600,
+};
+
+function LevelProgressPanel({ levelNumber }: { levelNumber: 1 | 2 | 3 | 4 }) {
+  const { data, isLoading } = useCourses();
+  const completeItem = useCompleteItem();
+  const [pendingId, setPendingId] = useState<string | null>(null);
+
+  const level: CourseLevel | undefined = data?.levels.find(
+    (l) => l.level_number === levelNumber,
+  );
+
+  async function mark(kind: ProgressKind, itemId: string) {
+    setPendingId(itemId);
+    try {
+      await completeItem.mutateAsync({ level: levelNumber, kind, itemId });
+    } catch {
+      // Refresh of the courses query surfaces server state; keep UI stable on error.
+    } finally {
+      setPendingId(null);
+    }
+  }
+
+  if (isLoading && !level) {
+    return (
+      <div className="progress-panel" style={progressPanelStyle}>
+        <div style={{ color: "#64748b", fontSize: "13px" }}>Loading progress…</div>
+      </div>
+    );
+  }
+  if (!level) return null;
+
+  const rows: { kind: ProgressKind; item: { id: string; name: string; status: string } }[] = [
+    ...level.topics.map((item) => ({ kind: "topic" as const, item })),
+    ...level.case_studies.map((item) => ({ kind: "case_study" as const, item })),
+    ...level.games.map((item) => ({ kind: "game" as const, item })),
+  ];
+
+  return (
+    <div className="progress-panel" style={progressPanelStyle}>
+      <div style={progressHeaderStyle}>
+        <div>
+          <div style={{ fontWeight: 700, fontSize: "15px", color: "#0f172a" }}>Your progress</div>
+          <div style={{ fontSize: "12.5px", color: "#64748b" }}>
+            Mark each topic, case study, and game complete as you finish it.
+          </div>
+        </div>
+        <div style={{ textAlign: "right", minWidth: "92px" }}>
+          <div style={{ fontWeight: 800, fontSize: "20px", color: "#0f766e" }}>
+            {level.progress_percent}%
+          </div>
+          <div style={{ fontSize: "11px", color: "#64748b" }}>complete</div>
+        </div>
+      </div>
+      <div style={progressBarTrackStyle}>
+        <div
+          style={{
+            ...progressBarFillStyle,
+            width: `${Math.max(0, Math.min(100, level.progress_percent))}%`,
+          }}
+        />
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "14px" }}>
+        {rows.map(({ kind, item }) => {
+          const done = item.status === "complete";
+          const busy = pendingId === item.id && completeItem.isPending;
+          return (
+            <div key={`${kind}-${item.id}`} style={progressRowStyle}>
+              <span
+                aria-hidden
+                style={{
+                  ...progressDotStyle,
+                  background: done ? "#0f766e" : "transparent",
+                  borderColor: done ? "#0f766e" : "#cbd5e1",
+                  color: "#fff",
+                }}
+              >
+                {done ? "✓" : ""}
+              </span>
+              <span style={{ flex: 1, fontSize: "13.5px", color: done ? "#0f172a" : "#334155" }}>
+                {item.name}
+              </span>
+              {done ? (
+                <span style={{ fontSize: "12px", fontWeight: 600, color: "#0f766e" }}>Done</span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => mark(kind, item.id)}
+                  disabled={busy || completeItem.isPending}
+                  style={{
+                    ...progressBtnStyle,
+                    opacity: busy || completeItem.isPending ? 0.6 : 1,
+                    cursor: busy || completeItem.isPending ? "default" : "pointer",
+                  }}
+                >
+                  {busy ? "Saving…" : "Mark complete"}
+                </button>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 function getSavedTab(): TabId {
   if (typeof window === "undefined") return "home";
@@ -915,6 +1081,7 @@ export default function LearningModuleContent() {
               </div>
             </div>
           </div>
+          <LevelProgressPanel levelNumber={1} />
           <div className="game-zone">
             <div className="game-zone-header">
               <div className="game-zone-title">🎮 Gamified Activities — Level 1: HR Foundations</div>
@@ -1549,6 +1716,7 @@ export default function LearningModuleContent() {
               </div>
             </div>
           </div>
+          <LevelProgressPanel levelNumber={2} />
           <div className="game-zone">
             <div className="game-zone-header">
               <div className="game-zone-title">🎮 Gamified Activities — Level 2: Operational HR</div>
@@ -2202,6 +2370,7 @@ export default function LearningModuleContent() {
               </div>
             </div>
           </div>
+          <LevelProgressPanel levelNumber={3} />
           <div className="game-zone">
             <div className="game-zone-header">
               <div className="game-zone-title">🎮 Gamified Activities — Level 3: Strategic HR</div>
@@ -2794,6 +2963,7 @@ export default function LearningModuleContent() {
             </div>
           </div>
 
+          <LevelProgressPanel levelNumber={4} />
           <div className="game-zone">
             <div className="game-zone-header">
               <div className="game-zone-title">🎮 Gamified Activities — Level 4: Future-Forward HR</div>

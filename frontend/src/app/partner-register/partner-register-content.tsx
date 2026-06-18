@@ -590,10 +590,10 @@ export default function PartnerRegisterContent() {
                 <br />
                 In the meantime, you are welcome to explore the platform at{" "}
                 <a
-                  href=""
+                  href="/"
                   style={{ color: "var(--accent)", fontWeight: 600 }}
                 >
-                  learn.thehrplayhousehub.org
+                  thehrplayhousehub.org
                 </a>
                 .
               </div>

@@ -2,7 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useCpdEnquiry } from "@/lib/hooks";
+import { ApiError } from "@/lib/api/client";
 import "./pricing.css";
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /**
  * Pricing (September 2026).
@@ -93,6 +97,50 @@ export default function PricingContent() {
   // false = original static markup (pre-`render()`); true once a toggle ran.
   const [rendered, setRendered] = useState(false);
 
+  // Enquiry modal (replaces the old mailto: CTAs).
+  const enquiry = useCpdEnquiry();
+  const [enquiryFor, setEnquiryFor] = useState<string | null>(null);
+  const [eqName, setEqName] = useState("");
+  const [eqEmail, setEqEmail] = useState("");
+  const [eqOrg, setEqOrg] = useState("");
+  const [eqMessage, setEqMessage] = useState("");
+  const [eqError, setEqError] = useState<string | null>(null);
+  const [eqDone, setEqDone] = useState(false);
+
+  function openEnquiry(subject: string) {
+    setEnquiryFor(subject);
+    setEqError(null);
+    setEqDone(false);
+  }
+  function closeEnquiry() {
+    setEnquiryFor(null);
+    setEqName("");
+    setEqEmail("");
+    setEqOrg("");
+    setEqMessage("");
+    setEqError(null);
+    setEqDone(false);
+  }
+  async function submitEnquiry(e: React.FormEvent) {
+    e.preventDefault();
+    setEqError(null);
+    if (!eqName.trim() || !EMAIL_RE.test(eqEmail.trim()) || !eqOrg.trim()) {
+      setEqError("Please fill in your name, a valid email, and your organisation.");
+      return;
+    }
+    try {
+      await enquiry.mutateAsync({
+        name: eqName.trim(),
+        organisation: eqOrg.trim(),
+        email: eqEmail.trim(),
+        message: `[${enquiryFor}]\n\n${eqMessage.trim()}`,
+      });
+      setEqDone(true);
+    } catch (err) {
+      setEqError(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
+    }
+  }
+
   const p = P[cur];
   const annual = bill === "annual";
 
@@ -160,12 +208,14 @@ export default function PricingContent() {
           Paid plans open September 2026 · Founding partner window closes 31
           March 2027 ·
         </span>
-        <a
+        <button
+          type="button"
           className="lb-link"
-          href="mailto:contact@thehrplayhousehub.org?subject=Founding Partner Interest"
+          onClick={() => openEnquiry("Founding Partner Interest")}
+          style={{ background: "none", border: "none", cursor: "pointer", font: "inherit", color: "inherit" }}
         >
           Register interest now →
-        </a>
+        </button>
       </div>
 
       {/* HERO */}
@@ -293,12 +343,14 @@ export default function PricingContent() {
               recognition and first-mover benefits.
             </p>
           </div>
-          <a
+          <button
+            type="button"
             className="fs-cta"
-            href="mailto:contact@thehrplayhousehub.org?subject=Founding Partner Interest"
+            onClick={() => openEnquiry("Founding Partner Interest")}
+            style={{ cursor: "pointer", border: "none", font: "inherit" }}
           >
             Register interest →
-          </a>
+          </button>
         </div>
 
         {/* PRICING GRID */}
@@ -441,12 +493,14 @@ export default function PricingContent() {
                 <span className="ck p">◑</span>Workshop licence — 50% off
               </li>
             </ul>
-            <a
+            <button
               className="plan-cta cta-ac"
-              href="mailto:contact@thehrplayhousehub.org?subject=Institutional Plan Enquiry"
+              type="button"
+              onClick={() => openEnquiry("Institutional Plan Enquiry")}
+              style={{ cursor: "pointer", border: "none", font: "inherit", width: "100%" }}
             >
               Get a quote
-            </a>
+            </button>
           </div>
 
           {/* ENTERPRISE */}
@@ -488,12 +542,14 @@ export default function PricingContent() {
                 <span className="ck y">✓</span>SLA + dedicated account manager
               </li>
             </ul>
-            <a
+            <button
               className="plan-cta cta-ent"
-              href="mailto:contact@thehrplayhousehub.org?subject=Enterprise Enquiry"
+              type="button"
+              onClick={() => openEnquiry("Enterprise Enquiry")}
+              style={{ cursor: "pointer", border: "none", font: "inherit", width: "100%" }}
             >
               Contact us →
-            </a>
+            </button>
           </div>
         </div>
 
@@ -918,15 +974,76 @@ export default function PricingContent() {
             >
               Start free now →
             </a>
-            <a
+            <button
+              type="button"
               className="btn-lg btn-gh"
-              href="mailto:contact@thehrplayhousehub.org?subject=Founding Partner Interest"
+              onClick={() => openEnquiry("Founding Partner Interest")}
+              style={{ cursor: "pointer", border: "none", font: "inherit" }}
             >
               Register founding partner interest
-            </a>
+            </button>
           </div>
         </div>
       </div>
+
+      {enquiryFor && (
+        <div
+          onClick={closeEnquiry}
+          style={{ position: "fixed", inset: 0, background: "rgba(10,22,40,.6)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, zIndex: 1000 }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{ background: "#fff", borderRadius: 14, padding: 28, width: "100%", maxWidth: 460, fontFamily: "var(--f-body, system-ui)" }}
+          >
+            {eqDone ? (
+              <div style={{ textAlign: "center", padding: "12px 0" }}>
+                <div style={{ fontSize: 40, marginBottom: 8 }}>✅</div>
+                <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>Enquiry sent</h3>
+                <p style={{ color: "#5A6880", fontSize: 14, marginBottom: 20 }}>
+                  Thanks — we&rsquo;ve received your enquiry and will be in touch shortly.
+                </p>
+                <button onClick={closeEnquiry} style={{ padding: "10px 24px", borderRadius: 100, background: "#0D1F3C", color: "#fff", border: "none", fontWeight: 700, cursor: "pointer" }}>
+                  Close
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={submitEnquiry}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: 4 }}>
+                  <h3 style={{ fontSize: 20, fontWeight: 800 }}>{enquiryFor}</h3>
+                  <button type="button" onClick={closeEnquiry} style={{ background: "none", border: "none", fontSize: 22, cursor: "pointer", color: "#9BABC0", lineHeight: 1 }}>×</button>
+                </div>
+                <p style={{ color: "#5A6880", fontSize: 13, marginBottom: 18 }}>
+                  Tell us a little about you and we&rsquo;ll get back to you.
+                </p>
+                {eqError && (
+                  <div style={{ padding: "10px 12px", background: "#fef2f0", border: "1px solid #fca5a5", borderRadius: 8, color: "#991b1b", fontSize: 13, marginBottom: 14 }}>
+                    {eqError}
+                  </div>
+                )}
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  <input placeholder="Your name" value={eqName} onChange={(e) => setEqName(e.target.value)} style={eqInput} />
+                  <input placeholder="Work email" type="email" value={eqEmail} onChange={(e) => setEqEmail(e.target.value)} style={eqInput} />
+                  <input placeholder="Organisation" value={eqOrg} onChange={(e) => setEqOrg(e.target.value)} style={eqInput} />
+                  <textarea placeholder="Anything you'd like to add (optional)" value={eqMessage} onChange={(e) => setEqMessage(e.target.value)} rows={3} style={{ ...eqInput, resize: "vertical" }} />
+                  <button type="submit" disabled={enquiry.isPending} style={{ height: 46, borderRadius: 100, background: enquiry.isPending ? "#9BABC0" : "#0D1F3C", color: "#fff", border: "none", fontWeight: 700, fontSize: 15, cursor: enquiry.isPending ? "default" : "pointer" }}>
+                    {enquiry.isPending ? "Sending…" : "Send enquiry"}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
+const eqInput: React.CSSProperties = {
+  width: "100%",
+  padding: "11px 14px",
+  borderRadius: 10,
+  border: "1.5px solid rgba(10,22,40,.15)",
+  fontSize: 14,
+  fontFamily: "inherit",
+  outline: "none",
+};
