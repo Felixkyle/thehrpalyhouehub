@@ -14,7 +14,7 @@ export const env = {
   jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? "7d",
   bcryptRounds: Number(process.env.BCRYPT_ROUNDS ?? 10),
   geminiApiKey: process.env.GEMINI_API_KEY ?? "",
-  geminiModel: process.env.GEMINI_MODEL ?? "gemini-2.5-pro",
+  geminiModel: process.env.GEMINI_MODEL ?? "gemini-2.5-flash",
   openaiApiKey: process.env.OPENAI_API_KEY ?? "",
   openaiModel: process.env.OPENAI_MODEL ?? "gpt-4o",
   resendApiKey: process.env.RESEND_API_KEY ?? "",
