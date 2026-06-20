@@ -8,7 +8,26 @@
  */
 import { connectDb } from "../db/connect.js";
 import { Course } from "../models/Course.js";
+import { Badge } from "../models/Badge.js";
 import mongoose from "mongoose";
+
+/**
+ * Badge catalog — one badge awarded per level completed, plus the full
+ * programme. Slugs MUST match the slugs awarded in `onLevelComplete`
+ * (utils/progress.ts): `level-1`..`level-4` and `full-programme`.
+ */
+const BADGES = [
+  { slug: "level-1", name: "HR Foundations", emoji: "🏅", description: "Completed Level 1 — HR Foundations." },
+  { slug: "level-2", name: "Operational HR", emoji: "🏅", description: "Completed Level 2 — Operational HR." },
+  { slug: "level-3", name: "Strategic HR", emoji: "🏅", description: "Completed Level 3 — Strategic HR." },
+  { slug: "level-4", name: "Future-Forward HR", emoji: "🏅", description: "Completed Level 4 — Future-Forward HR." },
+  {
+    slug: "full-programme",
+    name: "Programme Graduate",
+    emoji: "🏆",
+    description: "Completed all four levels and the final HR Strategy Proposal.",
+  },
+];
 
 type Item = { id: string; name: string };
 
@@ -104,8 +123,14 @@ async function main() {
     await Course.updateOne({ level_number: lvl.level_number }, { $set: lvl }, { upsert: true });
     console.log(`✓ seeded Level ${lvl.level_number} — ${lvl.title}`);
   }
+  for (const b of BADGES) {
+    await Badge.updateOne({ slug: b.slug }, { $set: b }, { upsert: true });
+    console.log(`✓ seeded badge — ${b.name}`);
+  }
+
   const count = await Course.countDocuments();
-  console.log(`Done. ${count} course level(s) in the database.`);
+  const badgeCount = await Badge.countDocuments();
+  console.log(`Done. ${count} course level(s) and ${badgeCount} badge(s) in the database.`);
   await mongoose.disconnect();
 }
 
