@@ -4,7 +4,19 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { HugeiconsIcon } from "@hugeicons/react";
+import {
+  Building06Icon,
+  Settings02Icon,
+  Analytics01Icon,
+  Rocket01Icon,
+  SquareLock02Icon,
+  CheckmarkCircle02Icon,
+  PlayCircle02Icon,
+  ArrowRight02Icon,
+} from "@hugeicons/core-free-icons";
 import { useSubmitFinalProject, useCourses, useCompleteItem } from "@/lib/hooks";
+import { useAuth } from "@/lib/stores/auth";
 import type { CourseLevel } from "@/lib/api/types";
 import { ApiError } from "@/lib/api/client";
 import "./learning-module.css";
@@ -217,12 +229,80 @@ function syncTabProgress(id: TabId) {
   } catch {}
 }
 
+/** Visual/lock state for one of the four level cards. */
+type LevelState = "complete" | "current" | "locked";
+
+const LEVEL_CARDS: {
+  tab: Extract<TabId, "l1" | "l2" | "l3" | "l4">;
+  num: number;
+  cls: string;
+  icon: typeof Building06Icon;
+  title: string;
+  desc: string;
+}[] = [
+  {
+    tab: "l1",
+    num: 1,
+    cls: "wg-l1",
+    icon: Building06Icon,
+    title: "HR Foundations",
+    desc: "Mindset, professional identity, trust, the HR toolkit, workplace culture, and engagement fundamentals",
+  },
+  {
+    tab: "l2",
+    num: 2,
+    cls: "wg-l2",
+    icon: Settings02Icon,
+    title: "Operational HR",
+    desc: "Talent acquisition, performance management, retention, and employee well-being with DEIB embedded throughout",
+  },
+  {
+    tab: "l3",
+    num: 3,
+    cls: "wg-l3",
+    icon: Analytics01Icon,
+    title: "Strategic HR",
+    desc: "HR strategy, data analytics, talent management, leadership development, and future workforce planning",
+  },
+  {
+    tab: "l4",
+    num: 4,
+    cls: "wg-l4",
+    icon: Rocket01Icon,
+    title: "Future-Forward HR",
+    desc: "AI in HR, digital transformation, gamification, gig economy, and the evolving workforce of tomorrow",
+  },
+];
+
 export default function LearningModuleContent() {
   const [activeTab, setActiveTabState] = useState<TabId>("home");
 
+  // Live level status drives progressive unlocking of the level cards/tabs.
+  const authed = useAuth((s) => !!s.token);
+  const { data: coursesData } = useCourses();
+  const levelByNum = new Map<number, CourseLevel>(
+    (coursesData?.levels ?? []).map((l) => [l.level_number, l]),
+  );
+
+  // Resolve a level's state. Level 1 is always open. A higher level is unlocked
+  // once the previous level is complete; otherwise it's locked. Signed-out users
+  // see everything open (content is public — progress just isn't tracked).
+  function levelState(num: number): LevelState {
+    if (!authed) return "current";
+    const lvl = levelByNum.get(num);
+    if (lvl?.status === "complete") return "complete";
+    if (num === 1) return "current"; // Level 1 always open
+    const prev = levelByNum.get(num - 1);
+    return prev?.status === "complete" ? "current" : "locked";
+  }
+
+  const tabToNum: Record<string, number> = { l1: 1, l2: 2, l3: 3, l4: 4 };
+
   // Mark each level as "started" in localStorage when first visited, mirroring
-  // the original page's progress tracking behaviour.
+  // the original page's progress tracking behaviour. Locked levels are refused.
   function setActiveTab(id: TabId) {
+    const num = tabToNum[id];
+    if (num && levelState(num) === "locked") return; // hard lock
     setActiveTabState(id);
     syncTabProgress(id);
   }
@@ -364,11 +444,39 @@ export default function LearningModuleContent() {
             </div>
             <div className="nav-tabs">
               <button className={`nav-tab${activeTab === "home" ? " active" : ""}`} onClick={() => setActiveTab("home")}>🏠 Home</button>
-              <button className={`nav-tab${activeTab === "l1" ? " active" : ""}`} onClick={() => setActiveTab("l1")}>L1 · Foundations</button>
-              <button className={`nav-tab${activeTab === "l2" ? " active" : ""}`} onClick={() => setActiveTab("l2")}>L2 · Operational</button>
-              <button className={`nav-tab${activeTab === "l3" ? " active" : ""}`} onClick={() => setActiveTab("l3")}>L3 · Strategic</button>
-              <button className={`nav-tab${activeTab === "l4" ? " active" : ""}`} onClick={() => setActiveTab("l4")}>L4 · Innovation</button>
-              <button className={`nav-tab${activeTab === "fp" ? " active" : ""}`} onClick={() => setActiveTab("fp")}>📋 Final Project</button>
+              {([
+                { tab: "l1", num: 1, label: "L1 · Foundations" },
+                { tab: "l2", num: 2, label: "L2 · Operational" },
+                { tab: "l3", num: 3, label: "L3 · Strategic" },
+                { tab: "l4", num: 4, label: "L4 · Innovation" },
+              ] as const).map((t) => {
+                const locked = levelState(t.num) === "locked";
+                return (
+                  <button
+                    key={t.tab}
+                    className={`nav-tab${activeTab === t.tab ? " active" : ""}${locked ? " nav-tab-locked" : ""}`}
+                    onClick={() => setActiveTab(t.tab)}
+                    disabled={locked}
+                    title={locked ? `Complete Level ${t.num - 1} to unlock` : undefined}
+                  >
+                    {locked && (
+                      <HugeiconsIcon icon={SquareLock02Icon} size={13} strokeWidth={2} />
+                    )}
+                    {t.label}
+                  </button>
+                );
+              })}
+              <button
+                className={`nav-tab${activeTab === "fp" ? " active" : ""}${levelState(4) !== "complete" && authed ? " nav-tab-locked" : ""}`}
+                onClick={() => {
+                  if (levelState(4) !== "complete" && authed) return;
+                  setActiveTab("fp");
+                }}
+                disabled={levelState(4) !== "complete" && authed}
+                title={levelState(4) !== "complete" && authed ? "Complete Level 4 to unlock" : undefined}
+              >
+                📋 Final Project
+              </button>
             </div>
           </div>
         </div>
@@ -382,34 +490,70 @@ export default function LearningModuleContent() {
             <div className="hero-note">📌 All content grounded in CIPD, SHRM, academic journals, and industry research</div>
           </div>
           <div className="wg-grid">
-            <div className="wg-card wg-l1" onClick={() => setActiveTab("l1")}>
-              <div className="wg-emoji">🧱</div>
-              <div className="wg-level">Level 1</div>
-              <div className="wg-title">HR Foundations</div>
-              <div className="wg-desc">Mindset, professional identity, trust, the HR toolkit, workplace culture, and engagement
-                fundamentals</div>
-            </div>
-            <div className="wg-card wg-l2" onClick={() => setActiveTab("l2")}>
-              <div className="wg-emoji">⚙️</div>
-              <div className="wg-level">Level 2</div>
-              <div className="wg-title">Operational HR</div>
-              <div className="wg-desc">Talent acquisition, performance management, retention, and employee well-being with DEIB
-                embedded throughout</div>
-            </div>
-            <div className="wg-card wg-l3" onClick={() => setActiveTab("l3")}>
-              <div className="wg-emoji">📊</div>
-              <div className="wg-level">Level 3</div>
-              <div className="wg-title">Strategic HR</div>
-              <div className="wg-desc">HR strategy, data analytics, talent management, leadership development, and future
-                workforce planning</div>
-            </div>
-            <div className="wg-card wg-l4" onClick={() => setActiveTab("l4")}>
-              <div className="wg-emoji">🚀</div>
-              <div className="wg-level">Level 4</div>
-              <div className="wg-title">Future-Forward HR</div>
-              <div className="wg-desc">AI in HR, digital transformation, gamification, gig economy, and the evolving workforce of
-                tomorrow</div>
-            </div>
+            {LEVEL_CARDS.map((card) => {
+              const state = levelState(card.num);
+              const locked = state === "locked";
+              const complete = state === "complete";
+              return (
+                <div
+                  key={card.tab}
+                  className={`wg-card ${card.cls}${locked ? " wg-locked" : ""}${complete ? " wg-complete" : ""}`}
+                  role="button"
+                  tabIndex={locked ? -1 : 0}
+                  aria-disabled={locked}
+                  onClick={() => setActiveTab(card.tab)}
+                  onKeyDown={(e) => {
+                    if (!locked && (e.key === "Enter" || e.key === " ")) {
+                      e.preventDefault();
+                      setActiveTab(card.tab);
+                    }
+                  }}
+                >
+                  <div className="wg-card-top">
+                    <div className="wg-icon">
+                      <HugeiconsIcon
+                        icon={locked ? SquareLock02Icon : card.icon}
+                        size={40}
+                        strokeWidth={1.8}
+                      />
+                    </div>
+                    <span className={`wg-badge wg-badge-${state}`}>
+                      {complete ? (
+                        <>
+                          <HugeiconsIcon icon={CheckmarkCircle02Icon} size={14} strokeWidth={2} />
+                          Complete
+                        </>
+                      ) : locked ? (
+                        <>
+                          <HugeiconsIcon icon={SquareLock02Icon} size={14} strokeWidth={2} />
+                          Locked
+                        </>
+                      ) : (
+                        <>
+                          <HugeiconsIcon icon={PlayCircle02Icon} size={14} strokeWidth={2} />
+                          {authed ? "In progress" : "Open"}
+                        </>
+                      )}
+                    </span>
+                  </div>
+                  <div className="wg-level">Level {card.num}</div>
+                  <div className="wg-title">{card.title}</div>
+                  <div className="wg-desc">{card.desc}</div>
+                  <div className="wg-cta">
+                    {locked ? (
+                      <span className="wg-cta-locked">
+                        Complete Level {card.num - 1} to unlock
+                      </span>
+                    ) : (
+                      <span className="wg-cta-go">
+                        {complete ? "Review level" : "Start level"}
+                        <HugeiconsIcon icon={ArrowRight02Icon} size={16} strokeWidth={2} />
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
           <div className="hiw">
             <div className="hiw-icon">💡</div>

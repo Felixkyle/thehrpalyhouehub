@@ -1245,15 +1245,112 @@
     }
 
     .wg-card {
-      padding: 20px;
-      border-radius: 13px;
+      position: relative;
+      padding: 22px;
+      border-radius: 16px;
       cursor: pointer;
-      transition: all .2s
+      transition: transform .2s, box-shadow .2s, filter .2s;
+      overflow: hidden;
+      outline: none;
     }
 
-    .wg-card:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 8px 30px rgba(0, 0, 0, .15)
+    .wg-card:hover,
+    .wg-card:focus-visible {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 34px rgba(0, 0, 0, .22)
+    }
+
+    .wg-card:focus-visible {
+      box-shadow: 0 0 0 3px rgba(255, 255, 255, .6), 0 12px 34px rgba(0, 0, 0, .22)
+    }
+
+    /* Locked level — dimmed, desaturated, no pointer */
+    .wg-card.wg-locked {
+      cursor: not-allowed;
+      filter: grayscale(.65) brightness(.7);
+      opacity: .85;
+    }
+
+    .wg-card.wg-locked:hover,
+    .wg-card.wg-locked:focus-visible {
+      transform: none;
+      box-shadow: none;
+    }
+
+    .wg-card-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    /* Big icon chip */
+    .wg-icon {
+      width: 58px;
+      height: 58px;
+      border-radius: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      background: rgba(255, 255, 255, .15);
+      border: 1px solid rgba(255, 255, 255, .22);
+      backdrop-filter: blur(2px);
+    }
+
+    /* Status badge */
+    .wg-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 10px 5px 8px;
+      border-radius: 100px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .01em;
+      color: #fff;
+      background: rgba(255, 255, 255, .16);
+      border: 1px solid rgba(255, 255, 255, .25);
+    }
+
+    .wg-badge-complete {
+      background: rgba(34, 197, 94, .28);
+      border-color: rgba(134, 239, 172, .55);
+    }
+
+    .wg-badge-locked {
+      background: rgba(0, 0, 0, .3);
+      border-color: rgba(255, 255, 255, .18);
+    }
+
+    .wg-cta {
+      margin-top: 16px;
+      padding-top: 13px;
+      border-top: 1px solid rgba(255, 255, 255, .16);
+    }
+
+    .wg-cta-go {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .wg-card:hover .wg-cta-go {
+      gap: 9px;
+    }
+
+    .wg-cta-locked {
+      font-size: 12px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, .7);
+    }
+
+    /* Complete level gets a subtle ring */
+    .wg-card.wg-complete {
+      box-shadow: inset 0 0 0 2px rgba(134, 239, 172, .5)
     }
 
     .wg-l1 {
@@ -1272,32 +1369,41 @@
       background: linear-gradient(145deg, #7a1a1a, #c9352a)
     }
 
-    .wg-emoji {
-      font-size: 28px;
-      margin-bottom: 10px
-    }
-
     .wg-level {
       font-size: 10px;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: .11em;
-      opacity: .65;
+      letter-spacing: .12em;
+      opacity: .7;
       color: #fff;
       margin-bottom: 4px
     }
 
     .wg-title {
-      font-size: 16px;
-      font-weight: 700;
+      font-size: 18px;
+      font-weight: 800;
       color: #fff;
-      margin-bottom: 5px
+      margin-bottom: 6px;
+      letter-spacing: -.2px;
     }
 
     .wg-desc {
-      font-size: 12px;
-      color: rgba(255, 255, 255, .78);
-      line-height: 1.45
+      font-size: 12.5px;
+      color: rgba(255, 255, 255, .82);
+      line-height: 1.5
+    }
+
+    /* Locked top tab */
+    .nav-tab-locked {
+      opacity: .5;
+      cursor: not-allowed;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .nav-tab-locked:hover {
+      transform: none;
     }
 
     .hiw {
