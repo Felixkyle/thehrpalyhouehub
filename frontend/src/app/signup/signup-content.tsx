@@ -9,7 +9,7 @@ import "./signup.css";
 /**
  * Account sign-up page.
  *
- * Faithful port of 01_signup.html. This page ships its OWN nav and design
+ * This page ships its OWN nav and design
  * system (and has no site footer at all), so the standard shared
  * <Nav />/<Footer /> components are deliberately NOT used — the original
  * nav (logo + "Already have an account? Sign in") is ported inline.

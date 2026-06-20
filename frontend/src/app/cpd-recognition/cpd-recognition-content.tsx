@@ -10,7 +10,7 @@ import "./cpd-recognition.css";
 /**
  * CPD recognition marketing + enquiry page.
  *
- * Faithful port of cpd-recognition.html. The original collected four inputs
+ * The original collected four inputs
  * by id in a `submitCPD()` function, validated name/org/email, opened a
  * prefilled mailto, then revealed a hidden success banner via `style.display`.
  * The enquiry now POSTs to the real backend via `useCpdEnquiry()`; on success

@@ -10,7 +10,7 @@ import "./ai-support.css";
 /**
  * AI HR Support — chat assistant.
  *
- * Faithful port of 03_ai-support.html. This app page has its own chrome
+ * This app page has its own chrome
  * (`.topnav` + `<aside class="sidebar">`), ported inline as JSX.
  *
  * The original was a large imperative script that built message DOM nodes with

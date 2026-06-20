@@ -3,8 +3,8 @@ import Link from "next/link";
 /**
  * Shared site footer.
  *
- * Faithful port of the `<footer>` block that was byte-identical across the
- * marketing/auth pages. Internal links with a local route use the Next.js
+ * Shared `<footer>` block used across the marketing/auth pages.
+ * Internal links with a local route use the Next.js
  * route; external/legal links keep pointing at the live site, matching the
  * original generator's link-rewrite rules.
  */

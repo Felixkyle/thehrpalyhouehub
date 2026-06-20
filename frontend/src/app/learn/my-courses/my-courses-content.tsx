@@ -12,7 +12,7 @@ import "./my-courses.css";
 /**
  * My Courses dashboard.
  *
- * Faithful port of my-courses.html. The original was static markup driven by a
+ * The original was static markup driven by a
  * few imperative scripts:
  *
  *  - `filter()` toggled `card.style.display` by `data-status`; now `filter`

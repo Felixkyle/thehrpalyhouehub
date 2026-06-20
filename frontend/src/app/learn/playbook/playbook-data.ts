@@ -1,8 +1,7 @@
 /**
  * Typed data model for the 10 Everyday HR Playbook entries.
  *
- * Faithful port of the entry markup in everyday_hr_playbook_v3.html
- * (lines 288–497). Each entry is described as structured data and rendered
+ * Each entry is described as structured data and rendered
  * by the real <Entry> React component in playbook-content.tsx — there is no
  * injected HTML. Text content is byte-faithful to the source; HTML entities
  * are stored as their real characters (— ✓ ✗ ▼ ↓ etc.).

@@ -10,7 +10,7 @@ import "./clockiq.css";
 /**
  * ClockIQ product page.
  *
- * Faithful port of clockiq.html. Standard marketing nav/footer are rendered
+ * Standard marketing nav/footer are rendered
  * via the shared components. All ClockIQ product links point at the live
  * Netlify app and stay plain anchors, matching the original link-rewrite
  * rules.

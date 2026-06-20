@@ -1,6 +1,6 @@
 /* Innovation Lab — page-specific styles.
- * Faithful port of the original innovation-lab.html <style> block, minus the
- * rules already provided globally by design-system.css (:root, * reset,
+ * Page-specific rules only — anything already provided globally by
+ * design-system.css is omitted here (:root, * reset,
  * html/body). This page uses an app-style topnav (not the shared marketing
  * .nav), so its nav/CTA classes are page-unique and kept here. */
 

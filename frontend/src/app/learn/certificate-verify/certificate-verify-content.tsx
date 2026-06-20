@@ -9,7 +9,7 @@ import "./certificate-verify.css";
 /**
  * Certificate verification tool.
  *
- * Faithful port of certificate-verify.html. The original kept a `DEMO_CERTS`
+ * The original kept a `DEMO_CERTS`
  * lookup table and an imperative `verifyCert()`; the lookup is now wired to the
  * real backend via `useCertificateVerify(id)`. The query is enabled only when a
  * submitted id is set, so the controlled input feeds a separate `submittedId`

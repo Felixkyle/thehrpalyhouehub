@@ -9,7 +9,7 @@ import "./partner-register.css";
 /**
  * Partner-register / register-interest page.
  *
- * Faithful port of partner-register.html. This page ships its OWN nav, footer
+ * This page ships its OWN nav, footer
  * and design system (distinct from the shared marketing components), so they
  * are ported inline rather than using <Nav />/<Footer />.
  *

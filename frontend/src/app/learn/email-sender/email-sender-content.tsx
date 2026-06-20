@@ -6,8 +6,7 @@ import "./email-sender.css";
 /**
  * Internal email-template builder (team tool).
  *
- * Faithful port of hrph-email-sender.html. NOTE: despite the task brief, the
- * original page does NOT load EmailJS or any external CDN script — it sends via
+ * NOTE: the original page does NOT load EmailJS or any external CDN script — it sends via
  * a `mailto:` link and gates access with a SHA-256 hash check using the Web
  * Crypto API. There is therefore no external library to load via `next/script`.
  *

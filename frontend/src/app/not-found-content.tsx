@@ -9,7 +9,7 @@ import "./not-found.css";
 /**
  * 404 / page-not-found screen.
  *
- * Faithful port of 404.html. The original used an inline `doSearch()` script
+ * The original used an inline `doSearch()` script
  * plus an `onkeydown` attribute that read the input by id; that imperative DOM
  * code is now a controlled input with a React `search()` handler. Behaviour is
  * unchanged: a non-empty trimmed query redirects to the LMS site search.

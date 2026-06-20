@@ -6,8 +6,8 @@ import { useState } from "react";
 /**
  * Shared marketing navigation bar.
  *
- * Faithful port of the `<nav class="nav">` block that was byte-identical
- * across the marketing/auth pages. The original toggled the mobile menu with
+ * Shared `<nav class="nav">` block used across the marketing/auth pages.
+ * The original toggled the mobile menu with
  * an inline `onclick` that did `classList.toggle('open')`; that imperative DOM
  * call is now React state.
  *

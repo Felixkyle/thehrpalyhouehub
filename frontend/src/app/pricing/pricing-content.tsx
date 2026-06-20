@@ -11,7 +11,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 /**
  * Pricing (September 2026).
  *
- * Faithful port of pricing_sep2026.html. The original used global `cur` /
+ * The original used global `cur` /
  * `bill` variables with `setCur()` / `setBill()` / `render()` mutating price
  * text by id. That is now `cur` / `bill` state; the price strings are derived
  * exactly as `render()` computed them.

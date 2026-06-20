@@ -9,7 +9,7 @@ import "./home.css";
 /**
  * HR Playhouse Hub — homepage.
  *
- * Faithful port of hrplayhousehub_v7.html. Behaviours rewritten:
+ * Behaviours rewritten from the original static page:
  *  - `showQA(type)` becomes React state for the sample-question explanation block.
  *  - `showSnap(level)` becomes React state for the self-assessment result panel.
  *  - The original sticky-nav `.scrolled`/`.top` toggle and the IntersectionObserver

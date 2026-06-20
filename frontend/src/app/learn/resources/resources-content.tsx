@@ -10,7 +10,7 @@ import "./resources.css";
 /**
  * Resources Library.
  *
- * Faithful port of 08_resources_library.html, now wired to the real backend.
+ * Wired to the real backend.
  * The category filter + search box drive `useResources({ category, q })`; the
  * server returns the matching `Resource[]`. The "submit a resource" strip is a
  * real form posting through `useSubmitResource()`.

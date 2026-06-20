@@ -12,7 +12,7 @@ import "./dashboard.css";
 /**
  * Learner dashboard.
  *
- * Faithful port of 02_dashboard.html, now wired to the real backend via
+ * Wired to the real backend via
  * `useDashboard()` ({ user, stats, levels, recent_activity, badges }). The
  * static demo content has been replaced with live data; the visual markup and
  * CSS classes are preserved.

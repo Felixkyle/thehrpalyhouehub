@@ -1,8 +1,7 @@
 /**
  * Typed data model for the 32 HR Playhouse Hub Case Study Vault cases.
  *
- * Faithful port of the modal blocks in case_study_vault_v2.html (lines
- * 1078–2549). Cards and modals share the same source data: each case has
+ * Source data for the case-study cards and modals. Each case has
  * an id, topic, difficulty, industry, title, organisation, short preview,
  * a "featured" flag, the modal-topic label, plus the six body sections
  * (scenario, challenge, pauseQs, outcomes, lessons, appqs). Rendered by
