@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import "./innovation-lab.css";
 import {
   useForumPosts,
@@ -428,9 +429,12 @@ export default function InnovationLabContent() {
         <div className="nav-sep" />
         <div className="nav-title">Virtual Innovation Lab</div>
         <div className="nav-links">
-          <a className="tnl" href="/learn/dashboard">Dashboard</a>
-          <a className="tnl" href="/learn/my-courses">Courses</a>
-          <a className="tnl" href="/learn/ai-support">AI Support</a>
+          <Link className="tnl" href="/learn/dashboard">Dashboard</Link>
+          <Link className="tnl" href="/learn/my-courses">Courses</Link>
+          <Link className="tnl" href="/learn/case-study-vault">Case Studies</Link>
+          <Link className="tnl" href="/learn/playbook">Playbook</Link>
+          <Link className="tnl" href="/learn/resources">Resources</Link>
+          <Link className="tnl" href="/learn/ai-support">AI Support</Link>
         </div>
         <a
           className="nav-cta"

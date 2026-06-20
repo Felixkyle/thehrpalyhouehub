@@ -118,7 +118,7 @@ function signoff(tone?: string): string {
 function footer(): string {
   return [
     '<div class="e-footer">',
-    '  <div class="e-footer-links"><a href="https://www.thehrplayhousehub.org/">Website</a><a href="/learn/my-courses">Courses</a><a href="/learn/case-study-vault/">Case Studies</a><a href="/learn/ai-support">AI Support</a></div>',
+    '  <div class="e-footer-links"><a href="https://www.thehrplayhousehub.org/">Website</a><a href="/learn/my-courses">Courses</a><a href="/learn/case-study-vault">Case Studies</a><a href="/learn/ai-support">AI Support</a></div>',
     '  <div class="e-footer-addr">The HR Playhouse Hub Limited · RC 8387672 · thehrplayhousehub.org · contact@thehrplayhousehub.org</div>',
     '  <div class="e-footer-unsub">You are receiving this because you are a member or enquirer of HR Playhouse Hub.<br><a href="https://www.thehrplayhousehub.org/preferences/">Manage preferences</a> · <a href="https://www.thehrplayhousehub.org/unsubscribe/">Unsubscribe</a></div>',
     "</div>",
@@ -512,7 +512,7 @@ function EmailFooter() {
       <div className="e-footer-links">
         <a href="https://www.thehrplayhousehub.org/">Website</a>
         <a href="/learn/my-courses">Courses</a>
-        <a href="/learn/case-study-vault/">
+        <a href="/learn/case-study-vault">
           Case Studies
         </a>
         <a href="/learn/ai-support">

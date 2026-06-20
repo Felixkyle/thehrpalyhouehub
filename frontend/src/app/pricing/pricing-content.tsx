@@ -172,18 +172,12 @@ export default function PricingContent() {
         </a>
         <div className="nav-sep" />
         <div className="nav-links">
-          <a
-            className="nav-link"
-            href="/learn/my-courses"
-          >
+          <Link className="nav-link" href="/learn/my-courses">
             Courses
-          </a>
-          <a
-            className="nav-link"
-            href="/learn/case-study-vault/"
-          >
+          </Link>
+          <Link className="nav-link" href="/learn/case-study-vault">
             Case Studies
-          </a>
+          </Link>
           <Link className="nav-link" href="/learn/resources">
             Resources
           </Link>

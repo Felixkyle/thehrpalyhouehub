@@ -202,12 +202,9 @@ export default function ResourcesContent() {
         </a>
         <div className="nav-sep" />
         <div className={`nav-links${navOpen ? " open" : ""}`}>
-          <a
-            className="nav-link"
-            href="/learn/my-courses"
-          >
+          <Link className="nav-link" href="/learn/my-courses">
             Courses
-          </a>
+          </Link>
           <Link className="nav-link" href="/learn/case-study-vault">
             Case Studies
           </Link>

@@ -3,6 +3,7 @@
 /* eslint-disable react/no-unescaped-entities */
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useSubmitFinalProject, useCourses, useCompleteItem } from "@/lib/hooks";
 import type { CourseLevel } from "@/lib/api/types";
 import { ApiError } from "@/lib/api/client";
@@ -344,12 +345,13 @@ export default function LearningModuleContent() {
           <div className="bn-sep"></div>
           <div className="bn-page" id="bn-page-title">HR Learning Module</div>
           <div className="bn-links">
-            <a className="bn-link" href="https://thehrplayhousehub.org/dashboard/">Dashboard</a>
-            <a className="bn-link" href="https://thehrplayhousehub.org/courses2/">Courses</a>
-            <a className="bn-link" href="https://thehrplayhousehub.org/case-study-vault/">Case Studies</a>
-            <a className="bn-link" href="https://thehrplayhousehub.org/playbook/">Playbook</a>
-            <a className="bn-link" href="https://thehrplayhousehub.org/virtual-innovation-lab/">Innovation Lab</a>
-            <a className="bn-link" href="https://thehrplayhousehub.org/hr-support/">AI Support</a>
+            <Link className="bn-link" href="/learn/dashboard">Dashboard</Link>
+            <Link className="bn-link" href="/learn/my-courses">Courses</Link>
+            <Link className="bn-link" href="/learn/case-study-vault">Case Studies</Link>
+            <Link className="bn-link" href="/learn/playbook">Playbook</Link>
+            <Link className="bn-link" href="/learn/resources">Resources</Link>
+            <Link className="bn-link" href="/learn/innovation-lab">Innovation Lab</Link>
+            <Link className="bn-link" href="/learn/ai-support">AI Support</Link>
           </div>
           <a className="bn-cta" href="https://www.thehrplayhousehub.org/">Main site</a>
         </nav>

@@ -350,14 +350,17 @@ export default function AiSupportContent() {
           <Link className="tnl" href="/learn/dashboard">
             Dashboard
           </Link>
-          <a
-            className="tnl"
-            href="/learn/my-courses"
-          >
+          <Link className="tnl" href="/learn/my-courses">
             Courses
-          </a>
+          </Link>
+          <Link className="tnl" href="/learn/case-study-vault">
+            Case Studies
+          </Link>
           <Link className="tnl" href="/learn/playbook">
             Playbook
+          </Link>
+          <Link className="tnl" href="/learn/resources">
+            Resources
           </Link>
         </div>
         <div className="nav-right">

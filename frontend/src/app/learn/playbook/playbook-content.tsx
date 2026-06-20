@@ -559,17 +559,17 @@ export default function PlaybookContent() {
           <Link className="bn-link" href="/learn/dashboard">
             Dashboard
           </Link>
-          <a
-            className="bn-link"
-            href="/learn/my-courses"
-          >
+          <Link className="bn-link" href="/learn/my-courses">
             Courses
-          </a>
+          </Link>
           <Link className="bn-link" href="/learn/case-study-vault">
             Case Studies
           </Link>
           <Link className="bn-link" href="/learn/playbook">
             Playbook
+          </Link>
+          <Link className="bn-link" href="/learn/resources">
+            Resources
           </Link>
           <Link className="bn-link" href="/learn/innovation-lab">
             Innovation Lab

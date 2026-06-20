@@ -140,14 +140,17 @@ export default function DashboardContent() {
         <Link className="tnl active" href="/learn/dashboard">
           Dashboard
         </Link>
-        <a className="tnl" href="/learn/my-courses">
+        <Link className="tnl" href="/learn/my-courses">
           Courses
-        </a>
+        </Link>
         <Link className="tnl" href="/learn/case-study-vault">
           Case Studies
         </Link>
         <Link className="tnl" href="/learn/playbook">
           Playbook
+        </Link>
+        <Link className="tnl" href="/learn/resources">
+          Resources
         </Link>
         <Link className="tnl" href="/learn/innovation-lab">
           Innovation Lab
@@ -367,12 +370,12 @@ export default function DashboardContent() {
               </div>{" "}
               My Dashboard
             </Link>
-            <a className="sn-item" href="/learn/my-courses">
+            <Link className="sn-item" href="/learn/my-courses">
               <div className="sn-icon" style={{ background: "#E8ECF4" }}>
                 🎓
               </div>{" "}
               My Courses
-            </a>
+            </Link>
             <Link className="sn-item" href="/learn/case-study-vault">
               <div className="sn-icon" style={{ background: "#FDF4DD" }}>
                 📚
@@ -385,6 +388,12 @@ export default function DashboardContent() {
                 📖
               </div>{" "}
               HR Playbook
+            </Link>
+            <Link className="sn-item" href="/learn/resources">
+              <div className="sn-icon" style={{ background: "#FDF4DD" }}>
+                🧰
+              </div>{" "}
+              Resources
             </Link>
             <Link className="sn-item" href="/learn/innovation-lab">
               <div className="sn-icon" style={{ background: "#FAF0EB" }}>

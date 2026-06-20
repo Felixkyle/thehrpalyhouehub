@@ -102,10 +102,10 @@ const CERTS: Record<string, Cert> = {
   },
 };
 
-function buildCertHTML(certKey: string, userName?: string) {
+function buildCertHTML(certKey: string, userName?: string, issuedDate?: string) {
   const c = CERTS[certKey];
   const name = userName || "Ada Okonkwo";
-  const issued = c.date || "Date of Issue";
+  const issued = issuedDate || c.date || "Date of Issue";
   const borderColor = c.color;
   const isProg = c.programme;
 
@@ -239,14 +239,16 @@ function buildCertHTML(certKey: string, userName?: string) {
 function CertificatePreview({
   certKey,
   userName = "Ada Okonkwo",
+  issuedDate,
 }: {
   certKey: string;
   userName?: string;
+  issuedDate?: string;
 }) {
   const c = CERTS[certKey];
   if (!c) return null;
 
-  const issued = c.date || "Date of Issue";
+  const issued = issuedDate || c.date || "Date of Issue";
   const isProg = c.programme;
   const cornerStyle = {
     position: "absolute" as const,
@@ -473,9 +475,9 @@ function CertificatePreview({
   );
 }
 
-function printCert(certKey: string) {
+function printCert(certKey: string, userName?: string, issuedDate?: string) {
   const key = certKey || "l1";
-  const certHTML = buildCertHTML(key, "Ada Okonkwo");
+  const certHTML = buildCertHTML(key, userName, issuedDate);
   const win = window.open("", "_blank");
   if (!win) return;
   win.document.write(
@@ -823,12 +825,19 @@ export default function MyCoursesContent() {
   const certLevelToKey = (lvl: Certificate["level"]): string =>
     lvl === "full" ? "programme" : `l${lvl}`;
 
-  // Lookup keyed by CERTS key → { status, issued_at } from the API.
-  const certStatusByKey: Record<string, { status: Certificate["status"]; issued_at: string | null }> = {};
+  // Lookup keyed by CERTS key → { status, issued_at, learner_name } from the
+  // API. `issued_at` is the real moment the certificate was issued and
+  // `learner_name` is the learner's name captured at that moment — both are
+  // what must appear on the printed certificate.
+  const certStatusByKey: Record<
+    string,
+    { status: Certificate["status"]; issued_at: string | null; learner_name: string }
+  > = {};
   for (const c of certsData?.certificates ?? []) {
     certStatusByKey[certLevelToKey(c.level)] = {
       status: c.status,
       issued_at: c.issued_at,
+      learner_name: c.learner_name,
     };
   }
 
@@ -839,24 +848,38 @@ export default function MyCoursesContent() {
     (c) => c.status === "earned",
   ).length;
 
-  // Format an ISO issued_at as "Month YYYY"; falls back to the CERTS date.
+  // Format the real issued_at as the exact day it was issued — e.g.
+  // "20 June 2026". Falls back to the static CERTS date only when the API has
+  // no date (cert not yet earned / still loading).
   const fmtIssued = (key: string): string => {
     const iso = certStatusByKey[key]?.issued_at;
     if (iso) {
       const d = new Date(iso);
       if (!Number.isNaN(d.getTime())) {
-        return d.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+        return d.toLocaleDateString(undefined, {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        });
       }
     }
     return CERTS[key]?.date || "";
   };
 
+  const userName = meUser?.display_name || "there";
+  // Name printed on the certificate — must be the logged-in learner's real
+  // name. Falls back to the template default only when no user is loaded.
+  const certName = meUser?.display_name || "Ada Okonkwo";
+  const userInitials = meUser ? initialsOf(meUser.display_name) : "?";
+
+  // The name to print on a given certificate: prefer the name captured on the
+  // issued certificate record, fall back to the logged-in user's display name.
+  const certNameFor = (key: string): string =>
+    certStatusByKey[key]?.learner_name || certName;
+
   // Is a given CERTS key earned per the API? (defaults to locked).
   const isCertEarned = (key: string): boolean =>
     certStatusByKey[key]?.status === "earned";
-
-  const userName = meUser?.display_name || "there";
-  const userInitials = meUser ? initialsOf(meUser.display_name) : "?";
 
   // Sidebar profile line: "<job title> · <country>" from the real user.
   const userRole = meUser
@@ -951,18 +974,15 @@ export default function MyCoursesContent() {
           <Link className="tnl active" href="/learn/my-courses">
             My Courses
           </Link>
-          <a
-            className="tnl"
-            href="/learn/case-study-vault/"
-          >
+          <Link className="tnl" href="/learn/case-study-vault">
             Case Studies
-          </a>
-          <a
-            className="tnl"
-            href="/learn/playbook/"
-          >
+          </Link>
+          <Link className="tnl" href="/learn/playbook">
             Playbook
-          </a>
+          </Link>
+          <Link className="tnl" href="/learn/resources">
+            Resources
+          </Link>
           <Link className="tnl" href="/learn/innovation-lab">
             Innovation Lab
           </Link>
@@ -1047,25 +1067,25 @@ export default function MyCoursesContent() {
               </div>
               My Courses
             </Link>
-            <a
-              className="sn-item"
-              href="/learn/case-study-vault/"
-            >
+            <Link className="sn-item" href="/learn/case-study-vault">
               <div className="sn-icon" style={{ background: "#FDF4DD" }}>
                 📚
               </div>
               Case Studies
               <span className="sn-badge">32</span>
-            </a>
-            <a
-              className="sn-item"
-              href="/learn/playbook/"
-            >
+            </Link>
+            <Link className="sn-item" href="/learn/playbook">
               <div className="sn-icon" style={{ background: "#E8ECF4" }}>
                 📖
               </div>
               HR Playbook
-            </a>
+            </Link>
+            <Link className="sn-item" href="/learn/resources">
+              <div className="sn-icon" style={{ background: "#FDF4DD" }}>
+                🧰
+              </div>
+              Resources
+            </Link>
             <Link className="sn-item" href="/learn/innovation-lab">
               <div className="sn-icon" style={{ background: "#FAF0EB" }}>
                 🔬
@@ -1078,22 +1098,6 @@ export default function MyCoursesContent() {
               </div>
               AI HR Support
             </Link>
-          </div>
-
-          <div className="dev-note">
-            <div className="dev-note-title">🔧 Stephen — Integration Note</div>
-            <div className="dev-note-body">
-              TutorLMS REST endpoints needed:
-              <br />
-              <br />• User: <code>/wp-json/wp/v2/users/me</code>
-              <br />• Progress:{" "}
-              <code>/wp-json/tutor/v1/course-progress/{"{id}"}</code>
-              <br />• Enrolled: <code>/wp-json/tutor/v1/enrolled-courses</code>
-              <br />
-              <br />
-              Set course IDs + URLs in the CONFIG block in the &lt;script&gt;.
-              JWT token from <code>localStorage.hrph_token</code>.
-            </div>
           </div>
         </aside>
 
@@ -1330,7 +1334,7 @@ export default function MyCoursesContent() {
                           }}
                           onClick={(e) => {
                             e.stopPropagation();
-                            printCert(key);
+                            printCert(key, certNameFor(key), fmtIssued(key));
                           }}
                         >
                           Print / Save
@@ -1467,7 +1471,7 @@ export default function MyCoursesContent() {
                         }}
                         onClick={(e) => {
                           e.stopPropagation();
-                          printCert("programme");
+                          printCert("programme", certNameFor("programme"), fmtIssued("programme"));
                         }}
                       >
                         Print / Save
@@ -1551,7 +1555,13 @@ export default function MyCoursesContent() {
                     }}
                   >
                     <button
-                      onClick={() => printCert(currentCertId)}
+                      onClick={() =>
+                        printCert(
+                          currentCertId,
+                          certNameFor(currentCertId),
+                          fmtIssued(currentCertId),
+                        )
+                      }
                       style={{
                         height: 32,
                         padding: "0 16px",
@@ -1597,7 +1607,8 @@ export default function MyCoursesContent() {
                 >
                   <CertificatePreview
                     certKey={currentCertId}
-                    userName={meUser?.display_name || "Ada Okonkwo"}
+                    userName={certNameFor(currentCertId)}
+                    issuedDate={fmtIssued(currentCertId)}
                   />
                 </div>
               </div>
